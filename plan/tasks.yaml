@@ -1,0 +1,414 @@
+# 机器可读任务板 —— 唯一真相
+#
+# 本文件是【任务 / 归属 / 状态】的机器可读真相。
+# 与其它 Markdown 文档冲突时，以本文件为准。
+# 人读版背景见: docs/三线分工与并行开发规范.md
+# 接口真相（更高优先级）见: 契约-接口.md
+#
+# 状态枚举: todo | doing | review | done | cut
+# 更新规则: 任何人改变任务状态都必须同时改本文件，并在 PR 里说明。
+
+version: 2
+updated: "2026-10-02"
+
+repo:
+  owner: liuchun878
+  name: medbot-sim
+  url: "https://github.com/liuchun878/medbot-sim"
+  visibility: public
+  default_branch: main
+  note: "main 只接受里程碑合并；个人分支 feat/<r|s|h>-<主题>"
+
+# ── 三线 ────────────────────────────────────────────────────────────────────
+team:
+  lines:
+    R:
+      name: 机器人线
+      scope: 机器人本体 + 路径动画 + 长者端面板 + 提示通道
+      duty: 让机器人会动、会说话；主讲 60 秒陈述
+      github: "@TODO-R"      # ← 换成真实 GitHub 用户名
+      budget_hours: 15
+    S:
+      name: 场景线
+      scope: 房间/相机/光照/性能 + 演示时钟 + 装配 main.js + 集成门禁 + 录屏
+      duty: 让世界看得见、让集成不出乱；执行每个里程碑的门禁与演示操作
+      github: "@TODO-S"      # ← 换成真实 GitHub 用户名
+      budget_hours: 16
+    H:
+      name: 人线
+      scope: 王阿姨（3D 人形 + 状态与行为）+ 服药计划 + 事件状态机 + 记录 + 升级 + 家属端 + 契约
+      duty: 让这件事真的成立；起草陈述脚本
+      github: "@liuchun878"  # ← 队长
+      budget_hours: 17
+  lead: H
+
+# 里程碑合并顺序（固定）：依赖单向，装配层最后
+merge_order: [H, R, S]
+
+# 交叉验证环（禁止自我验证）：H 的产出由 R 验，R 的由 S 验，S 的由 H 验
+verification_ring:
+  H: R
+  R: S
+  S: H
+
+gate_executor: S          # 门禁执行人
+contract_owner: H         # 契约变更发起人
+
+# ── 闭环责任矩阵（每个环节都必须有主责，不留无主环节）──────────────────────
+closed_loop_ownership:
+  - { step: 1, name: 计划,       owner: H, assist: [] }
+  - { step: 2, name: 时间,       owner: S, assist: [H] }
+  - { step: 3, name: 到点判定,   owner: H, assist: [S] }
+  - { step: 4, name: 送达,       owner: R, assist: [S, H] }
+  - { step: 5, name: 提示,       owner: R, assist: [H] }
+  - { step: 6, name: 取药确认,   owner: H, assist: [R] }
+  - { step: 7, name: 记录,       owner: H, assist: [] }
+  - { step: 8, name: 升级,       owner: H, assist: [R] }
+  - { step: 9, name: 家属闭环,   owner: H, assist: [] }
+  - { step: 10, name: 装配与门禁, owner: S, assist: [R, H] }
+  - { step: 11, name: 陈述,      owner: R, assist: [H, S] }
+
+# ── 里程碑 ─────────────────────────────────────────────────────────────────
+milestones:
+  - id: M0
+    tag: p0-baseline
+    status: done
+    goal: 仓库骨架与流程就位
+    gate: "本地历史完整；调研产物入库；尚无原型代码"
+  - id: M0.5
+    tag: p0.5-parallel-ready
+    status: doing
+    goal: 契约冻结 + 三线归属 + agent 可读文档 + 仓库设置
+    gate: "契约-接口.md v1.1 与三线一致；AGENTS.md 根/嵌套齐备；plan/tasks.yaml 可用；CODEOWNERS 就位"
+  - id: M1
+    tag: p1-contract-scene
+    status: todo
+    goal: 契约冻结 + 3D 骨架可见 + Three.js 离线验证
+    gate: "页面可见房间/机器人/人形；断网刷新可加载；Network 零外部请求；命令接口空实现已可用"
+    blocks: [D1AM]
+  - id: M2
+    tag: p2-happy-path
+    status: todo
+    goal: 场景 1 端到端（到点→送达→提示→取走→日志）
+    gate: "验收脚本 5 步全过；双时间戳；重复取药被拦截"
+    blocks: [D1PM]
+  - id: M3
+    tag: p3-escalation
+    status: todo
+    goal: 场景 3 升级链路（T+60s 换通道 → T+180s 通知家属 → 三选项 → 时间线）
+    gate: "加速档 60 秒内完成升级；通知文本零补服建议；skipped_known 不计入依从失败"
+    blocks: [D2AM]
+  - id: M4
+    tag: p4-plan-change
+    status: todo
+    goal: 场景 2 方案变更（临时加药 / 到期失效 / 冲突并列 / 暂停不删）
+    gate: "第 8 天自动失效；冲突并列两条原始医嘱；换药后审计链完整"
+    blocks: [D2AM]
+  - id: M5
+    tag: p5-frozen
+    status: todo
+    goal: 适老化走查 + 断网演练 + 演示机预检 → 功能冻结
+    gate: "走查清单全项或登记已知偏差；断网下场景 1/3 可用；WebGL 与中文 TTS 体检通过"
+    blocks: [D2PM1]
+  - id: M6
+    tag: p6-demo
+    status: todo
+    goal: 录屏兜底 + 连排 3 次 + 提交包定版
+    gate: "连排 3 次不失误；三场景录屏各一条（含加速版）；提交清单齐备"
+    blocks: [D2PM2]
+
+# ── 任务（按 12 个半天块）──────────────────────────────────────────────────
+# block 取值: D1AM | D1PM | D2AM | D2PM
+# files: 该任务允许修改的文件（独占所有权，不许跨线改文件）
+tasks:
+  # ═══ H · 人线（队长）═══
+  - id: H0
+    title: 命令接口空实现先行提交
+    line: H
+    block: D1AM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/store.js]
+    depends_on: []
+    acceptance: "store.getState() 返回含空数组的合法 StateSnapshot；store.subscribe() 可用"
+    why: "R 与 S 必须立刻能开工，否则整个上午空等"
+    status: todo
+  - id: H1
+    title: store.js + plan.js（服药计划：录入/变更/有效期/暂停不删）
+    line: H
+    block: D1AM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/store.js, prototype/js/plan.js]
+    depends_on: [H0]
+    acceptance: "计划可增删改；temporary 到期自动 paused；pause 不删除记录"
+    cut_first: "有效期自动失效 → 先做手动暂停"
+    status: todo
+  - id: H2
+    title: presence.js（人的状态：在家/客厅/卧室/出门/安静时段）
+    line: H
+    block: D1PM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/presence.js]
+    depends_on: [H1]
+    acceptance: "presence.setLocation 生效；away 等价 home:false"
+    status: todo
+  - id: H3
+    title: schedule.js（到点判定：计划时段 × 时钟 × 在场 × 安静时段）
+    line: H
+    block: D1PM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/schedule.js]
+    depends_on: [H1, H2]
+    acceptance: "推进演示时钟能触发 notifying；不在家/安静时段走 defer 并记原因"
+    status: todo
+  - id: H4
+    title: person.js（3D 人形 + 位置姿态跟随 state）
+    line: H
+    block: D1PM
+    milestone: M1
+    priority: P1
+    files: [prototype/js/person.js]
+    depends_on: [H2]
+    acceptance: "人形出现在 presence.location；坐/躺/出门三态可见"
+    cut_first: "姿态动画 → 只留位置跟随"
+    status: todo
+  - id: H5
+    title: machine.js（事件状态机 S0–S3 + 异常分支）
+    line: H
+    block: D2AM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/machine.js]
+    depends_on: [H3]
+    acceptance: "按契约 §5 转移表逐条成立；missed 文案为「未确认」不得写「未服用」"
+    status: todo
+  - id: H6
+    title: log.js（追加式记录 + 双时间戳 + JSON 导出）
+    line: H
+    block: D2AM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/log.js]
+    depends_on: [H5]
+    acceptance: "每条事件含 occurredAtDemo 与 occurredAtReal；导出可用"
+    status: todo
+  - id: H7
+    title: escalate.js（T+60s 换通道换措辞 → T+180s 通知家属 → 冷却去重 → 三选项 → skipped_known）
+    line: H
+    block: D2PM
+    milestone: M3
+    priority: P0
+    files: [prototype/js/escalate.js]
+    depends_on: [H5, H6]
+    acceptance: "加速档 60 秒内完成升级；通知 text 零补服建议；known_out 不计依从失败"
+    cut_first: "冷却合并 → 只做单条去重"
+    status: todo
+  - id: H8
+    title: family.js（家属端：计划变更 / 通知三选项 / 时间线）
+    line: H
+    block: D2PM
+    milestone: M4
+    priority: P0
+    files: [prototype/js/family.js]
+    depends_on: [H1, H7]
+    acceptance: "新增临时加药立即生效；时段冲突并列两条原始医嘱不做取舍"
+    cut_first: "时间线回放 → 日志列表 + JSON 导出"
+    status: todo
+  - id: H9
+    title: 契约维护与冻结（review 三人意见，11:00 冻结）
+    line: H
+    block: D1AM
+    milestone: M1
+    priority: P0
+    files: [契约-接口.md]
+    depends_on: []
+    acceptance: "契约 v1.1 与实现一致；冻结后只加字段不改语义"
+    status: todo
+  - id: H10
+    title: 陈述脚本与简报卡起草（60 秒 + 5 分钟）
+    line: H
+    block: D2PM
+    milestone: M6
+    priority: P1
+    files: [docs/演示脚本.md, docs/简报卡.md]
+    depends_on: [H7]
+    acceptance: "脚本含三个场景的转折与三个主动承认的缺口"
+    status: todo
+
+  # ═══ R · 机器人线 ═══
+  - id: R1
+    title: index.html + CSS 叠层骨架 + 适老化硬数值 + 留挂载点
+    line: R
+    block: D1AM
+    milestone: M1
+    priority: P0
+    files: [prototype/index.html, prototype/css/hud.css]
+    depends_on: []
+    acceptance: "留出 #scene 与 #hud；对比度 ≥4.5:1；点击目标 ≥60×60；100% 缩放不裁切"
+    status: todo
+  - id: R2
+    title: robot.js 本体（底盘 + 机身 + 药盘 + 发光环）+ 状态可视化
+    line: R
+    block: D1PM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/robot.js]
+    depends_on: [R1]
+    acceptance: "robot.update(state, dt) 是 state 的纯函数；按 activeEventId 切换状态"
+    cut_first: "发光环与细节 → 单个方块（功能不受影响）"
+    status: todo
+  - id: R3
+    title: 路径动画（waypoint 折线 + 缓动 + 到点朝向 + 约 1.2 m/s）+ 药盘抬升
+    line: R
+    block: D2AM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/robot.js]
+    depends_on: [R2]
+    acceptance: "改 presence.location 机器人走到正确位置；动作连贯无穿模"
+    status: todo
+  - id: R4
+    title: hud.js 长者端面板（大字 + 药格灯 + 一键确认 + 防重复）
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/hud.js]
+    depends_on: [R1, H5]
+    acceptance: "文字为「已取走/已记录/未确认」，出现「已服下」即判不通过"
+    status: todo
+  - id: R5
+    title: audio.js（语音 speechSynthesis + 预录音频兜底 + 低频提示音 + 灯效）
+    line: R
+    block: D2PM
+    milestone: M3
+    priority: P0
+    files: [prototype/js/audio.js]
+    depends_on: [R4]
+    acceptance: "TTS 不可用时静默降级为大字 + 低频音；提示音为低频而非 3100 Hz 高频"
+    cut_first: "灯效 → 只留提示音与大字"
+    status: todo
+  - id: R6
+    title: 适老化走查（契约 §9 清单逐条）
+    line: R
+    block: D2PM
+    milestone: M5
+    priority: P0
+    files: [prototype/css/hud.css, docs/演示机预检.md]
+    depends_on: [R4, R5]
+    acceptance: "清单全项打钩，或把未达标项登记为已知偏差（不许隐瞒）"
+    status: todo
+  - id: R7
+    title: 主讲连排 3 次
+    line: R
+    block: D2PM
+    milestone: M6
+    priority: P0
+    files: []
+    depends_on: [H10]
+    acceptance: "连排 3 次不失误；主讲不兼任演示操作"
+    status: todo
+
+  # ═══ S · 场景线 ═══
+  - id: S1
+    title: scene3d.js 骨架（renderer/camera/循环/resize）+ WebGL 检测与 2D 降级入口
+    line: S
+    block: D1AM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/scene3d.js, prototype/js/scene2d.js]
+    depends_on: []
+    acceptance: "能渲染空场景；WebGL 不可用时切 scene2d 且功能不减"
+    status: todo
+  - id: S2
+    title: vendor Three.js 两个文件 + 断网验证
+    line: S
+    block: D1AM
+    milestone: M1
+    priority: P0
+    files: [prototype/vendor/**, prototype/index.html]
+    depends_on: []
+    acceptance: "three.module.js + three.core.js 本地加载；DevTools Offline 刷新完整可用；零外部请求"
+    note: "0.186.1 已无 UMD 构建，实测 three.min.js 404"
+    status: todo
+  - id: S3
+    title: room.js 房间与分区（客厅/卧室/餐桌·厨房台面）+ 相机光照
+    line: S
+    block: D1PM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/room.js]
+    depends_on: [S1]
+    acceptance: "三个功能区可辨识；相机固定等距斜俯视"
+    cut_first: "家具细节 → 分区色块"
+    status: todo
+  - id: S4
+    title: clock.js 演示时钟（1/60x/600x、直接设时钟、复位）
+    line: S
+    block: D1PM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/clock.js]
+    depends_on: [S1]
+    acceptance: "推进时钟能触发 H 的到点判定；加速档可切"
+    status: todo
+  - id: S5
+    title: main.js 装配 + 订阅 + 调试抽屉（时间/在场/离线/复位）
+    line: S
+    block: D2AM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/main.js]
+    depends_on: [S3, S4, R2, H3]
+    acceptance: "store.subscribe 驱动 hud/scene/person render；调试抽屉默认隐藏；一键复位可用"
+    status: todo
+  - id: S6
+    title: 场景 API 交付（addActor / setActorPosition / getWaypoint / render）
+    line: S
+    block: D2AM
+    milestone: M1
+    priority: P0
+    files: [prototype/js/scene3d.js]
+    depends_on: [S3]
+    acceptance: "H 的人形能挂进场景并跟随位置；R 的机器人能取到路径点"
+    status: todo
+  - id: S7
+    title: 性能与适配（pixelRatio 上限 2、关阴影、>=30 FPS）
+    line: S
+    block: D2PM
+    milestone: M5
+    priority: P1
+    files: [prototype/js/scene3d.js]
+    depends_on: [S5]
+    acceptance: "演示机实测 ≥30 FPS；掉帧先关阴影再降分辨率"
+    status: todo
+  - id: S8
+    title: 集成门禁执行 + 双屏调度
+    line: S
+    block: D2PM
+    milestone: M5
+    priority: P0
+    files: [scripts/**, .github/**, CODEOWNERS]
+    depends_on: []
+    acceptance: "每个里程碑按 DoD 7 条验收；双屏（主屏 + 家属端）可同时运行"
+    status: todo
+  - id: S9
+    title: 录屏兜底（三场景 + 加速版）+ 演示机预检
+    line: S
+    block: D2PM
+    milestone: M6
+    priority: P0
+    files: [recordings/**, docs/演示机预检.md]
+    depends_on: [S7]
+    acceptance: "三场景各一条录屏；预检清单含 WebGL 与中文 TTS 体检"
+    status: todo
+
+# ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
+critical_sync:
+  at: D1AM
+  must_finish_first: H0
+  why: "R 与 S 依赖命令接口存在；空实现即可，不必完整逻辑"
+  fallback: "若 H0 延后，R 与 S 先按契约写接入代码 + 用假数据自测，不空等"

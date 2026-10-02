@@ -32,3 +32,6 @@ credentials*
 # 演示临时产物
 prototype/.server.pid
 recordings/*.tmp
+
+# 本地校验工具（临时安装，不入库）
+.tools/
