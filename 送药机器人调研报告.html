@@ -1,0 +1,2547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>送药机器人 · 立项调研报告 ｜ Team4</title>
+<meta name="description" content="面向独居且具行动能力老年人的按时服药提醒/送药机器人 —— 学界研究、业界产品、用户特征、场景机制、交互设计与三天落地分工的深度调研。">
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --bg:#f6f7f9;
+  --bg-elev:#ffffff;
+  --bg-sunken:#eef1f5;
+  --ink:#141a21;
+  --ink-2:#3d4956;
+  --ink-3:#6b7785;
+  --line:#dde3ea;
+  --line-2:#c8d1dc;
+  --brand:#0f6fb8;
+  --brand-2:#0a5794;
+  --brand-soft:#e8f2fa;
+  --accent:#c2410c;
+  --accent-soft:#fdf0e6;
+  --ok:#15803d;
+  --ok-soft:#e9f6ee;
+  --warn:#a16207;
+  --warn-soft:#fdf6e3;
+  --danger:#b91c1c;
+  --danger-soft:#fdeceb;
+  --t1:#0f6fb8; --t1-bg:#e8f2fa;
+  --t2:#15803d; --t2-bg:#e9f6ee;
+  --t3:#a16207; --t3-bg:#fdf6e3;
+  --t4:#b91c1c; --t4-bg:#fdeceb;
+  --radius:14px;
+  --radius-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.18);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --maxw:1220px;
+  --nav-w:250px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#11161c; --bg-elev:#181f27; --bg-sunken:#0d1218;
+    --ink:#e8edf3; --ink-2:#b6c1cd; --ink-3:#8b97a4;
+    --line:#28323d; --line-2:#37424f;
+    --brand:#5aa9e6; --brand-2:#7fbef0; --brand-soft:#152a3a;
+    --accent:#fb923c; --accent-soft:#33210f;
+    --ok:#4ade80; --ok-soft:#122a1b;
+    --warn:#facc15; --warn-soft:#2e2712;
+    --danger:#f87171; --danger-soft:#33191a;
+    --t1:#5aa9e6; --t1-bg:#152a3a;
+    --t2:#4ade80; --t2-bg:#122a1b;
+    --t3:#facc15; --t3-bg:#2e2712;
+    --t4:#f87171; --t4-bg:#33191a;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:1.5rem}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--font); font-size:17px; line-height:1.78;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px}
+
+/* ============ 布局 ============ */
+.layout{display:grid; grid-template-columns:var(--nav-w) minmax(0,1fr); gap:38px; align-items:start; padding-bottom:80px}
+nav.toc{position:sticky; top:22px; max-height:calc(100vh - 44px); overflow-y:auto; padding:18px 4px 18px 0; font-size:14.5px}
+nav.toc ol{list-style:none; margin:0; padding:0; counter-reset:toc}
+nav.toc li{margin:0}
+nav.toc a{
+  display:block; padding:7px 12px; color:var(--ink-2); text-decoration:none;
+  border-left:2px solid transparent; border-radius:0 var(--radius-sm) var(--radius-sm) 0; line-height:1.45;
+}
+nav.toc a:hover{background:var(--bg-sunken); color:var(--ink)}
+nav.toc a.active{border-left-color:var(--brand); color:var(--brand); background:var(--brand-soft); font-weight:600}
+nav.toc .toc-title{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); padding:0 12px 10px; font-weight:700}
+
+/* ============ 页头 ============ */
+header.hero{
+  background:linear-gradient(160deg,var(--brand-2),var(--brand) 55%,#1a86c9);
+  color:#fff; padding:52px 0 40px; margin-bottom:34px;
+  border-bottom:1px solid rgba(255,255,255,.15);
+}
+header.hero .kicker{font-size:13px; letter-spacing:.18em; text-transform:uppercase; opacity:.85; margin:0 0 12px}
+header.hero h1{margin:0 0 14px; font-size:clamp(27px,4.4vw,42px); line-height:1.22; letter-spacing:-.01em}
+header.hero p.lede{margin:0; font-size:clamp(15px,1.7vw,18px); opacity:.94; max-width:74ch; line-height:1.7}
+.hero-meta{display:flex; flex-wrap:wrap; gap:9px; margin-top:24px}
+.hero-meta span{
+  background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25);
+  padding:5px 12px; border-radius:999px; font-size:13.5px; backdrop-filter:blur(4px);
+}
+
+/* ============ 章节 ============ */
+section{scroll-margin-top:20px; margin:0 0 56px}
+h2{
+  font-size:clamp(21px,2.6vw,27px); margin:0 0 6px; letter-spacing:-.01em; line-height:1.3;
+  display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+}
+h2 .num{
+  font-size:13px; font-weight:700; color:var(--brand); background:var(--brand-soft);
+  border:1px solid var(--line); border-radius:7px; padding:2px 9px; letter-spacing:.06em; flex:none;
+}
+h3{font-size:19px; margin:34px 0 10px; letter-spacing:-.005em}
+h4{font-size:16.5px; margin:22px 0 8px; color:var(--ink)}
+h2 + .sub{color:var(--ink-3); font-size:15px; margin:0 0 20px}
+p{margin:0 0 14px}
+a{color:var(--brand); text-decoration-thickness:1px; text-underline-offset:2px}
+a:hover{color:var(--brand-2)}
+ul,ol{margin:0 0 14px; padding-left:1.35em}
+li{margin:0 0 7px}
+strong{font-weight:650}
+code{font-family:var(--mono); font-size:.9em; background:var(--bg-sunken); padding:1.5px 6px; border-radius:5px; border:1px solid var(--line)}
+
+/* ============ 组件 ============ */
+.card{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); padding:22px 24px; box-shadow:var(--shadow); margin:0 0 18px}
+.card > :last-child{margin-bottom:0}
+.card h3:first-child, .card h4:first-child{margin-top:0}
+
+.grid{display:grid; gap:16px}
+.grid.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.grid.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.grid.g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+
+.kpi{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow)}
+.kpi .v{font-size:clamp(24px,3vw,32px); font-weight:700; color:var(--brand); line-height:1.15; letter-spacing:-.02em}
+.kpi .v small{font-size:.5em; font-weight:600; color:var(--ink-3); margin-left:3px}
+.kpi .k{font-size:14px; color:var(--ink-2); margin-top:7px; line-height:1.5}
+.kpi .src{font-size:12.5px; color:var(--ink-3); margin-top:7px; line-height:1.45}
+
+table{width:100%; border-collapse:collapse; margin:0 0 18px; font-size:15px; background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden}
+.table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 0 18px; border-radius:var(--radius)}
+.table-wrap table{margin:0; min-width:560px}
+th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.6}
+th{background:var(--bg-sunken); font-weight:650; font-size:14px; color:var(--ink-2); white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg-sunken)}
+
+.badge{display:inline-block; font-size:12.5px; font-weight:650; padding:2px 9px; border-radius:999px; border:1px solid transparent; white-space:nowrap; line-height:1.6}
+.t1{color:var(--t1); background:var(--t1-bg); border-color:var(--t1)}
+.t2{color:var(--t2); background:var(--t2-bg); border-color:var(--t2)}
+.t3{color:var(--t3); background:var(--t3-bg); border-color:var(--t3)}
+.t4{color:var(--t4); background:var(--t4-bg); border-color:var(--t4)}
+.cf{color:var(--brand); background:var(--brand-soft); border-color:var(--brand)}
+.cf-est{color:var(--ok); background:var(--ok-soft); border-color:var(--ok)}
+.cf-lik{color:var(--brand); background:var(--brand-soft); border-color:var(--brand)}
+.cf-eme{color:var(--warn); background:var(--warn-soft); border-color:var(--warn)}
+.cf-con{color:var(--accent); background:var(--accent-soft); border-color:var(--accent)}
+.cf-spe{color:var(--danger); background:var(--danger-soft); border-color:var(--danger)}
+/* v2 核验标记 */
+.cf-fix{color:#ffffff; background:#b91c1c; border-color:#b91c1c}
+.cf-new{color:#ffffff; background:#0f6fb8; border-color:#0f6fb8}
+.cf-ok{color:#ffffff; background:#15803d; border-color:#15803d}
+
+.callout{border-radius:var(--radius); padding:16px 20px; margin:0 0 18px; border:1px solid var(--line); border-left-width:4px; background:var(--bg-elev); box-shadow:var(--shadow)}
+.callout > :last-child{margin-bottom:0}
+.callout .ttl{font-weight:700; margin:0 0 6px; display:block}
+.callout.info{border-left-color:var(--brand); background:var(--brand-soft)}
+.callout.ok{border-left-color:var(--ok); background:var(--ok-soft)}
+.callout.warn{border-left-color:var(--warn); background:var(--warn-soft)}
+.callout.danger{border-left-color:var(--danger); background:var(--danger-soft)}
+
+.tags{display:flex; flex-wrap:wrap; gap:7px; margin:0 0 14px}
+.tag{font-size:13px; padding:3px 11px; border-radius:999px; background:var(--bg-sunken); border:1px solid var(--line); color:var(--ink-2)}
+
+.quote{margin:0 0 16px; padding:12px 16px; border-left:3px solid var(--line-2); background:var(--bg-sunken); border-radius:0 var(--radius-sm) var(--radius-sm) 0; font-size:15px; color:var(--ink-2)}
+.quote .who{display:block; font-size:13px; color:var(--ink-3); margin-top:6px}
+.quote p{margin:0}
+
+.src-inline{font-size:13.5px; color:var(--ink-3); margin:-4px 0 16px; line-height:1.6}
+.src-inline a{color:var(--ink-3); text-decoration:underline}
+
+details{border:1px solid var(--line); border-radius:var(--radius-sm); padding:0; margin:0 0 14px; background:var(--bg-elev)}
+details summary{cursor:pointer; padding:12px 16px; font-weight:600; font-size:15.5px; list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸ "; color:var(--brand); font-weight:700}
+details[open] summary::before{content:"▾ "}
+details summary:hover{background:var(--bg-sunken)}
+details .body{padding:0 16px 14px; border-top:1px solid var(--line)}
+details .body > :first-child{margin-top:14px}
+
+/* 流程链 */
+.flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:10px; margin:0 0 18px}
+.flow .step{
+  flex:1 1 150px; background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:13px 15px; box-shadow:var(--shadow); position:relative; min-width:140px;
+}
+.flow .step .n{font-size:12px; font-weight:700; color:var(--brand); letter-spacing:.08em}
+.flow .step .t{font-weight:650; margin:3px 0 4px; font-size:15.5px}
+.flow .step .d{font-size:14px; color:var(--ink-2); line-height:1.55}
+.flow .arrow{align-self:center; color:var(--line-2); font-weight:700; flex:none}
+
+/* 时间线 */
+.timeline{border-left:2px solid var(--line-2); margin:0 0 18px 8px; padding-left:22px}
+.timeline .item{position:relative; margin-bottom:20px}
+.timeline .item::before{content:""; position:absolute; left:-30px; top:7px; width:12px; height:12px; border-radius:50%; background:var(--brand); border:2px solid var(--bg)}
+.timeline .item .when{font-size:13px; font-weight:700; color:var(--brand); letter-spacing:.04em}
+.timeline .item .what{font-weight:650; margin:2px 0 4px}
+.timeline .item .why{font-size:15px; color:var(--ink-2)}
+
+/* 分栏对比 */
+.cols{display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); margin:0 0 18px}
+.col{background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; box-shadow:var(--shadow)}
+.col h4{margin-top:0}
+.col.do{border-top:4px solid var(--ok)}
+.col.dont{border-top:4px solid var(--danger)}
+.col ul{padding-left:1.2em; margin-bottom:0}
+
+/* 人物卡 */
+.persona{display:grid; grid-template-columns:auto minmax(0,1fr); gap:18px; align-items:start}
+.persona .avatar{
+  width:74px; height:74px; border-radius:50%; background:linear-gradient(160deg,var(--brand),var(--brand-2));
+  color:#fff; display:grid; place-items:center; font-size:26px; font-weight:700; flex:none;
+}
+.persona dl{margin:0; display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:15.5px}
+.persona dt{color:var(--ink-3); font-weight:600; white-space:nowrap}
+.persona dd{margin:0}
+
+.progress{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px}
+.bar{flex:1 1 200px; background:var(--bg-elev); border:1px solid var(--line); border-radius:var(--radius-sm); padding:11px 14px}
+.bar .lbl{font-size:13.5px; color:var(--ink-2); display:flex; justify-content:space-between; margin-bottom:6px; gap:8px}
+.bar .track{height:7px; background:var(--bg-sunken); border-radius:99px; overflow:hidden}
+.bar .fill{height:100%; background:var(--brand); border-radius:99px}
+.fill.hi{background:var(--ok)} .fill.mid{background:var(--warn)} .fill.lo{background:var(--danger)}
+
+footer{border-top:1px solid var(--line); padding:34px 0 60px; color:var(--ink-3); font-size:14.5px}
+footer h3{color:var(--ink-2); margin-top:0}
+.totop{position:fixed; right:20px; bottom:20px; background:var(--brand); color:#fff; border:none; border-radius:50%; width:46px; height:46px; font-size:19px; cursor:pointer; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .2s; z-index:20}
+.totop.show{opacity:1; pointer-events:auto}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+@media (max-width:960px){
+  .layout{grid-template-columns:1fr; gap:0}
+  nav.toc{position:static; max-height:none; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg-elev); padding:14px; margin-bottom:28px}
+  nav.toc ol{columns:2; column-gap:12px}
+  nav.toc a{border-left:none; padding:6px 8px}
+  nav.toc a.active{background:var(--brand-soft)}
+  body{font-size:16.5px}
+  .persona{grid-template-columns:1fr}
+  .persona .avatar{width:56px; height:56px; font-size:21px}
+}
+@media (max-width:560px){
+  nav.toc ol{columns:1}
+  .wrap{padding:0 15px}
+  header.hero{padding:36px 0 28px}
+  .card{padding:17px 16px}
+  th,td{padding:9px 11px; font-size:14.5px}
+}
+@media print{
+  nav.toc,.totop{display:none}
+  body{background:#fff; font-size:11pt}
+  .layout{grid-template-columns:1fr}
+  header.hero{background:#0f6fb8 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  section{page-break-inside:avoid; margin-bottom:26px}
+  .card,.kpi,table,.callout{box-shadow:none; page-break-inside:avoid}
+  a{color:#000; text-decoration:none}
+  a[href^="http"]::after{content:" (" attr(href) ")"; font-size:8pt; color:#555; word-break:break-all}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">Vibe Coding Camp · 立项工作坊 · Team4</p>
+    <h1>送药机器人：帮助独居老年人按时服药<br>调研报告</h1>
+    <p class="lede">
+      面向<strong>记性不好、但有独立服药能力</strong>的居家/独居老年人，调研「按时送药 + 到点提醒」这件事的
+      学界证据、业界现状、用户特征、场景机制与交互设计，并给出三天内可演示的软件闭环与三人分工方案。
+    </p>
+    <div class="hero-meta">
+      <span><strong>版本：v2（第二轮核验与补强）</strong></span>
+      <span>调研模式：thorough（7 角度并行 + 8 角度定向核验）</span>
+      <span>日期：<span id="today"></span></span>
+      <span>交付物：网页版调研报告</span>
+      <span>约束：三天，不做实体机器人</span>
+    </div>
+    <p style="margin:14px 0 0;padding:12px 16px;border-radius:10px;background:rgba(255,255,255,.14);font-size:14.5px;line-height:1.7">
+      <strong>v2 说明</strong>：本版在 v1（同日 18:00 生成）基础上做了一轮独立的<strong>核验与补强</strong>——
+      8 个定向子代理 + 主代理亲自 fetch 原文，对 v1 的关键论断逐条回到一手来源复核，并补齐 v1 自己声明为缺口的部分。
+      全文用 <span class="badge cf-fix">v2 更正</span> 标出<strong>已修正的错误</strong>、<span class="badge cf-new">v2 新增</span> 标出<strong>新增证据</strong>。
+      <strong>共修正 13 处实质错误</strong>（含 3 处期刊/年份/数值归属错误、4 处口径误读或来源错配、2 处数字外推过度、1 处已被推翻的缺口声明、1 处措辞错误、1 处遗漏标准、1 处推断被写成官方表述），
+      并<strong>新增 15 项以上一手来源</strong>。完整清单见 <a href="#verify" style="color:#fff;text-decoration:underline">第 12 章 核验与修订记录</a>。
+      所有被修正项均<strong>保留原始错误说明</strong>，不做静默覆盖。
+    </p>
+  </div>
+</header>
+
+<div class="wrap layout">
+  <nav class="toc" aria-label="目录">
+    <div class="toc-title">目录</div>
+    <ol id="toc-list"></ol>
+  </nav>
+
+  <main>
+
+    <section id="summary">
+      <h2><span class="num">摘要</span>Executive Summary</h2>
+      <p class="sub">如果只看这一页，请记住下面六条。每条都标注了证据强度。</p>
+
+      <div class="card">
+        <h3 style="margin-top:0">1 · 方向成立，但<strong>卖点必须改</strong>：不要再讲「会提醒」</h3>
+        <p>
+          Cochrane 汇总 182 项 RCT（累计 <strong>46,962 人</strong>）的结论是提醒类干预「大多数复杂、效果不佳」，且该综述<strong>明确拒绝做 Meta 分析</strong>；一项 n=<strong>53,480</strong> 的 RCT（REMIND）发现三种廉价提醒装置——数字计时瓶盖、带拨片药瓶贴条、标准药盒——与对照组<strong>无差异</strong>。
+          真正有稳定正向证据的是<strong>物理分装</strong>（服药片数 +11%）与<strong>「记录给药事件 + 接入照护体系」</strong>；一项 26 项研究 / 5,174 人的 Meta 分析里，效应最大的两个特征恰好是<strong>物理分装出药（OR 2.453）</strong>与<strong>数据共享（OR 2.404）</strong>——即「送达」与「确认记录」。
+        </p>
+        <p style="margin-bottom:0">
+          <strong>动作</strong>：把立项陈述从「一台会提醒吃药的机器人」改成
+          <strong>「一台把药送到手边、并且把『吃了没有』记下来的机器人」</strong>。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge cf-est">Established</span> · Cochrane CD000011.pub4 / CD005025.pub3 · JAMA 2014 · JAMA Intern Med REMIND</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">2 · 目标用户比直觉上<strong>更「弱」也更「多」</strong>，默认设计基线要按最弱的那一档来</h3>
+        <p>
+          60 岁以上人群中 <strong>&gt;25%</strong> 有致残性听力损失，<strong>65–74 岁约 1/3、75 岁以上近一半</strong>有听力损失；
+          中国 60+ 的 MCI 患病率 <strong>15.5%（约 3,877 万人）</strong>；
+          中国 60+ 中<strong>独居 14.2%、仅与配偶居住 45.5%（空巢合计 59.7%）</strong>，而<strong>会使用智能手机的只有 36.6%</strong>、会手机支付的仅 <strong>18.1%</strong>——老年群体互联网普及率 52.0%，<strong>近一半老人根本不在线上</strong>。
+        </p>
+        <p style="margin-bottom:0">
+          <strong>动作</strong>：主通道必须是<strong>现场可听可见的物理提示</strong>（低频大音量 + 大字屏显 + 振动），
+          手机与微信只作为<strong>家属侧</strong>通道。默认按「听力已退化 + 认知已轻微下降 + 没看过病」设计。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge cf-est">Established</span> · WHO · NIDCD · CNNIC 第 56 次报告 · 第五次中国城乡老年人生活状况抽样调查 · Lancet Public Health 2020（Jia）</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">3 · 最大的风险不是技术，是<strong>「老人觉得这是给子女用的监控」</strong></h3>
+        <p>
+          社交辅助机器人在 4 个月内弃用率约 <strong>31%</strong>；质性研究记录到老人把这类设备视为
+          <em>「衰弱的象征」</em>；报道中出现的「三怕」（<strong>怕弄坏、怕被骗、怕没人帮</strong>）加上一句「万一点了什么东西，扣钱咋办？」会直接导致弃用（有设备被盖上防尘布、电源都没插）。
+          <strong>需要补充的限制</strong>：31% 这个弃用率来自<strong>韩裔美国老年移民</strong>样本（n=35），且该研究发现「感受到的温度与能力」在留下者与退还者之间<strong>没有显著差异</strong>——留住人不靠把机器人做得更「暖」。
+          而且设备的实际受益人是<strong>子女的安心</strong>，不是老人的便利——这是最危险的定位陷阱。
+        </p>
+        <p style="margin-bottom:0">
+          <strong>动作</strong>：把控制权交给老人（他决定子女能看到什么、可随时撤回）；<strong>不装摄像头</strong>、本地优先、
+          <strong>不向家属推送依从性评分或排名</strong>；初始化必须配培训（<em>"You can't just hand someone something and leave them to figure it out."</em>）。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge cf-lik">Likely</span> · Front Public Health 2024（Hyodol 弃用率，韩裔美国样本）· JMIR Hum Factors 2025 · 人民日报海外版</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">4 · 三天该做的范围已经很清楚：<strong>闭环 + 三个场景 + 升级链路</strong>，其余一律砍掉</h3>
+        <p>
+          实体机器人已被证明是难点：Samsung Ballie 因导航、续航（2–3 小时）与隐私问题<strong>无限期搁置</strong>；
+          TowerView 永久关闭；Pillo 被收购后产品线终止。三天内做硬件等于必败。
+        </p>
+        <p style="margin-bottom:0">
+          <strong>动作</strong>：做「软件机器人」——状态机 + 多模态输出 + 取药确认 + 分级升级 + 可追溯日志。
+          用「时间加速」开关让升级链路能在 60 秒内演示出来。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge cf-est">Established</span> · Crunchbase / PitchBook / 主流媒体（三个独立失败案例）</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">5 · 有一条<strong>不能越的线</strong>：一旦给医学建议，项目立刻失去可行性</h3>
+        <p>
+          NHS 对不同药物的漏服指引<strong>互相矛盾</strong>（氨氯地平是「跳过」，华法林是「想起来就补，除非快到下次」），
+          所以软件<strong>无法自动化补服决策</strong>。而在中国，同类「药物计算软件」直接是 <strong>Ⅲ 类医疗器械</strong>。
+        </p>
+        <p style="margin-bottom:0">
+          <strong>动作</strong>：只做「提醒 + 记录 + 通知」，只复读医嘱原文，任何不确定的事<strong>交回给人</strong>。
+          这条线既是合规底线，也是很好的产品原则。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge cf-lik">Likely</span> · NHS Medicines A–Z · 中国《医疗器械分类规则》与分类目录 · FDA CDS 指引（<span class="badge cf-fix">v2 更正归因：删除患者端执法裁量的是 CDS 指引，不是 MMA 指引；且 CDS 指引已于 2026-01-06 改版</span>）</p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">6 · 请主动说出<strong>你不知道的事</strong></h3>
+        <p>
+          <strong>没有任何 RCT 证明「送药机器人」能提升依从性</strong>；也没有证据表明它能降低死亡率或再入院。
+          唯一在跑的权威试验（英国 ADHERE，n=144）结果尚未公布——<strong>我们是在证据缺口里做原型</strong>。
+        </p>
+        <p style="margin-bottom:0">
+          <span class="badge cf-fix">v2 补充</span> 但 v1 说「机器人层级证据几乎不存在」<strong>已经过时</strong>：2025 年已有一项 <strong>278 名社区居住老人、6 个月</strong>的社交辅助机器人单臂研究报告服药依从显著改善（<strong>无对照组</strong>），
+          2026 年一篇 35 篇的系统综述也报告社交辅助机器人 <strong>1/1</strong> 有效。所以正确表述是：
+          <strong>「机器人层级的证据是早期、低确定性的，且没有任何送药机器人的 RCT」</strong>——比笼统说「没有证据」更站得住。
+          在 60 秒陈述里主动承认这一点，比被评审问出来更有利，也更符合这个项目的医学严肃性。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge cf-eme">Emerging</span> · J Clin Med 2025（n=278，无对照组）· Australas J Ageing 2026（35 篇系统综述）· 唯一送药机器人相关研究为单臂前后测</p>
+      </div>
+
+      <h3>一页速览：七个问题 → 七条结论</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:40px">#</th><th>问题</th><th>一句话结论</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>学界研究</td><td>问题规模确证，但<strong>提醒层证据最弱</strong>；有效的是物理分装与给药事件记录</td></tr>
+            <tr><td>2</td><td>业界产品</td><td>「确认服下 / 临时加药 / 家属闭环 / 听觉适配」<strong>四项全是空白</strong>；三个类似产品已死</td></tr>
+            <tr><td>3</td><td>产品定位</td><td>本质是<strong>「送达 + 确认」</strong>问题，不是「提醒」问题</td></tr>
+            <tr><td>4</td><td>三人分工</td><td>按<strong>产出层</strong>切：问题与演示官 / 闭环工程师 / 集成与验证官</td></tr>
+            <tr><td>5</td><td>四类用户约束</td><td>低频大音量多通道；锚定习惯；只提醒不决策；本地优先无摄像头</td></tr>
+            <tr><td>6</td><td>场景机制</td><td>三档升级、只推事实、默认不自动外呼；临时用药必须带有效期</td></tr>
+            <tr><td>7</td><td>交互设计</td><td>换通道而不是提高频率；不用唤醒词；挂到日常习惯上</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="scope">
+      <h2><span class="num">00</span>调研范围、用途与立项约束</h2>
+
+      <h3>这份调研要支撑什么判断</h3>
+      <p>不是写一篇泛泛的行业综述，而是要回答三个具体的立项问题：</p>
+      <ol>
+        <li><strong>方向是否成立</strong>——「帮独居老人按时吃药」这件事，学界证据和业界现状说明它真实存在且尚未被解决好吗？</li>
+        <li><strong>三天做什么、不做什么</strong>——在只能做软件、不能做实体机器人的约束下，哪一部分闭环最有证明价值？</li>
+        <li><strong>怎么设计才真的有人用</strong>——针对听觉退化、认知差异、心理抗拒、隐私顾虑这四类约束，交互与场景机制应如何取舍？</li>
+      </ol>
+
+      <h3>立项约束（来自 Team4 立项简报卡）</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>条目</th><th>内容</th><th>对调研的约束</th></tr></thead>
+          <tbody>
+            <tr><td>目标用户</td><td>记性不好、有吃药需求、且<strong>具备独立吃药能力</strong>的居家老年人</td><td>排除需要护理的重度失能人群；产品是「辅助」不是「照护」</td></tr>
+            <tr><td>问题场景</td><td>居家老年人在<strong>固定时间内</strong>会忘记服药</td><td>核心矛盾是「时间点依从性」，不是「用药知识缺乏」</td></tr>
+            <tr><td>三天范围·必须完成</td><td>核心闭环（Input → Output）</td><td>一切不能进入闭环的功能都是干扰项</td></tr>
+            <tr><td>三天范围·暂不完成</td><td><strong>实体机器人模型与生产</strong></td><td>用软件模拟「移动送药」的动作与状态，是可接受的证明方式</td></tr>
+            <tr><td>交付物</td><td>立项简报卡 + 60 秒陈述（+ 本轮网页版调研报告）</td><td>报告与原型都要服务于「60 秒讲清楚」</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>七个调研问题与本报告的对应关系</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:44px">#</th><th>问题</th><th>对应章节</th><th>取证角度</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>学界研究的相关报告</td><td><a href="#academic">02 学界研究</a></td><td>用药依从性、提醒干预 RCT、辅助机器人</td></tr>
+            <tr><td>2</td><td>业界已有的相关产品</td><td><a href="#industry">03 业界现状</a></td><td>智能药盒 / 分药机 / 陪伴机器人 / 国内养老机器人</td></tr>
+            <tr><td>3</td><td>研究内容：帮助并提醒独居老人及时吃药的机器人</td><td><a href="#user">01 用户定义</a>、<a href="#prototype">07 原型方案</a></td><td>产品定义与闭环设计</td></tr>
+            <tr><td>4</td><td>三个人可以怎么分配工作</td><td><a href="#team">08 分工方案</a></td><td>黑客松小队分工模式与评审偏好</td></tr>
+            <tr><td>5</td><td>听觉退化、认知能力差异、心理抗拒/接受度、隐私顾虑</td><td><a href="#human">04 用户特征</a></td><td>WHO / 听力学 / 认知老化 / 技术接受模型 / 隐私研究</td></tr>
+            <tr><td>6</td><td>机器人如何适用于日常生活、应对不同场景（规律服药 / 临时加换药 / 漏服追溯与家属通知）</td><td><a href="#scenarios">05 场景机制</a></td><td>临床指引、多重用药、分级升级、法规边界</td></tr>
+            <tr><td>7</td><td>交互方式怎样才能让老年人更容易使用</td><td><a href="#interaction">06 交互设计</a></td><td>适老化规范、多模态提示、语音可用性、行为改变机制</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>已声明的覆盖盲区</h3>
+      <div class="callout warn">
+        <span class="ttl">这份报告没有覆盖什么（诚实声明）</span>
+        <ul style="margin-bottom:0">
+          <li><strong>没有做真实用户访谈</strong>——人群结论来自文献与统计，不是来自访谈。三天内建议补 3 位老人的快速访谈做校准。</li>
+          <li><strong>没有中国本土的定价与量产可行性测算</strong>——只给出量级判断。</li>
+          <li><strong>没有临床验证</strong>——依从性提升幅度是文献效应量，不能直接承诺到本产品。</li>
+          <li><strong>没有覆盖护理机构 / 认知障碍中重度人群</strong>——与立项卡的「独立服药能力」前提冲突，属有意排除。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="user">
+      <h2><span class="num">01</span>目标用户与问题定义</h2>
+      <p class="sub">先把人定清楚，再谈功能。目标用户画像直接来自 Team4 的立项简报卡，规模数据做了外部核验。</p>
+
+      <div class="card">
+        <div class="persona">
+          <div class="avatar" aria-hidden="true">王</div>
+          <div>
+            <h3 style="margin:0 0 4px">典型用户：王阿姨，76 岁，独居</h3>
+            <p style="color:var(--ink-3);margin:0 0 14px">「我不是记不住，是有时候一忙就过去了，等想起来又不敢补吃。」</p>
+            <dl>
+              <dt>居住</dt><dd>老小区独居，子女在同城但不同住，每周来 1-2 次</dd>
+              <dt>健康</dt><dd>高血压 + 2 型糖尿病 + 骨质疏松；长期服用 4-6 种药，分早/中/晚三个时段</dd>
+              <dt>能力</dt><dd><strong>能独立行走、能自己倒水服药</strong>；轻度听力下降（电视音量比家人高两档）；老花；会用微信语音，不会装 App</dd>
+              <dt>认知</dt><dd>偶尔忘事、偶尔重复服药；没有确诊认知障碍，能自主决策</dd>
+              <dt>核心痛点</dt><dd>固定时间点容易错过；午睡、出门、来客打乱节奏；漏服后不知道该不该补；子女反复打电话问「吃了没」让她烦躁</dd>
+              <dt>真正想要</dt><dd>不用记、不用问——<strong>到点药就到手边，并且有人替她把「吃过了」这件事记下来</strong></dd>
+              <dt>顾虑</dt><dd>怕贵、怕弄坏、怕麻烦子女、<strong>怕被当成「不中用了」而被监控</strong></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="ttl">关键洞察：这是一个「送达 + 确认」问题，不是一个「提醒」问题</span>
+        <p style="margin:0">
+          市面上的方案几乎都在解决「提醒」（响铃、弹窗、发消息），而目标用户缺的是<strong>最后 3 米</strong>：
+          药在她手边、水杯旁，并且系统知道她到底吃没吃。提醒只是手段，<strong>「送达 + 可核验的确认」才是产品本体</strong>。
+        </p>
+      </div>
+
+      <h3>一句话产品定义</h3>
+      <div class="quote">
+        <p>给居家/独居老年人在需要吃药的时段，用<strong>送药机器人</strong>的方式把药直接送到手边，并用她听得懂、看得清的方式确认「已服用」。</p>
+        <span class="who">来源：Team4 立项简报卡（第 22 页，表 3/3）</span>
+      </div>
+
+      <h3>最小闭环（Input → Output）</h3>
+      <div class="flow">
+        <div class="step"><div class="n">INPUT</div><div class="t">服药计划</div><div class="d">药名 / 剂量 / 时段，由家属或本人一次性录入</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">TRIGGER</div><div class="t">到点触发</div><div class="d">判断在不在家、醒着没；不该打扰时延后</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">ACT</div><div class="t">送到手边</div><div class="d">移动到人身边，抬升药盒，语音+屏显提示</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">VERIFY</div><div class="t">取药确认</div><div class="d">取走即确认；未取走则重复提示</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">OUTPUT</div><div class="t">记录 + 升级</div><div class="d">写入服药日志；超时未确认 → 家属通知</div></div>
+      </div>
+
+      <div class="cols">
+        <div class="col do">
+          <h4>这一版要做（核心闭环）</h4>
+          <ul>
+            <li>到点把人找到并「送药到人」的可演示流程</li>
+            <li>多模态提醒（语音 + 大字屏显 + 声光）</li>
+            <li>取药即确认，形成可核验的服药记录</li>
+            <li>超时未确认 → 家属通知的升级链路</li>
+            <li>临时加药 / 换药的计划变更入口</li>
+          </ul>
+        </div>
+        <div class="col dont">
+          <h4>这一版不做（明确排除）</h4>
+          <ul>
+            <li>实体机器人外壳与量产（立项卡已排除）</li>
+            <li><strong>任何剂量 / 补服 / 停药的医学建议</strong>（合规红线）</li>
+            <li>自动拆药分装、药物相互作用判断</li>
+            <li>摄像头式的室内监控</li>
+            <li>与医院 HIS / 药房系统对接</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>目标市场规模信号</h3>
+      <div class="grid g3">
+        <div class="kpi">
+          <div class="v">1.61<small>亿</small></div>
+          <div class="k">中国 60 岁及以上「银发网民」规模（截至 2025 年 6 月）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> CNNIC 第 56 次《中国互联网络发展状况统计报告》</div>
+        </div>
+        <div class="kpi">
+          <div class="v">52.0<small>%</small></div>
+          <div class="k">中国老年群体互联网普及率——<strong>近一半老人仍不在线</strong>，纯 App 方案天然漏掉一半人</div>
+          <div class="src"><span class="badge t1">Tier 1</span> 同上</div>
+        </div>
+        <div class="kpi">
+          <div class="v">&gt;25<small>%</small></div>
+          <div class="k">60 岁以上人群中受「致残性听力损失」影响的比例（WHO 定义：较好耳 &gt;35 dB）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> WHO《Deafness and hearing loss》事实清单（2026-03-03 更新）</div>
+        </div>
+      </div>
+      <p class="src-inline">
+        含义：目标用户里<strong>四个人就有一个听不清正常对话</strong>，且近一半老年人不在互联网上。
+        因此产品的主通道不能是手机 App，必须是<strong>现场可听可见的物理提示</strong>；手机/微信只作为家属侧通道。
+      </p>
+    </section>
+
+    <section id="academic">
+      <h2><span class="num">02</span>学界研究：用药依从性与提醒干预的证据</h2>
+      <p class="sub">结论先行：<strong>这个问题的规模被充分证实，但「提醒」恰恰是整个链条里被证明最弱的一环。</strong>这对我们的产品定义是决定性的一击。</p>
+
+      <div class="callout danger">
+        <span class="ttl">最重要的一条证据（会影响你们的立项陈述）</span>
+        <p style="margin:0 0 10px">
+          Cochrane 汇总 <strong>182 项 RCT</strong> 的结论是：慢病用药依从性干预「大多数复杂、且效果不佳」；
+          在偏倚风险最低的 17 项试验中，<strong>只有 5 项同时改善了依从性与临床结局</strong>，且
+          「即使是最有效的干预，也没有带来依从性或临床结局的大幅改善」。
+        </p>
+        <p style="margin:0">
+          另一项 <strong>n=53,480</strong> 的大样本 RCT（JAMA Internal Medicine 2017 的 REMIND 试验，<strong>优效设计</strong>）把被试随机分到
+          <strong>数字计时瓶盖 / 带拨片药瓶贴条 / 标准塑料药盒</strong>三组，结论是低成本提醒装置<strong>没有改善依从性</strong>
+          （"Low-cost reminder devices did not improve adherence…"）。
+        </p>
+        <p class="src-inline" style="margin:8px 0 0">
+          <span class="badge cf-fix">v2 更正</span> v1 曾把第三项写成「短信提醒」——<strong>REMIND 全程未发任何短信</strong>，已更正。
+          反直觉细节：唯一显著的组间差异是<strong>最「笨」的普通药盒反而略优于带拨片贴条（OR 1.10，1.00–1.21）</strong>。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0">
+          <span class="badge t1">Tier 1</span> <a href="https://doi.org/10.1002/14651858.CD000011.pub4">Cochrane CD000011.pub4</a>（2014）｜
+          <span class="badge t1">Tier 1</span> <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5470369/">JAMA Intern Med 2017;177(5):624-631</a>（原文已取代 v1 的期刊转引）
+        </p>
+      </div>
+
+      <h3>问题规模：确证</h3>
+      <div class="grid g4">
+        <div class="kpi">
+          <div class="v">≈50<small>%</small></div>
+          <div class="k">发达国家慢病患者长期治疗依从率；发展中国家更低</div>
+          <div class="src"><span class="badge t1">Tier 1</span> WHO</div>
+        </div>
+        <div class="kpi">
+          <div class="v">1/5</div>
+          <div class="k">美国新处方<strong>从未取药</strong>的比例；已取药者中约 <strong>50% 服用方式错误</strong></div>
+          <div class="src"><span class="badge t1">Tier 1</span> CDC MMWR</div>
+        </div>
+        <div class="kpi">
+          <div class="v">30<small>%</small></div>
+          <div class="k">患者自报以「<strong>忘记了</strong>」为不依从原因的比例</div>
+          <div class="src"><span class="badge t2">Tier 2 转引</span> Insel 2016 引 Osterberg &amp; Blaschke, <em>NEJM</em> 2005<br><span class="badge cf-fix">v2 更正</span> 非 Insel 本人数据、非中国人群</div>
+        </div>
+        <div class="kpi">
+          <div class="v">$100–300<small>亿/年</small></div>
+          <div class="k">美国因不依从产生的<strong>直接医疗费用</strong>（美元）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> CDC MMWR（2017）</div>
+        </div>
+      </div>
+      <p class="src-inline">
+        注：WHO 报告亦给出分国别高血压依从率——<strong>中国 43%</strong>、美国 51%、冈比亚 27%。
+        口径与年份见来源清单，不同研究间不可直接对比。
+      </p>
+
+      <h3>关键发现</h3>
+
+      <h4>发现 1 · 唯一有稳定正向效应的低技术环节是「物理分装 / 提示包装」 <span class="badge cf-est">Established</span></h4>
+      <p>
+        Cochrane 另一篇系统综述（12 项 RCT，2,196 人）发现：<strong>分装式 / 带提醒的包装</strong>能提高服用的<strong>药片数量比例</strong>
+        平均 <strong>+11%</strong>（95% CI 6–17%），并使舒张压下降 <strong>5.89 mmHg</strong>。
+        但同一综述中「自报依从人数比例」无效（OR 0.89，0.56–1.40）。
+        <strong>v2 补充的口径限制</strong>：+11% 只来自 <strong>4 项试验的 6 个干预组</strong>，异质性 <strong>I²=96.3%</strong>；
+        舒张压 −5.89 mmHg 只来自 <strong>2 项试验</strong>，且原文<strong>未说明这 2 项试验的人群与疾病</strong>（适用人群无法核验）。
+        糖化血红蛋白 MD −0.72（−0.83 至 −0.60），但 I²=92%。
+      </p>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> <a href="https://doi.org/10.1002/14651858.CD005025.pub3">Cochrane CD005025.pub3</a>（2011）</p>
+      <div class="callout ok">
+        <p style="margin:0">
+          <strong>对本产品的含义：</strong>把药<strong>事先分好、按次送到手边</strong>（即「物理出药」）是这条赛道上证据最扎实的动作。
+          我们的「送药机器人」恰好把这一步自动化了——<strong>这才是该讲的卖点，不是「会提醒」</strong>。
+        </p>
+      </div>
+
+      <h4>发现 2 · 电子药盒是一类而非一种，效应量横跨负值到 +34% <span class="badge cf-est">Established</span></h4>
+      <p>
+        JAMA 系统综述（作者 Checchi、Huybrechts、Avorn、Kesselheim；37 项研究，4,326 人）显示依从率差异区间为 <strong>−2.9% 至 +34.0%</strong>，
+        依从人数比例差异 −8.0% 至 +49.5%。作者明确指出：<strong>「接入照护体系 + 记录给药事件」的设备最常有效</strong>，
+        但对这类设备的整体证据「仍然有限」（"data supporting their use are limited"）。
+        <span class="badge cf-fix">v2 补充</span> 这两个区间是<strong>单项研究的效应范围，不是合并估计或置信区间</strong>。
+        <strong>独立佐证</strong>：Kim 2025 的 26 项研究 / 5,174 人 Meta 分析中，亚组效应最大的两个特征正是
+        <strong>物理分装出药（OR 2.453）</strong>与<strong>数据共享（OR 2.404）</strong>，远高于「高级提醒」亚组（OR 1.849）。
+      </p>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> <a href="https://doi.org/10.1001/jama.2014.10059">JAMA 312:1237-47</a>（2014）</p>
+      <div class="callout info">
+        <p style="margin:0">
+          <strong>含义：</strong>「记录给药事件并让人看到」比「提醒本身」更重要。
+          我们的<strong>服药日志 + 家属可见的确认状态</strong>不是附属功能，而是效果的主要来源。
+        </p>
+      </div>
+
+      <h4>发现 3 · 依从性的「改善」有一半是测量方式的假象 <span class="badge cf-est">Established</span></h4>
+      <p>
+        同一项 2025 年 Meta 分析（社区 ≥60 岁多重用药者，49 篇文章 = 48 项独立研究）中：
+        用 <strong>MMAS-4 自报量表</strong>测量时干预有效（OR <strong>1.55</strong>，1.08–2.28，I²=32.4%），
+        换成<strong>连续型测量</strong>时效应完全消失（SMD <strong>0.00</strong>，−0.08–0.09，I²=2%）。
+        生活质量与死亡率均无效应，整体证据确定性被评为 "very low"。
+        <span class="badge cf-fix">v2 更正 3 处</span>
+        （1）原文写的是「连续型测量」，<strong>并未称其为「客观」测量</strong>，v1 的「客观测量」属加强措辞；
+        （2）"very low" 是<strong>总体</strong>确定性表述，并非逐结局评级，且同一文结论段又写作 "low"，文内措辞不一致；
+        （3）v1 未提及该综述<strong>最强的阳性结果</strong>——中期再入院 OR 0.41（0.25–0.69），原文同时限定 "effects were not sustained"。
+      </p>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> <a href="https://doi.org/10.3389/fpubh.2025.1701622">Front Public Health 13:1701622</a>（2025）</p>
+      <div class="callout warn">
+        <p style="margin:0">
+          <strong>含义（对三天项目极其实用）：</strong>不要用「老人说好用了」当验收指标。
+          要展示<strong>客观的给药事件记录</strong>（几点提示、几点取药、几次未响应）。
+          这也是我们原型里日志层的存在理由。
+        </p>
+      </div>
+
+      <h4>发现 4 · 机器人层级的依从性证据：仍然没有送药机器人的 RCT，但已不再是空白 <span class="badge cf-eme">Emerging</span> <span class="badge cf-fix">v2 修订</span></h4>
+      <p>
+        <strong>结论未变</strong>：未检索到任何针对<strong>移动送药机器人</strong>的依从性 RCT。
+        <strong>但 v1 说「几乎不存在」已经过时</strong>——2025–2026 年新增两条证据：
+      </p>
+      <ul>
+        <li><strong>一条 2025 年的单臂前后测</strong>（Hyodol 社交辅助机器人，<strong>278 名社区居住老人</strong>，6 个月）报告
+          「loneliness 与 <strong>medication adherence</strong> 均有显著改善」。但<strong>没有对照组</strong>，作者自称 Preliminary Study，
+          并写明 "if its effects are confirmed in controlled trials"。样本量是 v1 所引 n=30 的近十倍。</li>
+        <li><strong>一篇 2026 年的系统综述</strong>（35 篇 / 其中 22 项 RCT，≥65 岁，叙事性综合而非 Meta 分析）报告：
+          近半数（17/35）研究显示数字健康干预改善了依从性，且 <strong>社交辅助机器人 1/1 有效、电子提醒 3/3 有效</strong>；
+          证据确定性 GRADE 为 very low 至 moderate。</li>
+      </ul>
+      <p>
+        另一条仍成立、且更该引用的证据：Hyodol 的 4 个月真实退还率研究——35 名老人中 <strong>11 人退还，弃用率 31%</strong>。
+      </p>
+      <p class="src-inline">
+        <span class="badge t1">Tier 1</span> <a href="https://doi.org/10.3390/jcm15010217">J Clin Med 2025;15(1):217</a>（n=278，无对照组）｜
+        <span class="badge t1">Tier 1</span> <a href="https://doi.org/10.1111/ajag.70206">Australas J Ageing 2026;45(3)</a>（35 篇叙事性系统综述）｜
+        <span class="badge t1">Tier 1</span> <a href="https://doi.org/10.3389/fpubh.2024.1424123">Front Public Health 2024;12:1424123</a>（弃用率 31%）
+      </p>
+      <div class="callout warn">
+        <p style="margin:0">
+          <strong>v2 新增的两条限制：</strong>
+          （1）那篇 2026 年系统综述<strong>未做 Meta 分析</strong>，其「电子提醒 3/3 有效」与 Cochrane / REMIND 的「提醒无效」直接冲突，
+          本报告不抹平这个矛盾，详见第 10 章；
+          （2）31% 弃用率来自<strong>韩裔美国老年移民</strong>样本，且该研究发现留下者与退还者在「感受到的温度与能力」上<strong>没有显著差异</strong>——
+          说明<strong>把机器人做得更「暖」并不能留住人</strong>。
+        </p>
+      </div>
+      <div class="callout danger">
+        <p style="margin:0">
+          <strong>含义：</strong>我们仍是在<strong>证据缺口里做原型</strong>。路演时不要说「机器人已被证明能提升依从性」。
+          正确表述是：「我们把已被证明有效的<strong>物理分装 + 给药事件记录</strong>，用机器人这个形态做到<strong>不需要老人做任何操作</strong>」。
+        </p>
+      </div>
+
+      <h4>发现 6 · 辅助技术在「功能完好」的老人身上才有效，在衰弱老人身上无效 <span class="badge cf-est">Established</span> <span class="badge cf-new">v2 新增</span></h4>
+      <p>
+        v1 没有纳入这篇系统综述。它恰好给了立项卡那条人群限定一个<strong>证据背书</strong>：
+      </p>
+      <ul>
+        <li>19 项 RCT 的 PRISMA 综述（检索期 2009-01 至 2019-03）：「<strong>Different ATs show some promising results in well-functioning but not in frail older adults</strong>」，且「<strong>Studies including participants with significant or severe impairment showed no effectiveness</strong>」。</li>
+        <li>其中「药物」类目下共 <strong>4 项试验，结果互相矛盾</strong>：1 项阳性；1 项「会说话的药瓶」<strong>无组间效应</strong>；2 项无效（其中一项明确写 "Telemedicine medication reminder systems… did not improve medication adherence"）。</li>
+        <li>最值得抄进产品原则的一条：那项唯一阳性的平板用药管理 App 试验中，满意度虽高（8.5/10），却有 <strong>59%（30/51）的干预组参与者需要他人协助才能使用该设备</strong>，另有近 12% 认为设备「完全没帮助」。</li>
+      </ul>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> <a href="https://doi.org/10.2196/31916">Fotteler et al., JMIR Aging 2022;5(2):e31916</a>（PMID 35377322）</p>
+      <div class="callout ok">
+        <p style="margin:0">
+          <strong>三条对本产品的直接含义：</strong>
+          （1）「<strong>具备独立行动能力</strong>」这个人群限定不是拍脑袋，是有证据的正确选择——衰弱者身上同类设备已被证明无效；
+          （2）「<strong>59% 需要他人协助使用</strong>」是「老人不该被要求操作任何东西」这一设计原则最硬的一条独立证据——
+          界面再简洁，仍有近六成人需要有人在旁边；
+          （3）药物类目内部 4 项试验的互相矛盾，从另一条路径印证了 v1 的判断：<strong>单靠「提醒」这一层，效果不稳定</strong>。
+        </p>
+      </div>
+
+      <h4>发现 7 · 一处「转引放大」：二手转述会系统性地夸大原研究结论 <span class="badge cf-lik">Likely</span> <span class="badge cf-new">v2 新增</span></h4>
+      <p>
+        一篇 2025 年的 JMIR 质性研究在文献综述里写道：辅助技术在用药管理上「<strong>已被证明有效</strong>（统计上显著的依从性改善与漏服减少）」，
+        并引用上文的 Fotteler 2022。但回到原文，Fotteler 2022 的药物类目<strong>四项试验结果是互相矛盾的</strong>，只有一项报告了显著改善。
+        转述把「混合结果」写成了「已被证明有效」。
+      </p>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> 对比 JMIR Hum Factors 2025;12:e74214 的转述与 <a href="https://doi.org/10.2196/31916">Fotteler 2022</a> 原文</p>
+      <p class="src-inline"><strong>含义</strong>：这正是本报告坚持追一手来源的原因。团队在路演或简报卡里引用任何数字前，请回到一手来源核对措辞——包括本报告自己的转述。</p>
+
+
+      <h4>发现 5 · 机器人在四个月里会失去三分之一的使用者 <span class="badge cf-lik">Likely</span></h4>
+      <p>
+        除上述 31% 的短期弃用率外，分药机类产品的<strong>满意度</strong>与<strong>客观效果</strong>长期背离：
+        96 名衰弱老人使用居家分药机 12 个月后，<strong>84% 表示愿意继续使用</strong>——但该研究并未报告任何依从性效应量。
+        另有 128 项研究（96 项 RCT）的系统综述指出：效果<strong>主要体现在短期</strong>，长期异质性很高。
+      </p>
+      <p class="src-inline">
+        <span class="badge t1">Tier 1</span> <a href="https://doi.org/10.3109/17538157.2012.741084">Inform Health Soc Care</a>（2013）｜
+        <span class="badge t1">Tier 1</span> <a href="https://doi.org/10.1111/jgs.70257">JAGS</a>（2026）
+      </p>
+
+      <h3>证据强度一览</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>结论</th><th>证据类型</th><th>效应 / 数字</th><th>置信度</th></tr></thead>
+          <tbody>
+            <tr><td>不依从的规模与代价是真实且巨大的</td><td>WHO / CDC 官方 + 系统综述</td><td>依从率 ≈50%；不依从费用 $100–300 亿/年</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>单纯「提醒」效果有限</td><td>Cochrane 182 RCT + n≈54,000 RCT</td><td>最低偏倚 17 项中仅 5 项双终点改善</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>物理分装 / 提示包装有效</td><td>Cochrane 12 RCT / 2,196 人</td><td>服药片数 +11%（6–17%）</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>「记录给药事件 + 接入照护体系」最常有效</td><td>JAMA 37 项 / 4,326 人</td><td>效应区间 −2.9% ~ +34.0%</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>自报量表会系统性夸大效果</td><td>Meta 分析 49 篇文章 / 48 项研究</td><td>MMAS-4 OR 1.55 vs 连续型测量 SMD 0.00</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>物理分装出药 与 数据共享 是效应最大的两个特征</td><td>Kim 2025，26 项研究 / 5,174 人</td><td>分装 OR 2.453；数据共享 OR 2.404；高级提醒 OR 1.849</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>辅助技术在功能完好者身上有效、在衰弱者身上无效</td><td>Fotteler 2022，19 项 RCT</td><td>严重损害人群「no effectiveness」</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>「提醒」到底有没有效</td><td>Cochrane/REMIND 说无效 vs Australas J Ageing 2026 说电子提醒 3/3 有效</td><td>互相矛盾，未抹平</td><td><span class="badge cf-con">Contested</span></td></tr>
+            <tr><td>送药机器人能提升依从性</td><td>无送药机器人 RCT；社交辅助机器人有 1 项 278 人单臂研究</td><td>—（且有 31% 短期弃用，样本为韩裔美国移民）</td><td><span class="badge cf-eme">Emerging</span></td></tr>
+            <tr><td>降低死亡率 / 再入院</td><td>仅中期综合干预 Meta，确定性 very low~low，原文限定 effects were not sustained</td><td>再入院 OR 0.41（0.25–0.69）</td><td><span class="badge cf-con">Contested</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>矛盾与不确定</h3>
+      <ul>
+        <li><strong>满意度与效果背离</strong>：84% 愿意继续使用，但客观依从效应微弱甚至为零。满意度不能替代效果证据。</li>
+        <li><strong>测量假象</strong>：同一 Meta 内自报有效、客观测量无效，说明该领域相当一部分「有效结论」可能来自测量方式。</li>
+        <li><strong>「电子药盒有效」不可整体宣称</strong>：效应区间横跨负值到 +34%，说明它是一类产品而非一种机制。</li>
+        <li><strong>一条高风险数字已被剔除</strong>：网传「不依从导致 125,000 人死亡、10% 住院」仅见于厂商资助的评论性引文，未找到一手流行病学来源，本报告不予采用。</li>
+        <li><strong>唯一在跑的权威 RCT</strong>：英国 <a href="https://doi.org/10.1136/bmjopen-2025-104359">ADHERE 试验</a>（n=144，自动分药设备 vs 常规），结果未公布。它将直接决定这条赛道是否被证伪。</li>
+        <li><span class="badge cf-new">v2 新增冲突</span><strong>「提醒无效」这件事本身有矛盾，本报告不抹平</strong>：
+          Cochrane 182 项 RCT 说干预「mostly complex and not very effective」，REMIND（53,480 人）说三种廉价提醒装置无差异；
+          但 2026 年 Australas J Ageing 的 35 篇系统综述却报告<strong>电子提醒 3/3 有效、社交辅助机器人 1/1 有效</strong>。
+          可能的解释（属本报告的推断，非来源结论）：（a）该综述未做 Meta 分析，3/3 的样本极小；（b）结局测量口径不同；
+          （c）干预强度与「多成分组合」不同——该综述自己就指出「用多种功能或策略的组合最可能有效」，
+          这与 Cochrane「最有效的干预都是复杂多成分干预」并不矛盾，<strong>矛盾集中在「单一提醒装置」这一层面</strong>。
+          对我们最安全的表述是：<strong>单一提醒不可靠，多成分组合（送达 + 确认 + 记录 + 人工兜底）才有证据</strong>。</li>
+        <li><span class="badge cf-new">v2 新增</span><strong>一个真实的证据缺口</strong>：没有任何一手研究验证「患者侧服药提醒」的<strong>纵向脱敏</strong>（即提醒发久了就没人理）。
+          v1 用的 Ancker 2017 是<strong>临床医嘱警报系统</strong>，Insel 2016 是策略性干预，都不是服药提醒。
+          本报告因此把这个缺口保留为缺口，不用低质来源填补。</li>
+      </ul>
+    </section>
+
+    <section id="industry">
+      <h2><span class="num">03</span>业界现状：已有产品、失败案例与市场空白</h2>
+      <p class="sub">结论先行：<strong>「提醒」已经被做烂，「确认服下 + 临时加药 + 家属闭环 + 听觉退化适配」四件事在全部在售产品中都是空白。</strong></p>
+
+      <div class="callout danger">
+        <span class="ttl">三个已死的产品，比活着的产品更有信息量</span>
+        <ul style="margin-bottom:0">
+          <li><strong>TowerView Health</strong>（美国）——智能药盒 + 药房配药配送，重运营模式，Crunchbase 标注 <em>permanently closed</em>。</li>
+          <li><strong>Pillo Health</strong>（美国）——桌面健康机器人，人脸识别 + 按人自动出药，被收购后<strong>产品线终止</strong>。硬件成本 vs 单一发药功能，模型不成立。</li>
+          <li><strong>Samsung Ballie</strong>（韩国）——滚动式家庭机器人，因导航不稳（地毯/门槛）、续航仅 2–3 小时、始终开机摄像头引发隐私监管，<strong>上市计划无限期搁置</strong>。</li>
+        </ul>
+        <p style="margin:10px 0 0" class="src-inline"><span class="badge t2">Tier 2</span> Crunchbase / PitchBook / 韩媒转引（各独立来源）</p>
+      </div>
+      <p>
+        <strong>这三条死亡记录直接界定了我们的三天范围：</strong>移动底盘 + 导航 + 视觉确认是三星都判定无法商业化的工程量。
+        三天里用软件模拟「移动送药」，不是妥协，而是刻意绕开已被证明不成立的硬件假设。
+      </p>
+
+      <h3>在售产品对比</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>产品</th><th>形态</th><th>价格</th><th>能做什么</th><th>缺什么</th><th>状态</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Hero 100</strong><br><span style="color:var(--ink-3);font-size:14px">Hero Health（美）</span></td>
+              <td>台式自动分药机 + App</td>
+              <td>约 $30/月<span class="badge t3">Tier 3</span></td>
+              <td>自动落药、锁药、家属通知</td>
+              <td>卡药投诉（Trustpilot 2.4/5）；有 FDA Class 2 召回记录</td>
+              <td>在营</td>
+            </tr>
+            <tr>
+              <td><strong>e-pill MedTime</strong><br><span style="color:var(--ink-3);font-size:14px">e-pill（美，瑞典造）</span></td>
+              <td>锁定式转盘分药器</td>
+              <td><strong>$449.95 买断，无月费</strong><span class="badge t1">Tier 1</span></td>
+              <td>每日最多 28 次声光闹铃、出药日志、防拆锁</td>
+              <td><strong>不联网</strong>→ 无家属通知、无追溯、无临时加药</td>
+              <td>在营（1997 至今）</td>
+            </tr>
+            <tr>
+              <td><strong>MedMinder</strong><br><span style="color:var(--ink-3);font-size:14px">MedMinder（美）</span></td>
+              <td>带蜂窝网分药机</td>
+              <td>$40–50/月<span class="badge t3">Tier 3</span></td>
+              <td>响铃闪光、漏服电话/短信、家属看板</td>
+              <td>需提前手动装药；临时加药无法处理</td>
+              <td>在营</td>
+            </tr>
+            <tr>
+              <td><strong>TabTime</strong><br><span style="color:var(--ink-3);font-size:14px">TabTime（英）</span></td>
+              <td>电子药盒计时器</td>
+              <td>约 $19<span class="badge t1">Tier 1</span></td>
+              <td>每日 8 次闹铃</td>
+              <td>只响铃：不分药、不追溯、不通知</td>
+              <td>在营</td>
+            </tr>
+            <tr>
+              <td><strong>ElliQ</strong><br><span style="color:var(--ink-3);font-size:14px">Intuition Robotics（以）</span></td>
+              <td>桌面陪伴机器人</td>
+              <td>租赁 $50–60/月<span class="badge t2">Tier 2</span></td>
+              <td>主动搭话、服药/血压提醒、新闻、记忆游戏</td>
+              <td><strong>提醒 ≠ 确认服用</strong>；隐私争议；靠政府/保险买单</td>
+              <td>在营，纽约州/华盛顿州 Medicaid 覆盖</td>
+            </tr>
+            <tr>
+              <td><strong>提醒类 App</strong><br><span style="color:var(--ink-3);font-size:14px">Medisafe / MyTherapy 等</span></td>
+              <td>手机应用</td>
+              <td>免费 + 订阅</td>
+              <td>定时弹窗、打卡</td>
+              <td>老人渗透率低（中国老年群体互联网普及率仅 52%）；依赖老人主动操作手机</td>
+              <td>在营</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>市场空白（按对我们的价值排序）</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">1. 「确认服下」而非「提醒过了」</h4>
+          <p style="margin-bottom:0">所有在售产品最多只能证明<strong>「药出来了」</strong>（分药机）或<strong>「话说过了」</strong>（ElliQ），
+          都无法确认老人真的把药吃下去。这是最大的、也是我们最容易用软件演示的空白。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">2. 临时加药 / 换药</h4>
+          <p style="margin-bottom:0">Hero、MedMinder、e-pill 都要求<strong>提前把药装进格子或盒子</strong>。
+          医嘱临时变更（如「今天新加一片抗生素」）意味着重新装填——<strong>这个场景全线未解</strong>。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">3. 漏服后的追溯与家属闭环</h4>
+          <p style="margin-bottom:0">便宜的方案（e-pill、TabTime）<strong>完全不联网</strong>，没有任何追溯；
+          联网方案有通知，但缺少「已知情未服」这类可解释状态，容易制造误报与家庭矛盾。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">4. 听觉退化适配</h4>
+          <p style="margin-bottom:0">主流方案以蜂鸣声或普通语音为主。未发现任何厂商提供<strong>低频强提示音、骨传导、强振动或视觉主导</strong>的适老化提醒通道。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">5. 心理抗拒与代际信任</h4>
+          <p style="margin-bottom:0"><strong>题目就与本项目几乎重合的一份中国本土研究</strong>——《慢性病共病老年人对<strong>居家智能药物管理工具</strong>的需求和使用障碍研究》（《中国全科医学》，2026 年 1—2 月对北京城区 3 家基层医疗卫生机构的 <strong>34 位</strong>老年共病患者做半结构式访谈，以<strong>技术接受模型 TAM</strong> 为分析框架）指出，阻力来自
+          <strong>技术焦虑与操作恐惧、信任危机与安全风险、以及「家庭成员风险感知下的代际干预」</strong>。
+          而现有产品的定位几乎都是「让子女监视老人」，<strong>没有把控制权交给老人</strong>。</p>
+          <p class="src-inline" style="margin:8px 0 0"><span class="badge cf-new">v2 补充</span> 这是与本项目最贴近的中国本土用户研究，v1 只写成「技术采纳阻力」，未给出题目、时间与理论框架。样本仅 34 人、单城，属质性证据，不构成量化排序。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">6. 「送药到身边」这个动作本身</h4>
+          <p style="margin-bottom:0">市面上所谓「机器人送药」基本停留在营销叙事，<strong>没有可验证的商用产品</strong>。
+          <span class="badge cf-fix">v2 修正</span> 但 v1 的「完全空白」说法过强：<strong>杭州西湖区已有一个由政府推动的公开试点</strong>——古荡街道的四足机器狗「小西」（西湖区民政局、残联推动，西湖机器人），
+          背药箱在社区内穿行、<strong>用语音提醒老人按时服药</strong>，可从社区医院「走」到老人家门口，老人说一句「送药」即响应。
+          <strong>它仍未解决的是「确认服下」与「家属闭环」</strong>——报道未说明是否记录服药、是否回传家属。
+          所以真正的空白应精确表述为：<strong>「送达 + 提醒」已有试点，「确认服下 + 可追溯 + 家属闭环」仍是空白</strong>。</p>
+          <p class="src-inline" style="margin:8px 0 0"><span class="badge t2">Tier 2</span> 都市快报（杭州政协网转载），2025-02-21</p>
+        </div>
+      </div>
+
+      <h3>成本量级（决定我们该做什么）</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>形态</th><th>成本量级</th><th>可行性</th></tr></thead>
+          <tbody>
+            <tr><td>最简物理分装（锁定分药盘 + 闹铃 + 电池）</td><td><strong>$450 一次性</strong>（e-pill MedTime，厂商官网一手价）</td><td>已验证可商业化</td></tr>
+            <tr><td>联网 + 家属通知 + 自动落药</td><td>$30–50/月订阅（厂商官网价格未取到，来源为第三方）</td><td>商业模式成立但口碑存疑</td></tr>
+            <tr><td>移动底盘 + 导航 + 视觉确认</td><td>Ballie 级工程投入</td><td><strong>三星判定无法商业化</strong></td></tr>
+            <tr><td><strong>软件原型（我们三天要做的）</strong></td><td><strong>约 0 元</strong></td><td>可替代「提醒与追溯」这一层，<strong>完全替代不了</strong>物理分药、送药到人与「确实吞下」的生物验证</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <span class="ttl">诚实边界（路演时最好主动说出来）</span>
+        <p style="margin:0">
+          我们的原型替代的是 <strong>App / 通知 / 记录</strong>这一层。它<strong>不能</strong>替代物理分药、不能证明老人真的吞下药、
+          也不解决「药盒卡药」这类硬件问题。主动划清这条边界，比被评审问出来要有利。
+        </p>
+      </div>
+
+      <h3>矛盾与不确定</h3>
+      <ul>
+        <li><strong>Hero 与 MedMinder 的价格无法一手取证</strong>：官网为 JS 渲染或被反爬拦截，$30/月与 $40–50/月均为第三方口径，本报告标为 Tier 3，不作结论依据。</li>
+        <li><strong>Hero 的召回与差评只取到标题级事实</strong>：FDA 召回详情页与 Trustpilot 评论区被拦截，因此无法引用具体召回原因或评论原文。</li>
+        <li><strong>国内养老机器人厂商的功能查不到一手证据</strong>：优必选、傅利叶、科沃斯、来邦等<strong>均未找到任何有用药/送药功能的产品页</strong>，检索命中的是「十大养老机器人企业」这类无署名 SEO 榜单，已按无可靠来源处理，不作为论据。</li>
+        <li><strong>「互联网 + 护理服务」曾有「只有政策文件、没有执行数据」的判断——v2 已推翻</strong>：国家卫健委医政司有全国口径执行数据（<strong>约 6000 家</strong>医疗机构提供 7 类 60 余项上门护理服务），2024 年度国家老龄事业发展公报有家庭养老床位 <strong>34.7 万张</strong>、居家养老上门服务 <strong>64.3 万人次</strong>。这构成本产品在中国的一条真实外部替代/补充路径，不能当作空白。</li>
+        <li><span class="badge cf-new">v2 新增</span><strong>国内已有最接近本原型形态的公开试点</strong>：杭州西湖区古荡街道的四足机器狗「小西」，由<strong>西湖区民政局、残联</strong>推动，
+          背药箱在社区内穿行、<strong>语音提醒老人按时服药</strong>、可从社区医院「走」到老人家门口，老人说一句「送药」即响应。
+          其所在街道的古南社区 60+ 人群 1,199 人中，独居 78 人、空巢 228 人。
+          <strong>但报道未说明它是否记录「是否服下」、是否回传家属</strong>——也就是说，<strong>「送药到门口 + 提醒」已有政府试点，「确认服下 + 家属闭环」仍是空白</strong>，这与本报告的市场空白判断一致。</li>
+        <li><span class="badge cf-new">v2 新增</span><strong>中国本土的价格锚点，但仍构不成价格区间</strong>：北京日报 2026-09 实地走访（东土城路一家银发商店）记录到一款
+          <strong>标价 3900 元</strong>的智能药盒（可连接血压/血糖设备、同步体征数据、智能用药提醒），而<strong>不含额外功能的普通药盒售价只有几十元</strong>；
+          同店的智能老年陪护套装原价 1500 元、短租价 6 元/天。
+          <strong>缺口仍在</strong>：京东/天猫在售商品的实时价格由 JS 渲染，本轮的两个子代理与主代理均<strong>未能取到电商一手价格</strong>——
+          此处保持为缺口，不用估算值填充（详见第 10 章）。</li>
+      </ul>
+    </section>
+
+    <section id="human">
+      <h2><span class="num">04</span>用户特征：听觉退化、认知差异、接受度与隐私</h2>
+      <p class="sub">这一章直接决定界面参数与产品边界。<strong>默认用户不是「健康老人」，而是「听力已退化 + 认知已轻微下降 + 没去看过病」的主流人群。</strong></p>
+
+      <h3>4.1 听觉退化：他们不是听不见，是听不清</h3>
+      <div class="grid g4">
+        <div class="kpi">
+          <div class="v">&gt;25<small>%</small></div>
+          <div class="k">全球 <strong>60 岁以上</strong>人群中「致残性听力损失」的比例（较好耳 &gt;35 dB）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> WHO 事实清单（2026-03 版）</div>
+        </div>
+        <div class="kpi">
+          <div class="v">1/3<span style="font-size:.55em"> 与 </span>近半</div>
+          <div class="k">美国 <strong>65–74 岁</strong>约 1/3、<strong>75 岁以上</strong>近一半存在听力损失</div>
+          <div class="src"><span class="badge t1">Tier 1</span> NIDCD<br><span class="badge cf-fix">v2 口径</span> 「听力损失 / 听力困难」，<strong>不是</strong>致残性听力损失，且该页未给 dB 阈值</div>
+        </div>
+        <div class="kpi">
+          <div class="v">10<small>%</small></div>
+          <div class="k">中国<strong>听力残疾</strong>人群中使用助听设备者占比</div>
+          <div class="src"><span class="badge t2">Tier 2</span> 《中国听力健康报告(2025)》转述<br><span class="badge cf-fix">v2 口径</span> 底层数据是 <strong>2006 年</strong>第二次全国残疾人抽样调查，门槛为较好耳 <strong>≥41 dB HL</strong>，非当前值</div>
+        </div>
+        <div class="kpi">
+          <div class="v">1.9–4.9<small>×</small></div>
+          <div class="k">听力损失者的<strong>全因痴呆</strong>风险倍数（轻 1.89 / 中 3.00 / 重 4.94）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> Lin et al., <em>Arch Neurol</em> 2011;68(2):214-220<br><span class="badge cf-fix">v2 更正</span> v1 误标为「林, JAMA 2012」与「2/3/5×」；重度组仅 <strong>n=6</strong>，CI 极宽（1.09–22.4）</div>
+        </div>
+      </div>
+
+      <p>
+        <strong>关键机制：老年性聋是「高频先衰」，且表现为「听得见但听不懂」。</strong>
+        《中国听力健康报告(2025)》原文：老年性听力损失「主要特征为<strong>高频听力受损</strong>，常伴有耳鸣、<strong>言语识别障碍</strong>」。
+        在嘈杂环境下差距更明显：0 dB 信噪比下理解低语境句，年轻人 70.6%、老年人 59.2%。
+      </p>
+      <p>
+        <span class="badge cf-new">v2 新增</span><strong>不能假设老人戴了助听器。</strong>NIDCD 官方数据图表：
+        「<strong>Only 1 in 4 U.S. adults ages 20 and over who could benefit from hearing aids has used them.</strong>」
+        ——可能获益的美国 20+ 成人中，<strong>只有 1/4 曾使用过</strong>助听器（分子为 NHIS 自报「曾使用过」，分母为 NHANES 听力检查，
+        方法学见该图表脚注）。也就是说，<strong>提示音设计必须按「未做任何听力补偿」来做</strong>。
+        <span class="src-inline" style="display:inline"><span class="badge t1">Tier 1</span> NIDCD《Hearing Loss and Hearing Aid Use》官方数据图表</span>
+        <span class="badge cf-fix">v2 说明</span> NIDCD 科普页另写「one out of five」，但无数据来源与分母定义；本报告采用有方法学支撑的数据图表口径（1/4）。
+      </p>
+      <div class="callout warn">
+        <span class="ttl">v2 更正：中国 11.04% 的口径被二手转述漂移了，且报告内部那处「矛盾」现在有了答案</span>
+        <p style="margin:0 0 8px">
+          v1 在矛盾清单里写「同一报告既称 60+ 患病率 11.04%，又称 65+ 约 1/3 伴听力残疾」。
+          <strong>追到一手后可以确定</strong>：11.04% 的原始口径是<strong>「听力残疾现患率」</strong>（不是「听力损失患病率」），
+          出自 <strong>2006 年第二次全国残疾人抽样调查</strong>，而「听力残疾」的门槛是<strong>较好耳平均听力损失 ≥41 dB HL</strong>——
+          远高于 WHO 致残性听力损失的 &gt;35 dB，更远高于一般听力损失 &gt;20 dB。
+        </p>
+        <p style="margin:0 0 8px">
+          <strong>但新的矛盾出现了</strong>：<strong>同一个数据源</strong>，60+ 为 11.04%、65+ 却约 1/3，年龄只差 5 岁而患病率差约 3 倍，
+          在流行病学上说不通。转述这组数字的官方媒体报道把两个口径不同的数字并列而未加说明。
+          <strong>本报告的处理</strong>：不采用这组中国数字作为主论据，继续以 WHO 的国际口径与 NIDCD 的美国口径为准；
+          中国的 11.04% 只在说明「口径会漂移」时引用。
+        </p>
+        <p class="src-inline" style="margin:0">
+          <span class="badge t1">Tier 1</span> 孙喜斌等《中华流行病学杂志》2008;29(7):643-646（原文用词为「现患率」「现残率」）｜
+          <span class="badge t1">Tier 1</span> 于丽玫等《中国听力语言康复科学杂志》（「老年听力残疾现残率为 11.04%，致残原因中老年性耳聋占 66.87%」）｜
+          <span class="badge t1">Tier 1</span> 第二次全国残疾人抽样调查《听力残疾标准》（四级＝较好耳 41–60 dB HL）｜
+          <span class="badge cf-fix">v1 引用 67.02% 的补充</span> 同一数据源另有 <strong>66.87%</strong> 一说，本报告两个数值并列，并注明底层为 2006 年数据。
+        </p>
+      </div>
+
+      <div class="callout danger">
+        <span class="ttl">最反直觉、也最该引用的数字：高频提示音会「假装响了」<span class="badge cf-fix">v2 已改为一手数据</span></span>
+        <p style="margin:0 0 8px">
+          睡眠状态下的对比实验（<strong>38 名轻中度听损成人，听损 25–70 dB，慢波睡眠 NREM 3–4 期经 EEG 判定</strong>，年龄 18–77 岁）：
+          <strong>常规 3100 Hz 高频报警音在 ≤75 dBA 时只有 44% 的人被唤醒——也就是 56% 睡过未醒</strong>。
+          换成 <strong>520 Hz 低频方波</strong>后，75 dBA 唤醒 <strong>92%</strong>，95 dBA 达 <strong>100%</strong>。
+          单靠频闪灯只有 <strong>27%</strong>（且其强度已高于标准要求）；床/枕振动器为 <strong>80–83%</strong>（出厂强度）。
+          原文：<em>"The most effective signal was a 520-Hz square wave auditory signal, waking 92% at 75 dBA, compared with 56% waking to the 75 dBA high-pitched alarm."</em>
+        </p>
+        <p style="margin:0 0 8px" class="src-inline">
+          <span class="badge cf-fix">v2 更正一处关键数值</span>
+          <strong>v1 写「43% 的轻中度听损成人完全没被唤醒」是二手误转述。</strong>
+          43% 出自 2007 年 Hearing Review 的一篇新闻稿；回到 <strong>Bruck 本人的一手汇总表</strong>，43% 明确属于「<strong>儿童（6–10 岁）</strong>」与「<strong>自述深睡青年</strong>」两个<u>其他群体</u>，
+          <strong>听损成人组在 75 dBA 的数字是 56%</strong>。这是本报告 v1 最危险的一处错误——它把效应量夸大了约 30%，而且是<strong>用错人群的数字来描述目标人群</strong>。
+        </p>
+        <p style="margin:0" class="src-inline">
+          <span class="badge t1">Tier 1</span> Bruck &amp; Thomas, <em>Smoke Alarms for Sleeping Adults Who are Hard-of-Hearing</em>, <strong>Ear and Hearing 2009;30(1):73-80</strong>, doi:10.1097/AUD.0b013e3181906f89（v1 只写了「Bruck &amp; Thomas 2007」且未给期刊名）｜
+          <span class="badge t1">Tier 1</span> 同研究全文免费版：<a href="https://vuir.vu.edu.au/682/1/hardofhearing%26alarms.pdf">Fire Protection Research Foundation 报告（2007-06，97 页）</a>｜
+          <span class="badge t1">Tier 1</span> 汇总表见 Bruck 2008, <em>Fire Safety Science</em> 9:403-414
+          <br><strong>说明</strong>：v1 说「原研究付费墙，未逐字核验全文」——<strong>这个说法不准确</strong>：同一研究的研究报告版是免费全文，本轮已从中取到全部逐字原文。
+        </p>
+      </div>
+
+      <div class="callout ok">
+        <span class="ttl">听觉约束 → 硬性设计参数</span>
+        <ul style="margin-bottom:0">
+          <li><strong>提示音主频 520 Hz ±10%，波形须为方波（或具备等效唤醒能力）</strong>；<strong>禁止只用 3–4 kHz 高频单音</strong>。
+            <span class="badge cf-new">v2 依据</span> 这不是我们的发明——<strong>NFPA 72 睡眠区条款（2013 版 18.4.5.3，2014-01-01 起生效）明文要求</strong>：
+            「<em>The alarm signal shall be a square wave or provide equivalent awakening ability. The wave shall have a fundamental frequency of 520 Hz +/- 10 percent.</em>」，
+            其附录给出的理由是：3 kHz 是过去 30 年的标准报警频率，而<strong>同行评审研究已证明 520 Hz 低频信号对 65 岁以上人群、听力障碍者的唤醒效果优于 3 kHz</strong>。</li>
+          <li><strong>关键提醒声压</strong>：NFPA 72 睡眠区判据是「<strong>≥ 环境平均声级 +15 dB，或 ≥ 持续 60 秒以上最大声级 +5 dB，或 ≥ 75 dBA，取三者最大</strong>」，且<strong>在枕边测量</strong>；若有门/帘/隔断，须在隔断置于设备与枕头之间的条件下测量。
+            <span class="badge cf-fix">v2 更正</span> <strong>v1 写「重要提醒可到 95 dBA」并暗示这是规范要求——规范里没有 95 dBA 这一档。</strong>
+            95 dBA 是 Bruck 实验的阶梯上限（在该强度下 520 Hz 方波唤醒率 100%）。正确表述：<strong>95 dBA 是「实验中被证明可达满唤醒」的强度，不是标准要求的最低值</strong>。</li>
+          <li><span class="badge cf-new">v2 新增</span><strong>频谱</strong>：ISO 7731:2003 指出警报信号应含 <strong>500–2500 Hz</strong> 分量、推荐 <strong>500–1500 Hz 内有两个主导分量</strong>，并明确「<strong>对佩戴护听器或已有听力损失者，1500 Hz 以下必须有足够的信号能量</strong>」；时域上<strong>脉冲式优于恒定声</strong>。
+            该标准的可听度判据是三者取一：绝对下限 <strong>&gt;65 dB(A)</strong>、或高于环境噪声 <strong>&gt;15 dB</strong>、或倍频带超过有效掩蔽阈 <strong>&gt;10 dB</strong>。
+            <strong>v1 只写了「高 15 dB」，漏掉了绝对值下限与倍频带替代判据。</strong></li>
+          <li><span class="badge cf-fix">v2 重要限定</span><strong>纯音与方波不是一回事，可听度与唤醒也不是一回事</strong>：
+            「老年人对 500–1000 Hz 的可听度优于 2000 Hz 以上」<strong>有 Tier 1 支撑、属已证结论</strong>；
+            但「低频纯音就能唤醒老人」<strong>不能由可听度证据推出</strong>——Bruck 的措辞本身是假设性的（"<em>consistent with the idea that the most detectable signal when awake <u>may also be</u> the most alerting when asleep</em>"），
+            且其睡眠实验里最有效的是 <strong>520 Hz 方波复合音（含 3/5/7 次谐波）</strong>，文献中 400–800 Hz 的<strong>纯音</strong>表现系统性劣于方波。
+            → 落地：<strong>要方波/多频复合音，不要低频纯音。</strong></li>
+          <li><span class="badge cf-new">v2 新增（对老年人尤其重要）</span><strong>不要把振动当作听觉的等效替代</strong>：同一研究明确记录
+            「<em>Those hard of hearing participants who were <strong>aged 60 years or more were less likely to awaken to the bed shaker</strong> than those aged below 60 years.</em>」
+            ——60 岁以上对床振动器的响应更差，而其他信号未见年龄差异。振动可以作为冗余通道，但<strong>不能因为「老人听不清」就把振动当主通道</strong>。</li>
+          <li><span class="badge cf-new">v2 新增</span><strong>语音提醒必须用中文母语者录制/合成，且不能只靠语音</strong>：同一研究记录到非英语母语者<strong>即使是 95 dBA、持续 3 分钟以上的英语语音报警也唤不醒</strong>
+            （老年组 40 人中 3 人完全未醒，其中 2 人母语为阿拉伯语）。对本项目的直接含义：<strong>中文语音 + 同步视觉/实体确认是必需的，纯语音播报是高风险设计。</strong></li>
+          <li><strong>语音语速</strong>：<span class="badge cf-fix">v2 更正</span> v1 写「≤140 词/分钟，禁止超过 180 wpm（Tun 1998）」——
+            <strong>核验后，「140–180 wpm」并不是 Tun 1998 的论文数据</strong>：该文摘要<strong>不含任何 wpm 数值</strong>，这三个数字出自 1998 年 10 月 Brandeis 大学的<strong>新闻稿</strong>，且原文把它定义为「<strong>典型对话语速</strong>」（<em>"140 to 180 words per minute, the pace of a typical conversation"</em>），不是「老年人理解下降的阈值」。
+            同课题组更早的一篇论文才真正把语速作为实验变量：<strong>Tun et al. 1992 用的是 140–280 wpm</strong>。<br>
+            <strong>v2 补上可引用的锚点</strong>——中文侧：中国播音员语速基准 <strong>4.3 字/秒（258 字/分）</strong>可达 99% 可懂度、可接受上限 <strong>&lt;300 字/分</strong>、且<strong>年龄越大感知越不准、偏好越慢</strong>（Chan &amp; Lee 2005）；一项中文老年语音交互实测发现，
+            <strong>老人希望机器人的播报语速慢于他自己对机器人说话的语速</strong>，且<strong>文本越长、期望语速越慢</strong>（Wang 2023，n=30）。<br>
+            → 落地做法：<strong>文案压到极短，语速设为「低于用户自身语速」，并按个人基线自适应</strong>。（<span class="badge cf-fix">缺口</span>官方标准数字阈值仍取不到：GB/T 45122-2024 全文为字体内嵌编码，ISO 9921 的数值要求未取到——路演时不要说「符合国标」。）</li>
+          <li><strong>三通道冗余</strong>：声音 + 大字屏显 + 振动/灯光，且<strong>每个通道都能独立传达信息</strong>（不允许「必须视听结合才能解码」）。</li>
+          <li><strong>每个通道都要能重复</strong>：老人可能正在午睡、没戴助听器、或在厨房。</li>
+        </ul>
+      </div>
+
+      <h3>4.2 认知差异：这不是「记性问题」，是「前瞻记忆」问题</h3>
+      <p>
+        吃药这件事依赖的是<strong>前瞻记忆（prospective memory）</strong>——记住「<em>在将来某个时刻</em>要做某件事」，
+        而正常老化恰恰削弱的是<strong>自我发起（self-initiated）</strong>的认知过程，同时相对保留
+        「<strong>环境线索 → 动作</strong>」的自动化关联。
+      </p>
+      <div class="quote">
+        <p>单靠提醒本身往往是无效的，因为它无法覆盖成功的前瞻记忆所需要的全部环节。</p>
+        <span class="who">原文：<em>"We believe that single reminders alone can be ineffective because they fail to address all of the component processes necessary for successful prospective remembering."</em> —— Insel et al., <em>JAGS</em> 2016 <span class="badge t1">Tier 1</span></span>
+      </div>
+      <div class="quote">
+        <p>把依赖从「自我发起的过程」转移到「由环境支持、相对自动化的联想过程」。</p>
+        <span class="who">原文：<em>"switching dependence from self-initiated processes... to environmentally supported and relatively automatic associative processes"</em> —— 同上 <span class="badge t1">Tier 1</span></span>
+      </div>
+
+      <div class="grid g3">
+        <div class="kpi">
+          <div class="v">15.5<small>%</small></div>
+          <div class="k">中国 60 岁以上人群 <strong>MCI（轻度认知障碍）</strong>患病率 ≈ <strong>3,877 万人</strong>（n=46,011）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> Jia et al., <em>Lancet Public Health</em> 2020</div>
+        </div>
+        <div class="kpi">
+          <div class="v">97.2<small>%</small></div>
+          <div class="k">中国 MCI 患者<strong>从未就诊</strong>；99.2% 对疾病没有概念</div>
+          <div class="src"><span class="badge t1">Tier 1</span> 同上</div>
+        </div>
+        <div class="kpi">
+          <div class="v">57→78→59<small>%</small></div>
+          <div class="k">前瞻记忆干预期间依从率 57%→78%，<strong>干预撤销 5 个月后回落至 59%</strong>（n=122）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> Insel, <em>JAGS</em> 2016</div>
+        </div>
+      </div>
+
+      <div class="callout ok">
+        <span class="ttl">认知约束 → 硬性设计参数</span>
+        <ul style="margin-bottom:0">
+          <li><strong>把服药挂到老人自己既有的日常锚点上</strong>（「早饭吃完」而不是「08:00」）。这是本报告里对依从性最有效的单条设计建议。</li>
+          <li><strong>一次只要求一个动作</strong>。提醒触发时不要同时要求阅读长文本、做选择或确认多个选项——老年人双任务下的表现显著下降（步行速度效应量 Δ=1.03）。</li>
+          <li><strong>不要依赖「自我发起」</strong>：界面不能要求老人主动想起「我该看看药盒了」。</li>
+          <li><strong>默认按「MCI 未就诊」设计</strong>：短句、重复、大字号、可回看，是默认值而不是无障碍边缘场景。</li>
+          <li><strong>干预不能撤</strong>：数据显示撤除支持后效果会回落到基线——产品必须能长期稳定运行，而不是「教会了就走」。</li>
+        </ul>
+      </div>
+
+      <h3>4.3 心理抗拒与接受度：不是「抗拒科技」，是「选择性接受 + 怕出事」</h3>
+      <div class="grid g3">
+        <div class="kpi">
+          <div class="v">1.61<small>亿</small></div>
+          <div class="k">中国 60 岁+ 网民规模，老年群体互联网普及率 <strong>52.0%</strong>——<strong>近一半老人根本不在线上</strong></div>
+          <div class="src"><span class="badge t1">Tier 1</span> CNNIC 第 56 次报告（2025-06）</div>
+        </div>
+        <div class="kpi">
+          <div class="v">82.9<small>%</small></div>
+          <div class="k">50 岁+ 人群存在互联网使用障碍；<strong>70 岁及以上高达 87.9%</strong></div>
+          <div class="src"><span class="badge t2">Tier 2</span> 中工网转《北京日报》<br><span class="badge cf-new">v2 补样本</span> 中国人民大学「中国老年群体数字鸿沟与数字融入调查」：<strong>n=5,231</strong>，覆盖 18 省 18 市 53 区县<br><strong>第一大困难是「担心个人隐私和信息安全问题」44.7%</strong>，其次字太小 36.9%、不能判断信息真假 31.7%</div>
+        </div>
+        <div class="kpi">
+          <div class="v">59.7<small>%</small></div>
+          <div class="k">中国 60 岁+ 老年人<strong>空巢</strong>比例＝<strong>独居 14.2%</strong> + <strong>仅与配偶居住 45.5%</strong>（城镇独居 12.4%、农村独居 16.3%）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> 第五次中国城乡老年人生活状况抽样调查（民政部/全国老龄办等；标准时点 2021-08-01，有效样本 <strong>12.7287 万</strong>，按七普加权）<br><span class="badge cf-fix">v2 升级</span> v1 用的是王跃生《人口研究》2024 的七普推算；现改用官方抽样调查一手数据。按 2024 年末 60+ 人口 31,031 万推算，<strong>独居约 4,400 万人</strong>（此推算为本报告所做，官方未发布 2024 年独居数字）</div>
+        </div>
+      </div>
+
+      <h4>抗拒的真实原因（按证据强度排序）</h4>
+      <ol>
+        <li><strong>学习成本高</strong>——82.9% / 87.9% 存在使用障碍（人大调查，n=5,231）。</li>
+        <li><strong class="badge cf-fix">v2 更正措辞</strong><strong>「三怕」：怕弄坏、怕被骗、怕<u>没人帮</u></strong>——报道中有老人把 AI 陪伴设备「蒙上了带花边的防尘布，电源都没插」，姥姥答「怕用坏了」、姥爷补充「万一点了什么东西，扣钱咋办？」；报道把三怕归纳为「<strong>怕弄坏</strong>」「<strong>怕被骗</strong>」「<strong>怕没人帮</strong>」。甚至出现「防御性上网」（一台不插卡手机刷视频、一台插卡只绑小额卡）。<br><span class="src-inline"><span class="badge cf-fix">v1 措辞有误</span> v1 把它写成「怕弄坏、怕误扣费、怕被骗」——「扣钱」是姥爷那句独立引语，不在文章的「三怕」归纳里；已按原文改正，否则逐字核验会失败。</span></li>
+        <li><strong>自尊与污名</strong>——JMIR 质性研究（n=31，≥65 岁，64.5% 独居）原文：<em>"Many saw these devices as symbols of weakness or reliance on others, potentially impacting self-esteem and personal pride."</em><br><span class="badge cf-fix">v2 必读限制</span> <strong>该研究样本来自加拿大渥太华一家长期照护机构（Perley Health：450 张 LTC 床位 + 139 套独立生活公寓），包含亚急性病房与 LTC 住户（LTC 组年龄中位数 94 岁）</strong>，<strong>不是社区独居老人</strong>。v1 把它当作社区独居老人与中国场景的证据使用，属<strong>外推过度</strong>；方向可用，置信度应保持在 <strong>Likely</strong> 而非 Established。</li>
+        <li><strong>隐私与数据安全</strong>（见 4.4）。</li>
+        <li><strong>费用</strong>、<strong>对可靠性的怀疑</strong>（「感觉它也没在真正管我」）。</li>
+        <li><strong>怕麻烦子女</strong>——「听不懂也不敢多问」（定性共识，无定量排序）。</li>
+      </ol>
+
+      <div class="callout info">
+        <span class="ttl">最关键的一条：老人接受「提醒」，不接受「决策」</span>
+        <p style="margin:0 0 8px">
+          一项老年被试研究（n=21，平均年龄 80.25）量化了这条边界：<strong>「提醒吃药」偏向让机器人做（M=3.29）</strong>，
+          而<strong>「决定吃什么药」偏向让人做（M=2.38）</strong>（5 分制，5 = 完全交给机器人）。
+        </p>
+        <p style="margin:0 0 8px">
+          工具性日常活动（IADL：家务、洗衣、提醒吃药）有 <strong>50%</strong> 偏好机器人；
+          而身体照护（ADL：洗澡、穿衣、剃须）仅 <strong>12%</strong> 偏好机器人、<strong>63%</strong> 偏好人类。
+        </p>
+        <p style="margin:0" class="src-inline"><span class="badge t1">Tier 1</span> Smarr et al. 2012, PMC4182920。样本小（n=21）且为假设情境，<strong>只能作方向性依据</strong>。</p>
+      </div>
+
+      <h4>能提高接受度的设计（有证据支持）</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>做法</th><th>证据</th></tr></thead>
+          <tbody>
+            <tr><td>从老人<strong>已经熟悉</strong>的软件形态入手，给他「安全试探」的空间</td><td>研究者观察老人使用大模型时「像跳探戈一样，在一次次试探性提问中摸索安全距离」<span class="badge t2">Tier 2</span></td></tr>
+            <tr><td><strong>必须配培训</strong>，不能「给了就走」</td><td><em>"You can't just hand someone something and leave them to figure it out. There needs to be training or orientation."</em> <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>借<strong>医生推荐</strong>背书（最强触发器）</td><td><em>"If my doctor recommended it, I'd definitely consider it."</em> <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td><strong>反诈与费用透明前置</strong>（直接消解「三怕」）</td><td>多来源一致 <span class="badge t2">Tier 2</span></td></tr>
+            <tr><td>家人陪伴教学是主渠道（68.3% 跟子女孙辈学手机），但<strong>不可依赖</strong></td><td>人民日报海外版 <span class="badge t2">Tier 2</span></td></tr>
+            <tr><td>任务定位守住「提醒」，避开决策与身体照护</td><td>Smarr et al. <span class="badge t1">Tier 1</span>（n=21）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="ttl">一个必须避开的陷阱：自报意愿 ≠ 实际采纳</span>
+        <p style="margin:0">
+          美国一项 n=182 的调查显示 76% 对陪伴机器人持正面态度、65% 表示愿意使用；
+          但质性研究记录到普遍的「<strong>对别人有用，但对自己没必要</strong>」心态。
+          <strong>不要用「问老人愿不愿意用」来验证需求</strong>——要看他是否在无人催促时持续使用。
+        </p>
+      </div>
+
+      <h3>4.4 隐私顾虑：核心张力是「老人要独立，子女要安心」</h3>
+      <div class="quote">
+        <p>知道总被人看着有点不安，但知道有事的时候有人管，又让人安心。</p>
+        <span class="who">原文：<em>"It's a bit unsettling to know you're always being watched, but it's also comforting to know help is there if you need it."</em> —— JMIR Hum Factors 2025;12:e74214 <span class="badge t1">Tier 1</span></span>
+      </div>
+      <p>
+        同一研究还记录了家属推动的双刃性：<em>"My kids keep pushing me to try it... because it makes them feel better about my safety."</em>
+        ——<strong>设备的实际受益人是子女的安心，而不是老人的便利。</strong>这是本产品最需要警惕的定位陷阱。
+      </p>
+      <p>
+        但隐私的具体内容有一个反直觉的细化：一项 2024 年的研究指出，
+        <em>"Social privacy was a relatively smaller concern compared to the other dimensions of privacy"</em>
+        ——老人相对更在意<strong>「信息被谁拿走、拿去做什么」</strong>，而不是「被看见」本身的社会羞耻。
+        <span class="src-inline" style="display:inline">（<span class="badge t1">Tier 1</span> Tian et al. 2024，仅取到摘要逐字，全文页被拦截）</span>
+      </p>
+
+      <div class="callout danger">
+        <span class="ttl">法规基线（中国《个人信息保护法》，对本产品是硬约束）</span>
+        <ul style="margin-bottom:0">
+          <li><strong>第 28 条</strong>：医疗健康信息属<strong>敏感个人信息</strong>，只有在「特定的目的和充分的必要性，并采取严格保护措施」时才能处理。</li>
+          <li><strong>第 29 条</strong>：处理敏感个人信息须取得<strong>单独同意</strong>（不能混在总协议里）。</li>
+          <li><strong>第 23 条</strong>：向其他处理者提供个人信息须<strong>单独同意</strong>。<span class="badge cf-fix">v2 降级</span>
+            v1 据此直接推出「子女远程查看服药数据＝向第三方提供」。<strong>核验后这一步属本报告的推断，不是法律原文的直接结论</strong>——第 23 条只规范「向其他<u>个人信息处理者</u>提供」，
+            <strong>并未界定家庭成员</strong>。要正确处理必须同时引用第 <strong>73 条（一）</strong>（个人信息处理者＝自主决定处理目的与方式的组织、个人）与第 <strong>72 条</strong>（「自然人因个人或者家庭事务处理个人信息的，不适用本法」）。
+            → 结论方向不变（家庭内部处理与商业处理者处理是两种法律情形），但<strong>「必须获得老人单独同意」应当作为产品自愿承诺来讲，而不是当作法律强制要求</strong>。</li>
+          <li><strong>第 6 条</strong>最小必要、<strong>第 55 条</strong>事前个人信息保护影响评估、<strong>第 15 条</strong>可便捷撤回同意、<strong>第 47 条</strong>目的实现后主动删除。</li>
+        </ul>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge t1">Tier 1</span> 法律原文（第 74 条：自 2021-11-01 施行）；8 条均经 v2 逐条逐字核验通过。
+          <span class="badge cf-new">v2 补齐欧盟侧</span> v1 称「GDPR 第 9 条未逐字核实，标为缺口」——<strong>本轮已补齐为官方原文</strong>：
+          GDPR <strong>第 9 条</strong>（9(1) 原则禁止处理健康数据、9(2)(a)(c)(h)(i) 例外、9(3) 保密义务、9(4) 成员国可加严）、
+          欧盟 <strong>MDR 附录 VIII 第 III 章 6.3 条 Rule 11</strong>（软件按 IIa/IIb/III 分类，「All other software is classified as class I」）、
+          <strong>MDCG 2019-11 rev.1</strong> 指南全文，均从欧盟官方发布体系取得。详见第 09 章。</p>
+      </div>
+
+      <div class="callout ok">
+        <span class="ttl">隐私约束 → 设计决策（这些方向有质性证据支持，但缺量化对照实验，属待验证）</span>
+        <ul style="margin-bottom:0">
+          <li><strong>本地处理、默认不上云</strong>——数据不出设备，天然规避「被谁拿走」的担忧。</li>
+          <li><strong>不采集摄像头画面</strong>——只用在场所需的最少传感器。</li>
+          <li><strong>子女端默认只能看到「是否已服药」的摘要</strong>，看不到原始数据与实时画面；该开关<strong>默认关闭</strong>，且须老人单独同意。</li>
+          <li><strong>可见的隐私指示 + 一键关闭</strong>，让老人随时能确认「它现在有没有在听」。</li>
+          <li><strong>把控制权交给老人</strong>：他可以决定子女能看到什么、能否随时撤回。</li>
+        </ul>
+      </div>
+
+      <h3>四类约束 → 四条不可妥协的设计决策</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>约束</th><th>硬性决策</th><th>依据强度</th></tr></thead>
+          <tbody>
+            <tr><td>听觉退化</td><td><strong>520 Hz ±10% 方波</strong>（不用低频纯音）＋ <strong>≥75 dBA 枕边测量</strong>（或环境 +15 dB）＋ 三通道冗余（<strong>振动不作主通道</strong>）；语音语速低于用户自身基线；<strong>语音必须中文母语者</strong></td><td><span class="badge cf-est">Established</span>（<span class="badge cf-fix">v2 升级</span> 频率/波形/声压三项已有一手规范依据：NFPA 72 睡眠区条款、ISO 7731。v1 标为 Likely 是因为当时只拿到二手转述）</td></tr>
+            <tr><td>认知差异</td><td>锚定既有日常习惯；一次只要求一个动作；按「MCI 未就诊」做默认设计</td><td><span class="badge cf-est">Established</span></td></tr>
+            <tr><td>心理抗拒</td><td>只做提醒不做决策；反诈与费用透明前置；必须配初始化培训</td><td><span class="badge cf-lik">Likely</span>（任务边界仅 n=21）</td></tr>
+            <tr><td>隐私顾虑</td><td>本地优先、无摄像头、子女默认看摘要；把「谁能看到什么」的控制权交给老人本人</td><td><span class="badge cf-eme">Emerging</span>（方向有质性支持，缺对照实验）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="scenarios">
+      <h2><span class="num">05</span>场景化机制设计</h2>
+      <p class="sub">结论先行：<strong>漏服处理是「逐药而异」的，不存在通用规则——所以软件绝不能自动化补服决策。</strong>这条约束反过来定义了三个场景该怎么设计。</p>
+
+      <div class="callout danger">
+        <span class="ttl">决定性证据：NHS 对不同药物的漏服指引互相矛盾</span>
+        <div class="table-wrap" style="margin:0 0 12px">
+          <table style="margin:0">
+            <thead><tr><th>药物</th><th>NHS 官方指引</th></tr></thead>
+            <tbody>
+              <tr><td>氨氯地平、阿托伐他汀</td><td><strong>跳过</strong>漏服的那次，下次照常</td></tr>
+              <tr><td>华法林、左甲状腺素、二甲双胍</td><td><strong>想起来了就补服</strong>——除非已接近下次服药时间</td></tr>
+              <tr><td>抗生素</td><td>让患者<strong>自己查说明书</strong>，不确定就问药师或医生</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin:0">
+          华法林条目原文还有一句关键提示：<em>"Do not take 2 doses to make up for a missed dose."</em>
+          ——也就是说，同一个 App 只要给出任何一句「补服建议」，就必然对其中一部分药是<strong>错的</strong>。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge t1">Tier 1</span> NHS Medicines A–Z 各药条目（<a href="https://www.nhs.uk/medicines/warfarin/">华法林</a> 等）</p>
+      </div>
+
+      <h3>场景 1 · 日常规律服药</h3>
+      <div class="card">
+        <h4 style="margin-top:0">设计要点</h4>
+        <ul>
+          <li><strong>调度对象只有一个</strong>：药名 + 剂量（原文）+ 时间窗。不做任何推导。</li>
+          <li><strong>到点提醒 → 限时确认</strong>（建议 30–60 分钟内），超时记为「<strong>待确认</strong>」而<strong>不是</strong>「已服用」。</li>
+          <li><strong>每次事件写不可篡改的追加式日志</strong>（提示时间、通道、次数、取药时间、确认方式）。</li>
+          <li><strong>绝不内置补服计算</strong>：只展示该药说明书的原文摘录，并提供「问药师 / 医生」入口。</li>
+          <li><strong>防重复服药</strong>：已确认的时段在界面上明确显示「今天已完成」，避免老人重复取药。</li>
+        </ul>
+        <p class="src-inline" style="margin-bottom:0">
+          依据：<span class="badge t1">Tier 1</span> NHS 各药条目；
+          <span class="badge t1">Tier 1</span> App 提醒类干预 Meta 分析（26 项 RCT / 5,174 人，OR 2.371，SMD 0.279 —— <strong>有效但效应量中等</strong>）。
+        </p>
+      </div>
+
+      <h3>场景 2 · 临时加药 / 换药</h3>
+      <p>
+        这个场景的重要性被数据强力支持：<strong>用药方案变更是常态，不是例外。</strong>
+      </p>
+      <div class="grid g3">
+        <div class="kpi">
+          <div class="v">98.6<small>%</small></div>
+          <div class="k">多重用药老人在 <strong>9 个月内</strong>至少发生一次用药方案变更（中位数 <strong>9.5 次/人</strong>）</div>
+          <div class="src"><span class="badge t1">Tier 1</span> PRIMUM 队列，502 人</div>
+        </div>
+        <div class="kpi">
+          <div class="v">82.5<small>%</small></div>
+          <div class="k">6 个月内发生<strong>有效成分（API）变更</strong>的患者比例；剂量调整 <strong>74.1%</strong></div>
+          <div class="src"><span class="badge t1">Tier 1</span> 同上</div>
+        </div>
+        <div class="kpi">
+          <div class="v">50.4<small>%</small></div>
+          <div class="k">全球老年人<strong>多重用药（≥5 种）</strong>流行率；每多一种药，住院风险 HR <strong>1.04</strong></div>
+          <div class="src"><span class="badge t1">Tier 1</span> 56 国 Meta 分析（2026 在线先发）</div>
+        </div>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">设计要点</h4>
+        <ul style="margin-bottom:0">
+          <li><strong>变更必须由「人」输入</strong>（医生 / 药师 / 获授权的家属），系统不生成变更。</li>
+          <li><strong>每条临时用药必须带有效期 / 疗程结束日</strong>，到期自动失效并留痕。</li>
+          <li><strong>时段冲突只做提示，不做取舍</strong>：并列展示两条原始医嘱，提示「同一时段有 2 种药」，让家属或药师确认顺序。</li>
+          <li><strong>换药时旧药置为「暂停」而不是删除</strong>，保留完整审计链——这对追溯和纠纷处理至关重要。</li>
+        </ul>
+      </div>
+
+      <h3>场景 3 · 漏服追溯与家属通知</h3>
+      <p>这个场景最大的风险不是「没通知到」，而是<strong>误报</strong>。真实世界的数字非常残酷：</p>
+      <div class="callout danger">
+        <span class="ttl">误报的真实代价：84 次报警里 83 次是误报</span>
+        <p style="margin:0 0 8px">
+          一项真实世界可穿戴跌倒检测研究（18 人，4 个月）中：<strong>84 次报警中 83 次为误报，阳性预测值仅 0.02</strong>；
+          灵敏度实测 <strong>0.25</strong>，而厂商实验室宣称 94.1%–94.4%。
+        </p>
+        <p style="margin:0">
+          含义：<strong>任何自动升级机制都必须在默认状态下高度保守。</strong>一次错误的外呼会摧毁老人对整套系统的信任——
+          而信任正是这个人群最稀缺的资源。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge t1">Tier 1</span> PMC4662041（2015）</p>
+      </div>
+
+      <h4>三档升级链路（建议实现）</h4>
+      <div class="flow">
+        <div class="step">
+          <div class="n">第 1 档 · 只对本人</div>
+          <div class="t">换通道重试</div>
+          <div class="d">T+15 / 30 分钟；<strong>换通道 + 换措辞 + 拉长间隔</strong>，不原样重推</div>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step">
+          <div class="n">第 2 档 · 通知家属</div>
+          <div class="t">只推事实</div>
+          <div class="d">「X 药 20:00 未确认」——<strong>不含任何补服建议</strong>；家属只能「已知悉 / 我联系他」</div>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step">
+          <div class="n">第 3 档 · 仅提示，不自动外呼</div>
+          <div class="t">人来决定</div>
+          <div class="d">仅当老人<strong>主动触发 SOS</strong>，或连续多日无任何交互（行为异常）时提示联系社区/家属。<strong>系统自身不得自动呼叫急救</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-top:0">误报控制（必须做）</h4>
+        <ul style="margin-bottom:0">
+          <li><strong>默认关闭自动外呼</strong>——急救链路由人触发。</li>
+          <li><strong>冷却期去重</strong>：同一事件在时间窗内只通知一次，合并同类通知。</li>
+          <li><strong>老人可一键「稍后再说」</strong>，并暂停当晚后续升级。</li>
+          <li><strong>引入「已知情未服」状态</strong>：家属回「她出门了」即标记，<strong>不计入依从失败</strong>——这是避免误报引发家庭矛盾的关键设计。</li>
+          <li><strong>绝不向家属推送依从性评分或排名</strong>。家属参与是双刃剑：系统综述（16 篇）发现照护者普遍反映<strong>负担沉重、且常依赖未经验证的信息来源而出错</strong>；
+            另一项双人（dyad）质性研究更直接记录到角色分工「偶尔错位，有时导致冲突」。</li>
+        </ul>
+      </div>
+
+      <h4>为什么这件事值得做：抗凝药的证据最硬</h4>
+      <div class="callout info">
+        <p style="margin:0">
+          在抗凝治疗中，<strong>依从性每下降 10%（PDC），DOAC 使用者的卒中/系统性栓塞风险上升 14%</strong>。
+          抗凝不依从比例在文献中为 <strong>33%–50%，平均漏服约 30% 的剂量</strong>。
+          这是「漏服追溯」最有力的立项论据——因为后果明确、可量化、且后果严重。
+        </p>
+        <p class="src-inline" style="margin:10px 0 0"><span class="badge t1">Tier 1</span> Safari et al., <em>J Am Heart Assoc</em> 2024;13(18):e035639（44,172 人队列）</p>
+      </div>
+
+      <h3>数据缺口（未找到，请勿补数）</h3>
+      <ul>
+        <li><strong>分药物类别的漏服 → 急诊/死亡数据缺失</strong>：抗凝类数据最扎实，但降压、降糖、精神类的可比口径定量数据<strong>未找到</strong>。</li>
+        <li><strong>NHS 的漏服总纲页（SPS）返回 403 无法取原文</strong>：本报告只采用了 NHS 各药条目的一手页面。</li>
+        <li><strong>欧盟 MDR 的 Rule 11 原文未取到</strong>（仅二手转述），涉及欧盟市场的合规判断需另行核实。</li>
+        <li><strong>「分级升级」与「照护者告警疲劳」缺少专门文献</strong>——本报告的升级链路是依据误报代价推出的工程保守设计，不是循证结论。</li>
+      </ul>
+    </section>
+
+    <section id="interaction">
+      <h2><span class="num">06</span>交互设计：让老年人用得起来</h2>
+      <p class="sub">结论先行：适老化<strong>不是「把字放大」</strong>，而是三件具体的事——<strong>把提示音换到低频、把时机换到习惯锚点、把「重复提醒」换成「换通道」</strong>。</p>
+
+      <div class="callout danger">
+        <span class="ttl">最反直觉的一条：原样重推同一条提醒，会让你更被忽略</span>
+        <p style="margin:0 0 8px">
+          基于真实临床警报系统的量化研究（<strong>112 名门诊临床医生、126.6 万条 BPA 提醒、32.6 万条药物警报、43.1 万次就诊、99,649 名患者</strong>）发现：
+          <strong>每次就诊多收到一条 BPA，医生接受任一 BPA 的可能性下降 30%（IRR 0.70, p&lt;.001）；重复提醒占比每上升 5 个百分点，接受率下降 10%（IRR 0.90, p&lt;.001）。</strong>
+        </p>
+        <p style="margin:0 0 8px">
+          <span class="badge cf-fix">v2 更正</span>
+          <strong>v1 把这两个自变量合并成了一句「每多收到一条重复提醒，接受率下降 30%」，并把 87.9% 误读为「首次被忽略的提醒后续继续被忽略的概率」。</strong>
+          原文的 87.9% 是：<em>"if the first instance was <strong>overridden</strong>, the chance of subsequent instances being overridden was 87.9%"</em>——
+          指<strong>医生主动否决（override）</strong>的首次提醒，其后续同型提醒有 87.9% 也被否决；
+          而<strong>首次被接受</strong>的后续仍有 <strong>51.9%</strong> 被否决。药物警报口径下这个数字更高，达 <strong>99.9%</strong>。
+          <strong>必须并列 51.9% 这个对照值</strong>，否则会夸大「首因锁定」效应。
+        </p>
+        <p style="margin:0 0 8px">
+          而通常被假定的「时间久了就麻木」（desensitization）<strong>在本研究中并未出现</strong>——
+          原文：<em>"The newly deployed reminders did not show a pattern of declining response rates over time, which would have been consistent with desensitization."</em>
+          <span class="badge cf-fix">v2 加限定</span> 该检验只基于 <strong>6 条新部署警报 × 46 名临床医生</strong>，统计力有限，作者自陈单一 EHR 系统会降低外推性。
+        </p>
+        <p style="margin:0" class="src-inline">
+          <span class="badge t1">Tier 1</span> Ancker et al., <em>BMC Med Inform Decis Mak</em> 2017;17:36 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5387195/">PMC5387195</a>
+          （该文 2019 年有一篇更正，经核验<strong>仅更正作者单位，不影响任何数据结论</strong>）
+        </p>
+        <p style="margin:8px 0 0" class="src-inline">
+          <span class="badge cf-fix">外推边界（务必写进脚本）</span> 这是<strong>临床医嘱决策支持系统</strong>的提醒，被提醒者是医生、不是患者，场景是门诊决策而非居家服药。
+          可迁移的是机制（<strong>重复与低信息量的提醒会拉低响应率</strong>）；<strong>不可迁移</strong>的是具体比例。
+          v1 把它当作「服药提醒」证据使用，属外推，已标注。
+        </p>
+      </div>
+      <div class="callout ok">
+        <p style="margin:0">
+          <strong>对原型的直接修改：</strong>第一次未响应后，<strong>不要原样再响一次</strong>。
+          应当<strong>换通道（声音 → 灯光 + 振动）、换措辞、拉长间隔</strong>。
+          这条比「多提醒几次」有效得多，而且很容易在三天里演示出来。
+        </p>
+      </div>
+
+      <h3>可直接写进规范的硬数值</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>参数</th><th>要求</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr><td>正文对比度</td><td><strong>≥4.5:1</strong>；大字（≥18pt 或 14pt 粗体）≥3:1</td><td>WCAG 2.2 SC 1.4.3 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>图标 / 非文本对比度</td><td>≥3:1</td><td>WCAG 2.2 SC 1.4.11 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>点击目标尺寸（法规底线）</td><td>≥24×24 CSS px</td><td>WCAG 2.2 SC 2.5.8 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td><strong>点击目标尺寸（中国适老版主界面）</strong></td><td><strong>≥60×60 dp/pt</strong>；其他页面 ≥44×44；独立适老 App 首页 ≥48×48</td><td>工信部《移动互联网应用（APP）适老化通用设计规范》<span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>适老版主要文字</td><td>≥18 dp/pt；主要界面最大字体 <strong>≥30 dp/pt</strong></td><td>同上 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>行距 / 段距</td><td>行距 ≥1.3 倍；<strong>段距 ≥行距 × 2.3</strong></td><td>同上 <span class="badge t1">Tier 1</span><br><span class="badge cf-fix">v2 更正</span> 原文为「段落间距<strong>至少比行距大 1.3 倍</strong>」，即段距 ≥ 行距 × <strong>2.3</strong>；v1 写成「× 1.3」<strong>偏宽松了</strong></td></tr>
+            <tr><td>文字缩放</td><td>放大至 <strong>200%</strong> 不丢内容与功能</td><td>WCAG 2.2 SC 1.4.4 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>超时处理</td><td>警告后可延长（≥20 秒、可延长 ≥10 次），或可调到默认值 10 倍；<strong>用户操作完毕前界面不得变化</strong></td><td>WCAG 2.2 SC 2.2.1＋工信部规范 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>手势</td><td><strong>禁止需要 ≥3 指的手势</strong></td><td>工信部 App 规范 <span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>语音阅读</td><td>正文页须提供<strong>可开关</strong>的语音阅读，且能被辅助技术控制</td><td>工信部《互联网网站适老化通用设计规范》<span class="badge t1">Tier 1</span></td></tr>
+            <tr><td>信息编码</td><td><strong>不得仅用颜色传达信息</strong>；音频须配视觉，音频须配触觉</td><td>工信部规范 + Apple HIG <span class="badge t1">Tier 1</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>语音交互：真正的失败点不在「听不清」</h3>
+      <p>
+        一项 4 周居家实录研究（15 位老人，2,552 轮交互）发现，老人使用语音助手的失败主要来自
+        <strong>意图识别错误</strong>，而且<strong>纠错尝试会让错误升级</strong>：
+      </p>
+      <div class="quote">
+        <p>当老年人试图纠正错误时，错误往往会升级——这些纠正尝试通常无法解决最初的误解，反而产生更多未解决的错误。</p>
+        <span class="who">原文：<em>"errors often escalated when older adults attempted to correct them, as these attempts typically failed to address the initial misunderstanding and resulted in numerous additional unresolved errors"</em> —— Mahmood et al., arXiv:2403.02421 <span class="badge t1">Tier 1</span></span>
+      </div>
+      <p>
+        甚至连唤醒词都会成为障碍：<strong>所有参与者都曾误用唤醒词</strong>（例如把 "Alexa" 说成 "Alexis"），一整段交互因此失败。
+      </p>
+      <div class="callout ok">
+        <span class="ttl">语音约束 → 设计决策</span>
+        <ul style="margin-bottom:0">
+          <li><strong>不用唤醒词。</strong>提示由系统主动发起，老人不需要「叫醒」它。</li>
+          <li><strong>不让老人「构造指令句」。</strong>只提供一键 / 单字确认（如「拿走了」「等一会」两个大按钮）。</li>
+          <li><strong>语音 + 屏幕同步</strong>，不是纯语音。视觉确认能打断「误解 → 纠错 → 更多误解」的连锁。</li>
+          <li><strong>准备好方言与口音</strong>——<span class="badge cf-fix">v2 推翻 v1 的缺口声明</span> v1 写「未找到中文方言/口音的一手实证」，<strong>这条已不成立</strong>：
+            <strong>SeniorTalk</strong>（NeurIPS 2025 Datasets &amp; Benchmarks，<strong>202 名 75–85 岁中国老人、16 省、55.53 小时</strong>）给出硬数字——
+            主流 ASR 在这批高龄说话人上的<strong>零样本字错率全部超过 50%</strong>（Whisper-large-v3 = <strong>57.74%</strong>），
+            即使针对性微调后仍为 <strong>23.84%</strong>，且<strong>口音越重、字错率越高</strong>。
+            → 结论很硬：<strong>语音识别不能作为服药确认的唯一通道</strong>；依赖长句语义理解的方言语音确认应视为高风险设计。
+            主通道应是低认知负荷的实体/视觉确认（大按钮、药盒传感器），语音只作极短指令的辅助。</li>
+          <li><span class="badge cf-new">v2 新增</span><strong>多模态冗余这件事，证据比 v1 说的更弱</strong>：v1 用 Warnock 2012 支撑「三通道冗余」。
+            核验后，该研究比较的是视觉/听觉/触觉/<strong>嗅觉</strong>四种模态在 performance、disruptiveness 与主观负荷上的差异，
+            结论是「support the argument for multiple modalities in assisted living technology」，
+            <strong>用的是视频游戏任务、测的不是服药依从、也没测长期习惯化</strong>，作者还自陈需真实场景进一步研究。
+            我们<strong>没有找到任何「听+视+触冗余 vs 单模态」以服药依从为结局的对照实验</strong>。
+            → <strong>三通道冗余是合理的设计选择，但它是设计推理，不是已证的效果结论</strong>，不要在路演中说「多模态已被证明能提升依从性」。</li>
+        </ul>
+      </div>
+
+      <h3>提醒时机：挂在习惯上，而不是挂在钟点上</h3>
+      <p>
+        把服药绑定到老人既有的日常动作（「早饭后」）通常优于固定钟点。
+        但要注意<strong>实测命中率的离散度极大</strong>：同一研究中不同被试的情境线索一致性从 <strong>17% 到 100%</strong> 不等，
+        失败原因集中在「日常流程太宽泛」「本人没有固定作息」「作息被打乱」。
+      </p>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> Valenzuela-Beltrán et al., <em>Healthcare</em> 2022 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9323283/">PMC9323283</a>。<strong>重要限制：该证据基于 n=4、30 天，样本极小，只能作为方向。</strong></p>
+      <div class="callout info">
+        <p style="margin:0">
+          <strong>落地做法：</strong>初始化时问一句「您早上起来一般先做什么？」，
+          把提醒挂在那个动作之后；<strong>同时保留绝对时间兜底</strong>（因为一半用户没有固定作息）。
+        </p>
+      </div>
+
+      <h3><span class="badge cf-new">v2 新增</span>把「提醒」重新定位成「线索植入」，而不是「催」</h3>
+      <p>
+        v1 只说「挂在习惯上更好」，但没说清依据有多强。追证后有一条比 v1 更强的证据：
+      </p>
+      <ul>
+        <li><strong>实施意图（if-then 计划）有明确的效应量</strong>：Gollwitzer &amp; Sheeran 的 94 项研究元分析给出
+          总体 <strong>d = .65</strong>；其中「<strong>记得去做</strong>」这一子问题 <strong>d = .61</strong>，
+          作者<strong>自己举的例子就是「吃维生素片」</strong>；「防止半途而废」<strong>d = .77</strong>。
+          作者还给出意图–行为落差：「人们只把『好的意图』转化为行动 <strong>53%</strong> 的时候」。</li>
+        <li><strong>在老年人服药这个具体语境下，实施意图是效应最大的一种干预</strong>：一项 7 项 RCT 的元分析（老年人慢性病服药）报告
+          总体 Hedges' g = 0.500（0.342–0.659），其中<strong>实施意图干预与健康信念教育项目的 g ≥ 0.8</strong>；
+          <strong>面对面咨询有效（g = 0.531），而「教育」与「远程 telehealth 咨询」整体不显著。</strong></li>
+      </ul>
+      <p class="src-inline">
+        <span class="badge t1">Tier 1</span> Gollwitzer &amp; Sheeran 实施意图元分析（作者本人撰写的 NCI 开放页）｜
+        <span class="badge t1">Tier 1</span> Jeon et al., <em>Osong Public Health Res Perspect</em> 2022;13(5):328-340
+        <span class="badge cf-fix">限制</span> 元分析<strong>无老年人分层</strong>，搬到 75+ 独居老人属跨人群外推；Jeon 2022 仅 <strong>7 项 RCT、未注册、测量工具异质</strong>，作者自陈难以泛化。
+      </p>
+      <div class="callout warn">
+        <p style="margin:0 0 8px">
+          <strong>这条与我们的产品前提有直接冲突，必须写明：</strong>Jeon 2022 的结论是<strong>远程/eHealth 通道整体不显著</strong>，
+          有效的成分是<strong>个性化行为策略 + 面对面或电话锚定</strong>。而我们的原型恰恰是软件。
+        </p>
+        <p style="margin:0">
+          <strong>本报告的处理</strong>：不掩盖这个张力，而是把它转成设计约束——
+          （1）<strong>不要把「推送知识卡片/健康教育」当成效杠杆</strong>，那正是被证明无效的一类；
+          （2）软件要承担的是<strong>线索植入</strong>（把 if-then 计划落到老人既有的日常锚点上）与<strong>可追溯的记录</strong>，
+          而不是「更响更频繁的提醒」；
+          （3）<strong>保留一条人工兜底通道</strong>（家属/社区/药师在升级链路上介入），
+          这是把「面对面」这一被证明有效的成分用最低成本补回来的方式。
+        </p>
+      </div>
+
+      <h3><span class="badge cf-new">v2 新增</span>误报与告警疲劳：分级升级的门槛该怎么定</h3>
+      <p>
+        v1 说「误报代价高，所以升级要保守」，但没给出可用的量化依据。追证后有两篇互相印证的 Tier 1：
+      </p>
+      <ul>
+        <li><strong>72%–99% 的临床报警是假的</strong>；假报警过多会导致<strong>脱敏（desensitization）与漏掉真报警</strong>，
+          <strong>已有患者死亡被归因于告警疲劳</strong>；而<strong>被证明有效的降噪手段</strong>是
+          「每日更换心电电极、规范皮肤准备、培训、以及<strong>报警参数个体化定制</strong>」——注意，<strong>不是「把报警调响」</strong>。</li>
+        <li>一项 31 天实测研究记录到 <strong>187 次可听报警/床/日</strong>，<strong>88.8% 的心律失常报警为假阳性</strong>，
+          且<strong>93% 的「真」室速报警短到不需要处理</strong>——即「真报警也不可行动」。</li>
+      </ul>
+      <p class="src-inline">
+        <span class="badge t1">Tier 1</span> Sendelbach &amp; Funk, <em>AACN Adv Crit Care</em> 2013;24(4):378-386｜
+        <span class="badge t1">Tier 1</span> Drew et al., <em>PLoS ONE</em> 2014;9(10):e110274
+      </p>
+      <p class="src-inline">
+        <span class="badge cf-fix">外推限制（必须写）</span> 这两篇都是<strong>临床监护仪</strong>口径：被测者是要承担生命责任的 ICU 护士，报警基数 187 次/床/日。
+        <strong>72%–99% 与 88.8% 不能当作「老年人服药提醒的误报率」</strong>。可迁移的是机制：
+        <strong>报警基数与假阳性比例决定脱敏速度；解法是降低假阳性 + 参数个体化 + 让分级真的分级，而不是提高强度。</strong>
+        另需诚实声明：<strong>「误报率过高 → 用户不再信任 → 忽略真提醒」这条因果链，在老年服药提醒语境下没有任何直接实证</strong>——
+        本报告的三档升级设计是<strong>依据机制类比推出的工程保守设计，不是循证结论</strong>。
+      </p>
+
+      <h3>已被证明会失败的交互做法</h3>
+      <div class="cols">
+        <div class="col dont">
+          <h4>不要做</h4>
+          <ul>
+            <li><strong>原样重复推送同一条提醒</strong>——接受率递减（每次就诊多一条 BPA → 接受率 −30%）<span class="badge t1">T1</span>；<span class="badge cf-fix">v2 更正</span> v1 的「87.9% 继续忽略」是误读，正确含义是被 <strong>override</strong> 的首次提醒其后续也被 override 的概率（对照值 51.9%）</li>
+            <li><strong>纯语音、无屏幕确认</strong>——纠错反噬会把单次误解升级成连环错误 <span class="badge t1">T1</span></li>
+            <li><strong>依赖唤醒词</strong>——记不住/说错即整段失败 <span class="badge t1">T1</span></li>
+            <li><strong>只用高频单音提示</strong>——3100 Hz 报警在 ≤75 dBA 时<strong>有 56% 的轻中度听损成人睡过未醒</strong> <span class="badge t1">T1</span>（<span class="badge cf-fix">v2 更正</span> v1 写 43%，那是儿童与深睡青年组的数字）</li>
+            <li><strong>仅用颜色/图标传达「该吃药了」</strong>——违反 WCAG，且老人易混淆图标语义 <span class="badge t1">T1</span></li>
+            <li><strong>自动消失的提示条 / 限时弹窗</strong>——法规视其为「时限」，须可关或可调 <span class="badge t1">T1</span></li>
+            <li><strong>适老版里出现广告或诱导按钮</strong>——工信部规范明确禁止 <span class="badge t1">T1</span></li>
+          </ul>
+        </div>
+        <div class="col do">
+          <h4>要做</h4>
+          <ul>
+            <li><strong>多通道冗余</strong>，且每个通道独立可懂（声音 + 大字 + 振动/灯光）</li>
+            <li><strong>一键确认</strong>，目标 ≥60×60 dp，间距充足</li>
+            <li><strong>锚定既有习惯</strong>，同时保留绝对时间兜底</li>
+            <li><strong>首次未响应即换通道</strong>，而不是提高频率</li>
+            <li><strong>提醒时只要求一个动作</strong>，避免双任务</li>
+            <li><strong>语音播报可开关、字体可放大</strong>（法规强制项）</li>
+            <li><strong>操作完毕前界面不变</strong>，绝不自动跳转</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>行为改变机制：哪些能用，哪些别写</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>机制</th><th>在本产品里怎么用</th><th>证据强度</th></tr></thead>
+          <tbody>
+            <tr><td><strong>习惯叠加 / 情境线索</strong></td><td>首次配置时问「您早饭后一般做什么」，把服药挂在其后</td><td>强（但样本小）<span class="badge cf-lik">Likely</span></td></tr>
+            <tr><td><strong>减少重复、换通道</strong></td><td>第一条未响应 → 换模态 + 换措辞 + 拉长间隔</td><td>强（有量化数据）<span class="badge cf-est">Established</span></td></tr>
+            <tr><td>实施意图（if-then 计划）</td><td>让老人自己口述「早饭一吃完，我就吃白色那颗」</td><td><strong>元分析 d=.65（94 项研究）；老年人服药元分析中 g ≥ 0.8</strong> <span class="badge cf-lik">Likely</span>（<span class="badge cf-fix">v2 升级</span> v1 标为「未取到一手原文，勿引用具体百分比」，现已取到 NCI 官方开放页与 Jeon 2022 原文）<br><strong>限制：无老年人分层；Jeon 2022 仅 7 项 RCT、未注册</strong></td></tr>
+            <tr><td>即时反馈 / 自我效能</td><td>确认后显示「今天已完成」，让老人看到连续记录</td><td>弱（仅间接证据）<span class="badge cf-eme">Emerging</span></td></tr>
+            <tr><td>承诺机制 / 默认选项 / 损失厌恶</td><td><strong>未找到老年人服药场景的高质量 RCT → 不要写进提案</strong></td><td>无证据<span class="badge cf-spe">Speculative</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="ttl">明确「未找到」的参数——请不要补数</span>
+        <p style="margin:0">
+          <strong>v1 这段已经过时（v2 更正）</strong>：原写「未能取到一手来源的听觉参数包括：具体的响度 dB 规范值、语速的权威 wpm 标准、520 Hz 报警的原始研究全文」——
+          <strong>三项中已有两项取到一手</strong>：520 Hz 报警的原始研究（Fire Protection Research Foundation 2007 免费全文 + Ear and Hearing 2009）、以及响度与频率的规范依据（<strong>NFPA 72 睡眠区条款 + ISO 7731:2003</strong>）。
+          <strong>仍然取不到的只有一项</strong>：<u>语速的官方标准数字阈值</u>（GB/T 45122-2024 与 ISO 9921 均未能解出文本）。
+          关于「人形机器人 vs 非人形机器人对老人接受度的影响」，也<strong>未找到可靠的对比实证</strong>。
+          这些可以作为三天里的自测项，但不应当作已有结论引用。
+        </p>
+      </div>
+    </section>
+
+    <section id="prototype">
+      <h2><span class="num">07</span>三天软件原型方案</h2>
+      <p class="sub">在「不做实体机器人」的约束下，唯一值得证明的是：<strong>这个闭环跑得通、逻辑站得住、演示看得懂</strong>。以下是可直接开工的方案。</p>
+
+      <div class="callout info">
+        <span class="ttl">一句话技术判断</span>
+        <p style="margin:0">
+          把「机器人」拆成<strong>状态机 + 多模态输出 + 取药确认</strong>三件事，用软件全部可实现；
+          移动送药的动作由界面/动画与语音承担。三天里应当证明的是<strong>闭环与升级链路</strong>，不是机器人本体。
+        </p>
+      </div>
+
+      <h3>双端形态</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">长者端 ·「机器人面板」</h4>
+          <ul style="margin-bottom:0">
+            <li><strong>全屏、零层级</strong>：没有菜单、没有返回、没有登录</li>
+            <li>大字 + 高对比 + 语音播报，同一信息<strong>三种通道同时给</strong></li>
+            <li>只有一个动作：「我拿走了」——取药即确认，不需要点按钮</li>
+            <li>药格指示灯 + 提示音，音量与音色按第 06 章参数设定</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">家属端 ·「通知与配置」</h4>
+          <ul style="margin-bottom:0">
+            <li>录入 / 修改服药计划（含临时加药、停药）</li>
+            <li>接收升级通知，可一键「我知道了 / 我打电话 / 忽略本次」</li>
+            <li><strong>默认只看「确认状态」，不默认看实时位置或画面</strong>（隐私设计，见第 04、09 章）</li>
+            <li>可查看时间线日志，用于漏服追溯</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>架构分层</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>层</th><th>职责</th><th>三天里的实现方式</th></tr></thead>
+          <tbody>
+            <tr><td>计划层</td><td>服药计划：药名、剂量文本、时段、生效期、常规/临时</td><td>结构化 JSON + 家属端表单；<strong>系统只复读，不解释、不建议</strong></td></tr>
+            <tr><td>调度层</td><td>到点触发、在场判断、延迟、重试、升级</td><td>前端定时器 + 状态机；时间加速开关用于演示</td></tr>
+            <tr><td>交互层</td><td>语音播报、大字屏显、声光提示、取药检测</td><td>Web Speech API（中文 TTS）+ CSS 大字面板 + 点击/取药按钮模拟</td></tr>
+            <tr><td>记录层</td><td>追加式剂量事件日志（可核验、可回放）</td><td>IndexedDB / localStorage；导出 JSON 供追溯</td></tr>
+            <tr><td>通知层</td><td>分级升级：本人 → 家属 → 记录</td><td>模拟家属端推送面板；预留 webhook（企业微信 / 短信网关）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>核心状态机（原型的心脏）</h3>
+      <div class="flow">
+        <div class="step"><div class="n">S0</div><div class="t">scheduled</div><div class="d">计划已就绪，等待到点</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">S1</div><div class="t">due / approach</div><div class="d">到点；判断人在不在 → 不在则 defer 并记录</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">S2</div><div class="t">notifying</div><div class="d">语音 + 大字 + 声光，等待取药</div></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="step"><div class="n">S3</div><div class="t">confirmed</div><div class="d">取药即确认，写日志，收尾</div></div>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0">异常分支（这才是产品的价值所在）</h4>
+        <ul style="margin-bottom:0">
+          <li><strong>defer</strong>：安静时段 / 检测到不在场 / 正在通话 → 延后，并记录「为什么延后」</li>
+          <li><strong>renotify</strong>：T+60s 二次提示（提高音量、改变音色、灯闪），T+180s 三次</li>
+          <li><strong>escalate_family</strong>：仍未确认 → 推家属：「08:00 的降压药未确认，已提醒 2 次」</li>
+          <li><strong>manual_note</strong>：家属回「她出门了」→ 本次标记为「已知情未服」，<strong>不计入依从性失败</strong></li>
+          <li><strong>永不自动呼救、永不自动补服</strong>——超出本产品能力边界，只做通知与记录</li>
+        </ul>
+      </div>
+
+      <h3>数据模型（可直接抄）</h3>
+      <pre style="background:var(--bg-sunken);border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.6"><code>MedicationPlan {
+  id, name, doseText,            // 剂量只存「家属/医嘱录入的原文」，系统不生成
+  kind: 'regular' | 'temporary',
+  slots: [{ time: "08:00", label: "早" }],
+  startDate, endDate,            // 临时加药靠 endDate 自动失效
+  notes                          // 例如「饭后服」，原样复读
+}
+
+DoseEvent {
+  id, planId, slotTime,
+  state: 'scheduled'|'due'|'notifying'|'confirmed'|'missed'|'deferred'|'skipped_known',
+  attempts: [{ at, channel: 'voice'|'screen'|'light', volume }],
+  confirmedAt, method: 'tray_taken'|'voice_ack'|'family',
+  deferReason, familyNotifiedAt
+}
+
+EscalationPolicy {
+  renotifyAfterSec: 60, maxRenotify: 2,
+  notifyFamilyAfterSec: 180,
+  quietHours: ["22:30","06:30"],
+  channels: ['voice','screen','light']
+}</code></pre>
+
+      <h3>三个演示场景（与第 05 章一一对应）</h3>
+      <div class="timeline">
+        <div class="item">
+          <div class="when">场景 1 · 日常规律服药</div>
+          <div class="what">到点 → 送药到人 → 取药 → 自动记录</div>
+          <div class="why">演示重点：<strong>不需要老人做任何操作</strong>。语音说出药名与剂量原文、屏幕同步大字、药格亮灯；老人取走药盒即完成确认，面板显示「已记录 08:03」。</div>
+        </div>
+        <div class="item">
+          <div class="when">场景 2 · 临时加药 / 换药</div>
+          <div class="what">家属端新增「阿莫西林 0.5g，早中晚，共 7 天」→ 立即生效</div>
+          <div class="why">演示重点：<strong>方案变更是常态</strong>。系统提示「与现有 08:00 药物同时段」，让家属确认服用顺序；7 天后自动失效并留下变更记录。停用/换药同样走这条路径。</div>
+        </div>
+        <div class="item">
+          <div class="when">场景 3 · 漏服追溯与家属通知</div>
+          <div class="what">提示 2 次无人响应 → 家属收到通知 → 追溯时间线</div>
+          <div class="why">演示重点：<strong>升级链路与误报控制</strong>。家属端收到「未确认」通知，可选择「我打电话」或「她出门了（标记为已知情）」；整条时间线可回放，作为漏服追溯依据。</div>
+        </div>
+      </div>
+
+      <h3>技术选型建议</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>环节</th><th>建议</th><th>理由 / 注意</th></tr></thead>
+          <tbody>
+            <tr><td>前端框架</td><td>单页原生 HTML+JS（或 Vite + React）</td><td>三天里<strong>零构建风险优先</strong>；单文件可直接投屏、可离线</td></tr>
+            <tr><td>语音输出</td><td>Web Speech API <code>speechSynthesis</code>（中文）</td><td>够用于演示；<strong>但要注意它不等于适老化音效</strong>，需另配自定义提示音（低频、较长、可重复）</td></tr>
+            <tr><td>存储</td><td>IndexedDB / localStorage</td><td>本地优先，天然回应「数据不出设备」的隐私诉求</td></tr>
+            <tr><td>家属通知</td><td>同页面模拟面板；预留 webhook</td><td>演示可控、不依赖第三方账号；真实通道留扩展点</td></tr>
+            <tr><td>时间控制</td><td>「时间加速」调试开关（1 分钟 = 1 小时）</td><td><strong>演示刚需</strong>：否则现场等不到升级链路触发</td></tr>
+            <tr><td>在场检测</td><td>先用开关模拟「在家 / 不在家」</td><td>真实传感器（毫米波/红外）不在三天范围内，但要留接口</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>三天排期与每日验收点</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:88px">时间</th><th>目标</th><th>当天必须能演示的东西</th></tr></thead>
+          <tbody>
+            <tr><td>Day 1 上午</td><td>冻结范围与契约</td><td>数据模型 + 状态机 + 双端页面骨架（接口先定死）</td></tr>
+            <tr><td>Day 1 下午</td><td>打通主链路</td><td>场景 1 端到端可跑：到点 → 提示 → 取药 → 记录</td></tr>
+            <tr><td>Day 2 上午</td><td>异常与升级</td><td>场景 3：二次提醒 → 家属通知 → 时间线回放</td></tr>
+            <tr><td>Day 2 下午</td><td>方案变更</td><td>场景 2：临时加药生效 / 到期失效 / 时段冲突提示</td></tr>
+            <tr><td>Day 3 上午</td><td>适老化打磨</td><td>字号/对比/语音语速/音量按第 06 章参数过一遍；断网演练</td></tr>
+            <tr><td>Day 3 下午</td><td>演示与陈述</td><td>60 秒脚本连排 3 次；简报卡定稿；本报告作为证据附件</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>60 秒陈述脚本（对齐立项卡结构）</h3>
+      <div class="card">
+        <ol style="margin-bottom:0">
+          <li><strong>15 秒 · 谁、什么场景、什么困难</strong>：王阿姨 76 岁独居，每天 5 种药分三个时段，午睡和出门一乱就漏服；子女打电话问「吃了没」反而让她烦。</li>
+          <li><strong>20 秒 · 做什么产品、闭环是什么</strong>：一台会走到她身边的送药机器人。到点它把药送到手边，用她听得清的方式说出来，屏幕同步大字；<strong>她拿走药，系统就记下了</strong>。没拿，就升级通知子女。</li>
+          <li><strong>15 秒 · 三天做出什么</strong>：现场演示三个场景——日常规律服药、临时加药、漏服后的家属通知与追溯。</li>
+          <li><strong>10 秒 · 最大风险</strong>：最大风险不是技术，是<strong>老人觉得被监控而不用</strong>。我们的应对是本地优先、默认不采集画面、只让家属看确认状态——这也是接下来最需要用户验证的一点。</li>
+        </ol>
+      </div>
+
+      <div class="callout danger">
+        <span class="ttl">原型工程红线</span>
+        <ul style="margin-bottom:0">
+          <li><strong>不生成任何剂量、补服、停药建议</strong>——只复读家属/医嘱录入的原文。</li>
+          <li><strong>不采集摄像头画面</strong>，不默认上传位置。</li>
+          <li><strong>断网必须可用</strong>（本地优先），否则在最需要它的时刻会失效。</li>
+          <li><strong>不自动呼救</strong>——紧急呼叫只做提醒与转交，由家属决定。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="team">
+      <h2><span class="num">08</span>三人分工方案</h2>
+      <p class="sub">结论先行：<strong>按「产出层」切，不按「技术层」切。</strong>三个人都写代码，是这个项目最典型的失败方式。</p>
+
+      <div class="callout info">
+        <span class="ttl">为什么不能按「前端 / 后端 / 算法」切</span>
+        <p style="margin:0">
+          官方评分标准是 <strong>5 条并列</strong>：技术实现、演示与清晰度、创意、学习与野心、赛道资格。<strong>其中「项目能不能跑起来」（技术实现）与「能不能把问题、方案和实现讲清楚」（演示与清晰度）是我们可以最直接控制的、也最容易被当场验证的两条</strong>——这是本报告的判断，不是官方对维度的排序。
+          按技术层切人，会直接导致两个后果：没人为「整体闭环能不能演示」负责，也没人为「60 秒能不能讲明白」负责——而这两件事恰好就是全部评分。
+        </p>
+      </div>
+
+      <h3>三个角色</h3>
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">A · 问题与演示官</h4>
+          <p style="color:var(--ink-3);font-size:14.5px;margin-bottom:10px">兼任产品 / 设计，必须由组内最会表达的人担任</p>
+          <p style="margin-bottom:8px"><strong>负责</strong>：用户定义、立项简报卡、60 秒脚本、演示话术、适老化参数把关。</p>
+          <p style="margin-bottom:8px"><strong>不管</strong>：核心逻辑实现（避免既写代码又讲不清）。</p>
+          <p style="margin-bottom:0"><strong>关键产出</strong>：简报卡 v1 / 演示脚本 v1-3 / 可用性走查记录 / 最终陈述。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">B · 闭环工程师</h4>
+          <p style="color:var(--ink-3);font-size:14.5px;margin-bottom:10px">负责 Input → Output 主链路</p>
+          <p style="margin-bottom:8px"><strong>负责</strong>：到点判定 → 送药 → 确认服药 → 写日志的状态机与业务逻辑。</p>
+          <p style="margin-bottom:8px"><strong>不管</strong>：页面美观度、演示物料。</p>
+          <p style="margin-bottom:0"><strong>关键产出</strong>：数据模型 / 状态机 / 端到端可跑的主链路。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">C · 集成与验证官</h4>
+          <p style="color:var(--ink-3);font-size:14.5px;margin-bottom:10px">守住「能跑」这条底线</p>
+          <p style="margin-bottom:8px"><strong>负责</strong>：仓库、接口契约校验、假数据与模拟器、每次联调、<strong>录屏兜底</strong>。</p>
+          <p style="margin-bottom:8px"><strong>不管</strong>：功能扩张。他的职责是让已有的东西不要坏。</p>
+          <p style="margin-bottom:0"><strong>关键产出</strong>：API 契约文件 / 假数据 / 演示环境 / 备份录屏。</p>
+        </div>
+      </div>
+
+      <h3>逐日产出与验收点</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:92px">时间</th><th>A · 问题与演示</th><th>B · 闭环工程</th><th>C · 集成与验证</th><th>当日验收点</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Day 1</strong></td>
+              <td>简报卡 v1；演示脚本 v1；确认适老化参数清单</td>
+              <td>数据模型 + 状态机伪代码 + 主链路实现</td>
+              <td>仓库骨架 + <strong>接口契约冻结</strong> + 假数据</td>
+              <td><strong>「假数据空壳闭环」跑通</strong>＋契约不再变更</td>
+            </tr>
+            <tr>
+              <td><strong>Day 2</strong></td>
+              <td>与脚本对齐；走查一遍字号/对比/语音语速</td>
+              <td>三个场景（日常 / 临时加药 / 漏服升级）全部贯通</td>
+              <td>合并分支、真实闭环联调、演示环境定型</td>
+              <td><strong>一条完整真实闭环可演示</strong>＋脚本对齐</td>
+            </tr>
+            <tr>
+              <td><strong>Day 3</strong></td>
+              <td>只做排练与陈述（连排 3 次）</td>
+              <td>只修阻断性 bug，加功能一律拒绝</td>
+              <td>录屏兜底 + 提交物清点（报告作为证据附件）</td>
+              <td><strong>评审前 2 小时功能冻结</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>协作约定（团队的「接口」）</h3>
+      <ul>
+        <li><strong>单一契约文件</strong>：一个 Markdown 写清路由、JSON 示例、空态与错误态。<strong>改字段必须先改契约，再改两边。</strong></li>
+        <li><strong>每天结束各推一次可运行分支</strong>，禁止长时间不合并——集成风险必须每天暴露，不能留到最后一晚。</li>
+        <li><strong>每日两次检查点</strong>（早上对齐计划 / 晚上对齐验收），这是官方黑客松组织指南建议的节奏。</li>
+        <li><strong>提前公示评分维度</strong>并逐条自评——评分标准是公开的，照着它准备。</li>
+        <li><strong>准备「有意识砍掉的东西」清单</strong>：能说出「这是我们主动砍的」比被问住要强得多。</li>
+      </ul>
+
+      <h3>评审到底看重什么（官方评分维度）</h3>
+      <p class="src-inline" style="margin-top:-6px">
+        <span class="badge cf-fix">v2 更正</span> v1 写「官方评分标准只考两件事」——<strong>这是报告的推断，不是官方表述</strong>。
+        官方评分表是 <strong>5 条并列标准</strong>，并未区分主要/次要；v1 还漏掉了第 5 条。以下为逐字原文。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>维度</th><th>官方描述（逐字）</th><th>我们的应对</th></tr></thead>
+          <tbody>
+            <tr><td><strong>技术实现</strong><br><em>Technical implementation</em></td><td><em>"Does the project work, and how effectively does it use the chosen technology?"</em></td><td>闭环真的能跑；准备录屏兜底</td></tr>
+            <tr><td><strong>演示与清晰度</strong><br><em>Demo and clarity</em></td><td><em>"Can the team clearly explain the problem, solution, and implementation?"</em></td><td>60 秒脚本连排；A 角色专职陈述</td></tr>
+            <tr><td>创意<br><em>Creativity</em></td><td><em>"Is the idea or implementation distinctive?"</em></td><td>「送药到人 + 确认服下」本身就是差异点</td></tr>
+            <tr><td>学习与野心<br><em>Learning and ambition</em></td><td><em>"What did the team learn or attempt during the Hack Day?"</em></td><td>用本报告的证据链展示深度</td></tr>
+            <tr><td><strong>赛道资格</strong><br><em>Partner eligibility</em> <span class="badge cf-new">v1 遗漏</span></td><td><em>"Does the project satisfy the assigned partner's specific requirements?"</em></td><td><strong>若报名企业/合作方赛道，必须逐条核对该赛道的特定要求</strong>——这是 v1 完全没有覆盖的一条实际风险</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="src-inline"><span class="badge t1">Tier 1</span> MLH Hack Days Organizer Guide《Project Submissions and Judging》（页脚标注 <em>Last reviewed: August 2026</em>），现行地址 <a href="https://hackdays-guide.mlh.com/run-your-event/project-submissions.md">hackdays-guide.mlh.com</a>。<span class="badge cf-fix">v2 说明</span> v1 引用的旧 URL（mlh.com / gitbook）已迁移；官方<strong>只规定评分维度，不规定团队内部分工</strong>——所以角色怎么切没有官方依据。</p>
+
+      <h3>这条建议的证据强度（必须诚实说明）</h3>
+      <div class="callout warn">
+        <span class="ttl">分工建议属于「经验性共识」，不是研究结论</span>
+        <ul style="margin-bottom:0">
+          <li><strong>有证据的部分</strong>：官方评分维度（Tier 1）、每日检查点与提前公示评分标准（Tier 1 组织指南）、现实中团队普遍按个人技能自分配任务并维护滚动任务清单（Tier 1，CSCW 2021）。</li>
+          <li><strong>证据薄弱的部分</strong>：「三人该怎么切角色」<strong>没有因果研究支持</strong>。一份 19.3 万黑客松项目的大样本研究反而发现<strong>团队规模与创意产出正相关</strong>（β=0.156271, p&lt;0.05）。
+            <span class="badge cf-fix">v2 更正两处</span>（1）v1 写「团队『兴趣越多』越不创意（β=−0.306）」——原文变量是 <strong><code>Different Interests</code>（成员兴趣<u>差异度</u>）</strong>，β=−0.305535, p&lt;0.05；另有独立的 <code>All Interests</code> 项，系数 0.121256，<strong>不显著</strong>。「兴趣越多越不创意」是对原文的错误转述。
+            （2）v1 写「创意高发在 4–5 人团队」——原文说的是 <strong>4、5、8 人</strong>团队的创意项目更多；而论文图 3 显示<strong>创意率最高的是 5 人（约 8.7%）与 8 人（约 9%）</strong>，<strong>4 人团队是数量最多的团队规模（3,365 个），不是创意率最高的</strong>。v1 把「最常见的规模」误当成了「创意高发的规模」。
+            不过该研究测的是<strong>创意/获奖</strong>而非<strong>交付成功率</strong>，<strong>不能用来推断三人团队的正确切法</strong>。</li>
+          <li><strong>完全没有数据的部分</strong>：「集成风险在短周期项目中的占比」「演示驱动开发」都<strong>未找到可信量化研究</strong>，属工程经验共识。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="risk">
+      <h2><span class="num">09</span>风险、红线与合规边界</h2>
+      <p class="sub">结论先行：<strong>这个项目最大的风险不是技术，是「老人觉得这是给子女用的监控」而拒绝使用。</strong>其次是误报，第三是给出医学建议导致的合规越界。</p>
+
+      <h3>风险矩阵</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:130px">风险</th><th>为什么真实</th><th>等级</th><th>缓解措施</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>采纳风险</strong><br><span style="color:var(--ink-3);font-size:14px">（最高）</span></td>
+              <td>社交辅助机器人 4 个月弃用率约 <strong>31%</strong>（样本为韩裔美国老年移民，n=35）；老人把设备视为「衰弱的象征」；「三怕」（<strong>怕弄坏/怕被骗/怕没人帮</strong>）直接导致弃用 <span class="badge cf-fix">v2 更正措辞</span></td>
+              <td><span class="badge t4">高</span></td>
+              <td>控制权交给老人；无摄像头；本地优先；不做依从性评分；反诈与费用透明前置；必须配初始化培训</td>
+            </tr>
+            <tr>
+              <td><strong>误报风险</strong></td>
+              <td>同类可穿戴设备真实世界阳性预测值仅 <strong>0.02</strong>（84 次报警 83 次误报）</td>
+              <td><span class="badge t4">高</span></td>
+              <td>默认不自动外呼；冷却期去重；提供「已知情未服」状态；老人可一键暂停当晚升级</td>
+            </tr>
+            <tr>
+              <td><strong>合规风险</strong></td>
+              <td>一旦给出剂量/补服建议，中国同类「药物计算软件」直接是 <strong>Ⅲ 类</strong>医疗器械；美国 FDA 2022 终版指引已删除对患者端 CDS 的执法裁量</td>
+              <td><span class="badge t4">高</span></td>
+              <td>严格遵守下方红线清单；宣传语不得含医疗用途表述</td>
+            </tr>
+            <tr>
+              <td><strong>技术风险</strong></td>
+              <td>「在场检测」与「真的取药了」都需要传感器，而取药 ≠ 服药</td>
+              <td><span class="badge t3">中</span></td>
+              <td>三天内用开关模拟并明确标注为模拟；接口预留；不宣称能验证「吞下」</td>
+            </tr>
+            <tr>
+              <td><strong>伦理 / 关系风险</strong></td>
+              <td>设备的实际受益人是<strong>子女的安心</strong>而非老人的便利；家属参与是双刃剑（负担重、易出错、可能导致冲突）</td>
+              <td><span class="badge t3">中</span></td>
+              <td>子女端默认只看摘要；把「谁能看到什么」的决定权交给老人；不推评分与排名</td>
+            </tr>
+            <tr>
+              <td><strong>期望管理风险</strong></td>
+              <td>机器人层级<strong>没有任何</strong>降低死亡率/再入院的证据</td>
+              <td><span class="badge t3">中</span></td>
+              <td>路演时明确说「我们不宣称临床结局改善」，只宣称流程与可追溯性</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>红线清单：绝对不能做的事</h3>
+      <div class="callout danger">
+        <p style="margin:0 0 10px"><strong>以下每一条都有据可依，不是保守，是必要。</strong></p>
+        <ol style="margin-bottom:0">
+          <li><strong>不输出补服建议</strong>（不说「现在补一片 / 跳过 / 吃半片」）。
+            <em>原因</em>：NHS 各药口径互斥，软件不可能逐药穷举，且指引会随版本变化。</li>
+          <li><strong>不做剂量计算、换算或调整</strong>。
+            <em>原因</em>：中国《医疗器械分类目录》中「药物计算软件」为 <strong>Ⅲ 类</strong>，三天原型不可能完成注册。</li>
+          <li><strong>不给出药物相互作用的「可 / 不可同服」结论</strong>。
+            <em>原因</em>：可展示第三方库原文链接与免责声明，但不能合并为二元结论。</li>
+          <li><strong>不自动呼叫急救、不自动通知医生</strong>。
+            <em>原因</em>：真实世界误报代价极高（PPV 低至 0.02），急救链路由人触发。</li>
+          <li><strong>不向家属推送用药建议或依从性评分/排名</strong>。
+            <em>原因</em>：照护者常依赖未经验证的信息并出错；评分会加剧过度监控与家庭冲突。</li>
+          <li><strong>不采集摄像头画面，不把健康数据默认上传第三方或境外</strong>。
+            <em>原因</em>：PIPL 第 28–30 条要求敏感个人信息单独同意；第 38–40 条规定跨境条件。</li>
+          <li><strong>不做医疗用途宣传</strong>（禁用「诊断 / 治疗 / 剂量优化 / 替代医嘱」）。
+            <em>原因</em>：预期用途以说明书与宣传资料载明为准，一旦宣称即落入器械定义。</li>
+        </ol>
+      </div>
+
+      <h3>法规边界：纯提醒 vs 给建议</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>问题</th><th>结论</th><th>依据</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>纯定时提醒（中国）</td>
+              <td>无诊断/治疗目的、仅管理服药记录 → <strong>不按医疗器械管理</strong></td>
+              <td>《医疗器械分类规则》第三条（十五）逐字：「独立软件　具有一个或者多个医疗目的，无需医疗器械硬件即可完成自身预期目的，运行于通用计算平台的软件。」<span class="badge t1">Tier 1</span>
+                <br><span class="badge cf-fix">v2 标注</span> <strong>规则原文并未直接说「纯提醒不算器械」</strong>，这是基于「须有医疗目的」门槛的<strong>反面解释（本报告的推断）</strong>。
+                中国侧<strong>最接近的一手支撑</strong>是《分类目录》21 子目录编制说明：「（五）医疗信息管理软件属性界定原则，如果医疗信息管理软件仅仅是医院管理工具，管理内容是患者信息等非医疗诊断和/或治疗内容，不按照医疗器械管理。」——但仍属<strong>类推</strong>，未点名「服药提醒」。</td>
+            </tr>
+            <tr>
+              <td>给剂量建议 / 补服计算（中国）</td>
+              <td>同类「药物计算软件」（如胰岛素注射计算软件）定为 <strong>Ⅲ 类</strong></td>
+              <td>《医疗器械分类目录》<strong>21-04-01 药物计算软件</strong>，管理类别 Ⅲ，预期用途「用于为临床注射药物提供建议」<span class="badge t1">Tier 1</span>
+                <br><span class="badge cf-fix">v2 标注</span> 目录原文<strong>无「补服」字样、也未给出「风险升级」的理由</strong>，那是本报告的推断。
+                <strong>另一个重要事实</strong>：目录 21 子目录（治疗计划／影像处理／数据处理／决策支持／体外诊断／其他）中<strong>没有任何「服药提醒 / 用药记录」类条目</strong>——这既说明该形态未被专门归类，也说明「不按器械管理」缺少直接的目录依据。</td>
+            </tr>
+            <tr>
+              <td>纯提醒（美国）</td>
+              <td>一般不属于器械；FDA <strong>从未正面豁免「患者端剂量指令」</strong>——2022 年终版指引删除了对患者/照护者端 CDS 的执法裁量</td>
+              <td><span class="badge cf-fix">v2 更正归因</span> 这个删除动作发生在<strong>同日发布的《Clinical Decision Support Software》终版指引</strong>，
+                <strong>不是</strong>《Policy for Device Software Functions and Mobile Medical Applications》（MMA）指引——后者同日仅作口径对齐，FDA 自述为 <em>"minor update"</em>。v1 把两件事混在了一起。
+                <br><span class="badge cf-new">v2 时效更新（重要）</span> <strong>CDS 指引已于 2026-01-06 改版，取代 2022 版</strong>；且 2026 版<strong>仍未恢复</strong>消费者端执法裁量，
+                因此本报告的实质结论<strong>在 2026 年反而更稳</strong>。但需注意：<strong>FDA 计划在 FY26 再次修订 MMA 指引</strong>，届时可能处理患者端决策支持的边界，需重新核对。
+                <br><span class="badge t1">Tier 1</span> FDA 指引页｜删除与改版事实经两家律所解读交叉印证 <span class="badge t2">Tier 2</span>（FDA 指引 PDF 正文端点被 WAF 拦截，<strong>未能逐字核验</strong>）
+                <br><span class="badge cf-new">v2 新增</span><strong>欧盟已补齐为官方原文</strong>：MDR 附录 VIII 第 III 章 6.3 条 <strong>Rule 11</strong>（软件按 IIa/IIb/III 分类，「<em>All other software is classified as class I.</em>」）</td>
+            </tr>
+            <tr>
+              <td>药物相互作用告警（美国）</td>
+              <td>被 FDA 明确举例为<strong>非器械 CDS</strong></td>
+              <td>FDA CDS 指引终版 <span class="badge t1">Tier 1</span>（经律所解读交叉印证 <span class="badge t2">Tier 2</span>）</td>
+            </tr>
+            <tr>
+              <td>健康数据处理（中国）</td>
+              <td>「医疗健康」属<strong>敏感个人信息</strong>：须特定目的 + 充分必要 + 严格保护 + <strong>单独同意</strong></td>
+              <td>PIPL 第 28、29、30 条 <span class="badge t1">Tier 1</span>（v2 逐条逐字核验通过）</td>
+            </tr>
+            <tr>
+              <td>健康数据（欧盟）</td>
+              <td>属特殊类别数据，需 Art.9(2) 例外；软件定性沿 MDR Rule 11 的「预期用途」标准</td>
+              <td><span class="badge cf-new">v2 已补齐官方原文</span> GDPR <strong>第 9 条</strong>（9(1) 禁止处理健康数据；9(2)(a)(c)(h)(i) 例外；9(3) 保密义务；9(4) 成员国可加严）<span class="badge t1">Tier 1</span>
+                <br><strong>提示</strong>：消费级服药提醒 App 通常<strong>只能落到 (a) 明示同意</strong>；(h) 要求与健康专业人员订约，一般不适用——不要把 (h) 当作可用路径。
+                <br><span class="badge cf-new">v2 新增</span><strong>MDCG 2019-11 rev.1 原文已取到</strong>：纯非医疗目的软件（含「web or voice messaging」等）<strong>不构成 MDSW</strong>；「Simple search」不构成 MDSW；
+                但「<em>software which is intended to process, analyse, interpret, calculate, create or modify medical information may be qualified as MDSW</em>」。
+                指南还给出一个<strong>与用药依从性直接相关的正例</strong>（含「依据传感器输入给出剂量信息」与「给出方案调整建议」两个要素）。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="ttl">v2 新增：欧盟侧的正确表述（不要过度断言）</span>
+        <p style="margin:0 0 8px">
+          MDCG 2019-11 全文<strong>0 次出现 "reminder"（提醒）</strong>，因此<strong>「只做提醒的软件在欧盟算不算医疗器械」在指南里没有逐字答案</strong>。
+          本报告的推理是：<strong>纯记录 + 定时提示</strong>最接近「非医疗目的 / 简单检索」，倾向于不构成 MDSW；
+          <strong>但一旦加入依从性分析、剂量建议或方案调整建议，即构成 MDSW</strong>，并按 Rule 11 定类（提供用于诊断或治疗决策的信息 → IIa；可能致死亡或不可逆恶化 → III；致严重恶化或需手术干预 → IIb；其余 → I 类）。
+        </p>
+        <p style="margin:0">
+          <strong>这是推理，不是原文字面结论。</strong>如果路演时说「欧盟明确不按医疗器械管理」，属于过度断言，无法用原文直接支撑。
+          另需注意 MDR 原文指出「<em>the risk of harm to patients … is not a criterion on whether the software qualifies</em>」——<strong>风险高低不是资格判定标准</strong>。
+        </p>
+      </div>
+
+      <div class="callout ok">
+        <span class="ttl">合规上的一句话结论（可以直接写进简报卡）</span>
+        <p style="margin:0">
+          只要产品<strong>只做「提醒 + 记录 + 通知」，不做任何医学判断</strong>，就不落入医疗器械定义；
+          <strong>一旦跨过这条线给出剂量或补服建议，就变成 Ⅲ 类器械，三天项目立刻失去可行性。</strong>
+          这条边界同时也是一条很好的产品设计原则：<strong>不确定的事，交回给人。</strong>
+        </p>
+      </div>
+    </section>
+
+    <section id="open">
+      <h2><span class="num">10</span>矛盾与未解问题</h2>
+      <p class="sub">这一章列出证据之间真实的冲突、以及本报告<strong>没有解决</strong>的问题。写出来是为了避免团队在路演时说出站不住的结论。</p>
+
+      <h3>证据之间的真实冲突</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:200px">冲突</th><th>两种说法</th><th>本报告的处理</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>满意度 vs 客观效果</strong></td>
+              <td>84% 的老人用满 12 个月后仍愿继续使用；但同一批研究没有报告任何依从性效应量</td>
+              <td>不把满意度当效果证据。满意度可用于留存判断，不能用于效果宣称</td>
+            </tr>
+            <tr>
+              <td><strong>依从性到底提升了没有</strong></td>
+              <td>同一 Meta 分析内，自报量表 MMAS-4 有效（OR 1.55），连续型客观测量效应完全为零（SMD 0.00）</td>
+              <td>判定为<strong>测量假象风险</strong>，本报告只采用客观测量口径的结论</td>
+            </tr>
+            <tr>
+              <td><strong>老人对机器人的态度</strong></td>
+              <td>n=21 研究显示对机器人相当开放；n=31 质性研究显示污名与心理阻力很重；n=182 调查自报 65% 愿用</td>
+              <td>判定为<strong>「自报意愿 ≠ 实际采纳」</strong>。以实际使用行为为准</td>
+            </tr>
+            <tr>
+              <td><strong>隐私的相对重要性</strong></td>
+              <td>JMIR 研究把隐私列为主要担忧；Tian 等 2024 指出「社会性隐私」相对次要，老人更在意数据去向</td>
+              <td>判定两者<strong>定义不同</strong>，不矛盾。本报告采纳「数据去向优先」这一更细的结论</td>
+            </tr>
+            <tr>
+              <td><strong>团队规模的效应</strong></td>
+              <td>大样本研究显示团队规模与创意正相关（4–5 人最佳）；但本报告建议三人按产出层切分</td>
+              <td>该研究测<strong>创意/获奖</strong>而非<strong>交付成功率</strong>，不能用来推翻分工建议；已如实标注分工建议证据薄弱</td>
+            </tr>
+            <tr>
+              <td><strong>中国听力损失口径</strong></td>
+              <td>同一报告既称 60+ 患病率 11.04%，又称 65+ 约 1/3 伴听力残疾</td>
+              <td>判定为<strong>口径/定义冲突</strong>，未获报告原文核对。本报告采用 WHO 的国际口径（60+ 中 &gt;25%）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>未解决的问题（三天内无法解决，但要知道）</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">1. 取药 ≠ 服药</h4>
+          <p style="margin-bottom:0">本产品的「确认」只能证明药被取走。<strong>没有任何低成本方案能证明药真的被吞下。</strong>
+          这不是工程问题，是传感器与生物学的问题。路演时不要暗示能做到。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">2. 中文语音的证据缺口——v2 已部分补齐，但「方言语音 → 服药确认」仍是禁区</h4>
+          <p style="margin-bottom:0"><span class="badge cf-fix">v2 推翻 v1 结论</span> v1 写「所有语音助手可用性研究都是英文，未找到中文或方言的一手证据」，<strong>这条已不成立</strong>。
+            已取到：<strong>中文老年 VUI 语速调节实验</strong>（Wang et al., <em>Front Psychol</em> 2023，n=30，深圳技术大学，Wizard-of-Oz 原型）与
+            <strong>中文高龄语音识别基准 SeniorTalk</strong>（NeurIPS 2025，202 名 75–85 岁老人、16 省、55.53 小时）。
+            后者给出关键数字：主流 ASR <strong>零样本字错率全部 &gt;50%</strong>（Whisper-large-v3 = 57.74%），微调后仍 <strong>23.84%</strong>，重口音更高。
+            <strong>仍然缺失的是</strong>：方言语音交互的<u>用户侧</u>实证、以及任何中文/方言语音提醒对<strong>服药依从性结局</strong>的试验。
+            落地结论不变且更硬：<strong>语音不能作为唯一的服药确认通道</strong>。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">3. 听觉参数：已有可用锚点，仍缺官方标准值</h4>
+          <p style="margin-bottom:0"><span class="badge cf-fix">v2 细化</span> v1 笼统写「dB、wpm、520 Hz 三条都未取到一手规范原文」。细化后：
+            <strong>（a）中文语速已有同行评议锚点</strong>——播音基准 4.3 字/秒（258 字/分）达 99% 可懂度、可接受上限 &lt;300 字/分、年龄越大偏好越慢（Chan &amp; Lee 2005）；
+            <strong>（b）仍未取到的是官方标准数字阈值</strong>——GB/T 45122-2024《消费品适老无障碍设计指南》全文为字体内嵌 CID 编码、本地无法解出文本，工信部两份适老化规范的 PDF 同样不可解、其站点直连不可达；
+            <strong>（c）520 Hz 报警与响度 dB 的一手核查见第 12 章</strong>。
+            因此这三项的正确表述是：<strong>有可用的研究锚点，没有可引用的官方标准值</strong>——路演时不要说「符合国标」。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">4. 机器人形态没有证据</h4>
+          <p style="margin-bottom:0"><strong>人形 vs 非人形、移动送药 vs 固定提醒</strong>对老年人接受度的影响，
+          未找到可靠的对比实证。造型决策目前只能凭直觉，应明确标注为待验证。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">5. 中国与西方的阻力权重不同</h4>
+          <p style="margin-bottom:0">中国证据强调<strong>怕弄坏 / 怕被骗 / 怕没人帮</strong>（另有「扣钱咋办」这条独立的费用顾虑），西方证据强调「自主 / 尊严 / 被监控」。
+          两者的<strong>相对权重没有对比研究</strong>，只能按本土证据优先。
+          <span class="badge cf-fix">v2 说明</span> 本轮专派了一个中国本土角度的子代理去查中西方权重对比研究，<strong>仍未找到任何中英文对比研究</strong>——这个缺口本轮<strong>未能补齐</strong>，保持开放。
+          最接近的可用材料只有常冰洁等的 TAM 研究（把阻力归为技术焦虑、信任危机、代际干预三类）与人民日报海外版的「三怕」，两者都不是量化对比。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">6. 升级机制的循证依据不足</h4>
+          <p style="margin-bottom:0">「分级升级」与「照护者告警疲劳」<strong>缺少专门文献</strong>。
+          本报告的三档升级是依据误报代价推出的<strong>工程保守设计</strong>，不是循证结论。</p>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <span class="ttl">需要什么才能解决这些问题</span>
+        <ul style="margin-bottom:0">
+          <li><strong>3 位真实用户的快速访谈</strong>（半天）——校准「三怕」与污名在本地的权重，验证「习惯锚点」是否可行。</li>
+          <li><strong>本地语音自测</strong>（1 小时）——用团队成员的长辈或自己模拟，测提示音在不同音量/语速下的可懂度。</li>
+          <li><strong>关注英国 ADHERE 试验结果</strong>——这是目前唯一可能证伪或证实这条赛道的权威 RCT。</li>
+          <li><strong>补一次法规原文核对</strong>（GDPR Art.9、MDCG 2019-11、NHS SPS 漏服总纲）——本报告均因 403/付费墙未取到原文。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="sources">
+      <h2><span class="num">11</span>来源清单</h2>
+      <p class="sub">按来源类型分组，每条标注 Tier 与取证状态。<strong>标注「未取到原文」的条目已在正文中相应降级，不作为唯一依据。</strong></p>
+
+      <details open>
+        <summary>A · 官方机构与监管原文 <span class="badge t1">Tier 1</span></summary>
+        <div class="body">
+          <ul>
+            <li>WHO《Deafness and hearing loss》事实清单（2026-03-03 版）— <a href="https://www.who.int/news-room/fact-sheets/detail/deafness-and-hearing-loss">who.int</a> ✅ 原文逐字核验</li>
+            <li>WHO《Adherence to long-term therapies》新闻稿（2003）— <a href="https://www.who.int/news/item/01-07-2003-failure-to-take-prescribed-medicine-for-chronic-diseases-is-a-massive-world-wide-problem">who.int</a> ✅</li>
+            <li>CDC MMWR 66(45)（2017-11-17）— <a href="https://www.cdc.gov/mmwr/volumes/66/wr/mm6645a2.htm">cdc.gov</a> ✅</li>
+            <li>CNNIC 第 56 次《中国互联网络发展状况统计报告》（2025-07-21）— <a href="https://www.cnnic.net.cn/n4/2025/0721/c326-11327.html">cnnic.net.cn</a> ✅ 主代理独立复核</li>
+            <li>NHS Medicines A–Z（华法林 / 氨氯地平 / 二甲双胍 / 左甲状腺素 / 阿托伐他汀 / 抗生素条目）— <a href="https://www.nhs.uk/medicines/warfarin/">nhs.uk</a> ✅</li>
+            <li>FDA《Policy for Device Software Functions and Mobile Medical Applications》（2022-09-28）— <a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents/policy-device-software-functions-and-mobile-medical-applications">fda.gov</a> ✅</li>
+            <li>《医疗器械分类规则》（总局令第 15 号，2016-01-01 施行）— <a href="https://www.gov.cn/gongbao/content/2015/content_2961719.htm">gov.cn</a> ✅</li>
+            <li>国家药监局医疗器械分类目录查询库（21-04-01 药物计算软件）— <a href="http://app.nifdc.org.cn/biaogzx/dataGk.do?formAction=listFlmlk&amp;index=161">nifdc.org.cn</a> ✅</li>
+            <li>《中华人民共和国个人信息保护法》原文（第 6/15/23/28/29/30/47/55 条）— <a href="https://login.12309.gov.cn:8443/spp/fl/202108/t20210820_527244.shtml">法律原文页</a> ✅</li>
+            <li>WHO《World report on hearing》（2021）— <a href="https://www.who.int/publications/i/item/9789240020481">who.int</a></li>
+            <li>FDA 器械召回记录（Hero Model 100）— <a href="https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfres/res.cfm?id=188593">accessdata.fda.gov</a> ⚠️ 仅取到标题级事实，详情页被拦截</li>
+            <li>NIDCD 听力与助听器统计 — <a href="https://www.nidcd.nih.gov/health/age-related-hearing-loss">年龄相关听力损失</a>（1/3 与近半）＋<a href="https://www.nidcd.nih.gov/sites/default/files/Shareable%20Images/HearingLoss_Infographic.pdf">官方数据图表</a>（助听器 1/4，含 NHIS/NHANES 方法学脚注）</li>
+            <li><span class="badge cf-new">v2</span> Lin FR et al., <em>Arch Neurol</em> 2011;68(2):214-220（听力损失与全因痴呆 HR 1.89/3.00/4.94）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3277836/">PMC3277836</a></li>
+            <li><span class="badge cf-new">v2</span> 孙喜斌等《中国听力残疾人群现状及致残原因分析》中华流行病学杂志 2008;29(7):643-646（11.04% 的真实口径）— <a href="http://chinaepi.icdc.cn/zhlxbx/ch/reader/view_abstract.aspx?file_no=20080706&amp;flag=1">摘要页</a></li>
+            <li><span class="badge cf-new">v2</span> Chan AHS &amp; Lee PSK, <em>Int J Ind Ergonomics</em> 2005;35(3):217-228（中文播音语速 4.3 字/秒达 99% 可懂度）— <a href="https://scholars.cityu.edu.hk/en/publications/intelligibility-and-preferred-rate-of-chinese-speaking/">CityUHK</a></li>
+            <li><span class="badge cf-new">v2</span> Wang J, Yang S, Xu Z, <em>Front Psychol</em> 2023;14:1119355（中文老年 VUI 语速调节，n=30）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10132265/">PMC10132265</a></li>
+          </ul>
+        </div>
+      </details>
+
+      <details open>
+        <summary>B · 同行评审研究：系统综述、Meta 分析与 RCT <span class="badge t1">Tier 1</span></summary>
+        <div class="body">
+          <ul>
+            <li>Cochrane CD000011.pub4《Interventions for enhancing medication adherence》（182 项 RCT，2014）— <a href="https://doi.org/10.1002/14651858.CD000011.pub4">doi</a></li>
+            <li>Cochrane CD005025.pub3《Reminder packaging for improving adherence》（12 项 RCT / 2,196 人，2011）— <a href="https://doi.org/10.1002/14651858.CD005025.pub3">doi</a></li>
+            <li>JAMA 2014;312:1237-47《Electronic medication packaging devices and adherence》（37 项 / 4,326 人）— <a href="https://doi.org/10.1001/jama.2014.10059">doi</a></li>
+            <li>Front Public Health 2025;13:1701622（社区 ≥60 岁多重用药 Meta，49 篇）— <a href="https://doi.org/10.3389/fpubh.2025.1701622">doi</a></li>
+            <li>JAGS 2026（128 项研究 / 96 项 RCT，≥60 岁）— <a href="https://doi.org/10.1111/jgs.70257">doi</a></li>
+            <li>J Appl Gerontol 2024（社交辅助机器人 Hyodol，4 个月单臂）— <a href="https://doi.org/10.1177/07334648241233876">doi</a></li>
+            <li>J Appl Gerontol 2024（社交辅助机器人接受度 Meta，13 篇）— <a href="https://doi.org/10.1177/07334648231201769">doi</a></li>
+            <li>JMIR mHealth uHealth 2021（老人语音助手 4 周实录，2,552 轮）— <a href="https://doi.org/10.2196/20464">doi</a></li>
+            <li>Insel et al., JAGS 2016（前瞻记忆与服药依从，n=122）— 关键原文已逐字引用，DOI 未记录</li>
+            <li>Jia et al., Lancet Public Health 2020（中国 60+ MCI 15.5% / 痴呆 6.0%，n=46,011）— <a href="https://doi.org/10.1016/S2468-2667(20)30185-7">doi</a></li>
+            <li>Lin et al.（听力损失与<strong>全因痴呆</strong>风险 1.89/3.00/4.94）— <a href="https://doi.org/10.1001/archneurol.2010.362">Arch Neurol 2011;68(2):214-220</a>　<span class="badge cf-fix">v2 更正</span> v1 误记为「Lin et al.，JAMA 2012，2×/3×/5×」；正确期刊、年份与数值见左</li>
+            <li>Ancker et al., BMC Med Inform Decis Mak 2017（提醒重复与接受率）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5387195/">PMC5387195</a> ✅ 原文逐字</li>
+            <li>Valenzuela-Beltrán et al., Healthcare 2022（习惯锚定，n=4）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC9323283/">PMC9323283</a> ⚠️ 样本极小</li>
+            <li>Mahmood et al., arXiv:2403.02421（老人语音交互错误升级）— <a href="https://arxiv.org/abs/2403.02421">arXiv</a></li>
+            <li>Warnock et al., Health Informatics J 2012（多模态通知）— <a href="https://eprints.gla.ac.uk/72964/">机构库</a> ⚠️ 仅摘要</li>
+            <li>Smarr et al. 2012（任务边界：提醒 vs 决策，n=21）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4182920/">PMC4182920</a> ⚠️ 样本小、假设情境</li>
+            <li>JMIR Hum Factors 2025;12:e74214（n=31 质性，污名与隐私）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12608056/">PMC12608056</a></li>
+            <li>Tian et al. 2024, AJOB Empirical Bioethics（隐私维度权重）— <a href="https://www.tandfonline.com/doi/full/10.1080/23294515.2024.2416121">tandfonline</a> ⚠️ 仅摘要逐字，全文 403</li>
+            <li>Safari et al., J Am Heart Assoc 2024;13(18):e035639（抗凝依从与卒中，44,172 人）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11935623/">PMC11935623</a></li>
+            <li>J Gerontol A 2026（多重用药全球 50.4%，56 国）— <a href="https://pubmed.ncbi.nlm.nih.gov/42412515/">PMID 42412515</a> ⚠️ 在线先发</li>
+            <li>Avgustini et al., Int J Older People Nurs 2026（照护者负担系统综述，16 篇）— <a href="https://pubmed.ncbi.nlm.nih.gov/42434829/">PMID 42434829</a> ⚠️ 在线先发</li>
+            <li>Kim et al., J Med Syst 2025（App 提醒 Meta，26 RCT / 5,174 人）— <a href="https://pubmed.ncbi.nlm.nih.gov/39821698/">PMID 39821698</a></li>
+            <li>BMC Fam Pract 19:131（PRIMUM 队列，502 人，方案变更 98.6%）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6064613/">PMC6064613</a></li>
+            <li>可穿戴跌倒检测真实世界误报（PPV 0.02）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4662041/">PMC4662041</a></li>
+            <li>王跃生《人口研究》2024（65+ 独居比例，七普推算）— <a href="https://rkyj.ruc.edu.cn/CN/abstract/abstract3859.shtml">人口研究</a> <span class="badge cf-fix">v2 已被更权威来源取代</span> 现改用下方的第五次中国城乡老年人生活状况抽样调查公报（官方抽样调查、n=12.7287 万、按七普加权）</li>
+            <li>常冰洁等《慢性病共病老年人对居家智能药物管理工具的需求和使用障碍研究》，《中国全科医学》（北京城区 34 位、TAM 框架）— <a href="https://www.chinagp.net/CN/10.12114/j.issn.1007-9572.2026.0184">chinagp.net</a> <span class="badge cf-fix">v2 补全题目</span></li>
+            <li>ADHERE 随机对照试验方案（英国，n=144，结果未公布）— <a href="https://doi.org/10.1136/bmjopen-2025-104359">doi</a></li>
+            <li>Bruck &amp; Thomas（低频报警唤醒率）— <a href="https://pubmed.ncbi.nlm.nih.gov/19125029/">PMID 19125029</a> ⚠️ <strong>原文付费墙，正文按 Tier 2 使用</strong></li>
+          </ul>
+        </div>
+
+        <div class="srcgrp">
+          <h4><span class="badge cf-new">v2 新增</span> E · 第二轮核验与补强新增的来源</h4>
+          <ul>
+            <li><strong>Fotteler ML et al.</strong>, <em>The Effectiveness of Assistive Technologies for Older Adults and the Influence of Frailty: Systematic Literature Review of RCTs</em>, JMIR Aging 2022;5(2):e31916（19 项 RCT；「功能完好者有效、衰弱者无效」）— <a href="https://doi.org/10.2196/31916">doi</a>｜PMID 35377322｜PMC9016506 <span class="badge t1">Tier 1</span></li>
+            <li><strong>Haile KT et al.</strong>, <em>Digital Health Interventions to Improve Medication Adherence Among Older Adults: A Systematic Review</em>, Australas J Ageing 2026;45(3)（35 篇 / 22 项 RCT；电子提醒 3/3、社交辅助机器人 1/1）— <a href="https://doi.org/10.1111/ajag.70206">doi</a>｜PMID 42469587 <span class="badge t1">Tier 1</span></li>
+            <li><strong>Jung HW et al.</strong>, <em>Socially Assistive Robot Hyodol for Depressive Symptoms of Community-Dwelling Older Adults: A Preliminary Study</em>, J Clin Med 2025;15(1):217（278 人、6 个月；孤独感与服药依从显著改善，无对照组）— <a href="https://doi.org/10.3390/jcm15010217">doi</a>｜PMID 41517468 <span class="badge t1">Tier 1</span></li>
+            <li><strong>Lee OE, Yun JC, Park DH</strong>, <em>Perceptions and experiences of Korean American older adults with companion robots: retention vs. return</em>, Front Public Health 2024;12:1424123（35 人中 11 人退还＝31% 弃用率；warmth/competence 无差异）— <a href="https://doi.org/10.3389/fpubh.2024.1424123">doi</a>｜PMID 39624414 <span class="badge t1">Tier 1</span></li>
+            <li><strong>Checchi KD, Huybrechts KF, Avorn J, Kesselheim AS</strong>, <em>Electronic medication packaging devices and medication adherence: a systematic review</em>, JAMA 2014;312(12):1237-1247（37 项 / 4,326 人）— <a href="https://doi.org/10.1001/jama.2014.10059">doi</a>｜PMID 25247520 <span class="badge t1">Tier 1</span>（v1 未署作者，v2 补全）</li>
+            <li><strong>REMIND 试验</strong>, JAMA Intern Med 2017;177(5):624-631（n=53,480；三种廉价提醒装置无差异）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5470369/">PMC5470369</a>｜注册档案 <a href="https://clinicaltrials.gov/api/v2/studies/NCT02015806">NCT02015806</a> <span class="badge t1">Tier 1</span>（v2 以原文取代 v1 的期刊转引）</li>
+            <li><strong>Nieuwlaat R et al.</strong>, <em>Interventions for enhancing medication adherence</em>, Cochrane CD000011.pub4（2014-11-20；182 项 RCT / 46,962 人；明确拒绝 Meta 分析）— <a href="https://www.cochrane.org/evidence/CD000011_ways-help-people-follow-prescribed-medicines">Cochrane 官方证据页</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Mahtani KR et al.</strong>, <em>Reminder packaging for improving adherence</em>, Cochrane CD005025.pub3（2011；12 项 RCT / 2,196 人）— <a href="https://www.cochrane.org/evidence/CD005025_reminder-packaging-help-people-take-long-term-medications">Cochrane 官方证据页</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Insel KC et al.</strong>, <em>Multifaceted Prospective Memory Intervention to Improve Medication Adherence</em>, J Am Geriatr Soc 2016;64(3):561-568（n=122；干预 57.41→77.78→58.97，对照组 67.84→68.35→61.12）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4806399/">PMC4806399</a>｜doi:10.1111/jgs.14032 <span class="badge t1">Tier 1</span></li>
+            <li><strong>von Buedingen F et al.</strong>, <em>Changes in prescribed medicines in older patients with multimorbidity and polypharmacy in general practice</em>, BMC Fam Pract 2018;19:131（PRIMUM 队列，502 人；排除 MMSE&lt;26）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6064613/">PMC6064613</a> <span class="badge t1">Tier 1</span>（v2 补年份与排除标准）</li>
+            <li><strong>Ancker JS et al.</strong>, BMC Med Inform Decis Mak 2017;17:36（112 名临床医生、126.6 万条 BPA、43.1 万次就诊）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5387195/">PMC5387195</a>；更正声明（仅单位）<a href="https://doi.org/10.1186/s12911-019-0971-0">2019;19:227</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Chaudhuri S et al.</strong>, <em>Real World Accuracy and Use of a Wearable Fall Detection Device by Older Adults</em>, J Am Geriatr Soc 2015;63(11):2415-2416（18 人；84 次报警 83 次误报；灵敏度 0.25 的分母为 n=7）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4662041/">PMC4662041</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Sendelbach S &amp; Funk M</strong>, <em>Alarm fatigue: a patient safety concern</em>, AACN Adv Crit Care 2013;24(4):378-386（72%–99% 临床报警为假）— PMID 24153215 <span class="badge t1">Tier 1</span></li>
+            <li><strong>Drew BJ et al.</strong>, <em>Insights into the Problem of Alarm Fatigue with Physiologic Monitor Devices</em>, PLoS ONE 2014;9(10):e110274（187 次报警/床/日；88.8% 假阳性）— <a href="https://doi.org/10.1371/journal.pone.0110274">doi</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Gollwitzer PM &amp; Sheeran P</strong>, 实施意图元分析（总体 d=.65，94 项研究；「记得去做」d=.61）— <a href="https://cancercontrol.cancer.gov/brp/research/constructs/implementation-intentions">NCI 官方开放页</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Jeon HO, Chae MO, Kim A</strong>, <em>Effects of medication adherence interventions for older adults with chronic illnesses</em>, Osong Public Health Res Perspect 2022;13(5):328-340（7 项 RCT；实施意图 g ≥ 0.8；远程 telehealth 不显著）— <a href="https://doi.org/10.24171/j.phrp.2022.0168">doi</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Heselton HJ, Rosen A, Boron JB</strong>, 老年人双任务与步行速度系统综述与 Meta 分析, Innov Aging 2023;7(Suppl 1):657（Δ=1.03，95%CI 0.65–1.40）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10737596/">PMC10737596</a> ⚠️ <strong>会议摘要；摘要未明示 Δ 是 Cohen's d 还是 Hedges' g</strong> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Chan AHS &amp; Lee PSK</strong>, <em>Intelligibility and preferred rate of Chinese speaking</em>, Int J Ind Ergonomics 2005;35(3):217-228（中文播音基准 4.3 字/秒达 99% 可懂度）— <a href="https://scholars.cityu.edu.hk/en/publications/intelligibility-and-preferred-rate-of-chinese-speaking/">CityUHK</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Wang J, Yang S, Xu Z</strong>, <em>Talk like me: Exploring the feedback speech rate regulation strategy of the voice user interface for elderly people</em>, Front Psychol 2023;14:1119355（n=30 中国老年人；期望播报语速低于自身语速）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10132265/">PMC10132265</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>SeniorTalk</strong>, NeurIPS 2025 Datasets &amp; Benchmarks（202 名 75–85 岁中国老人、16 省、55.53 小时；Whisper-large-v3 零样本 CER 57.74%，微调后 23.84%）— <a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/9131c4dcd22daaa5ed4aa573ab5fdde8-Abstract-Datasets_and_Benchmarks_Track.html">NeurIPS proceedings</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Lin FR et al.</strong>, <em>Hearing Loss and Incident Dementia</em>, Arch Neurol 2011;68(2):214-220（HR 1.89/3.00/4.94）— <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3277836/">PMC3277836</a> <span class="badge t1">Tier 1</span>（<span class="badge cf-fix">v2 更正 v1 的「JAMA 2012」与「2/3/5×」</span>）</li>
+            <li><strong>孙喜斌等</strong>《中国听力残疾人群现状及致残原因分析》中华流行病学杂志 2008;29(7):643-646（11.04% 的真实口径＝60+ 听力残疾现患率）— <a href="http://chinaepi.icdc.cn/zhlxbx/ch/reader/view_abstract.aspx?file_no=20080706&amp;flag=1">摘要页</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>NIDCD</strong>《Hearing Loss and Hearing Aid Use》官方数据图表（可用助听器者中仅 1/4 曾使用）— <a href="https://www.nidcd.nih.gov/sites/default/files/Shareable%20Images/HearingLoss_Infographic.pdf">官方 PDF</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>第五次中国城乡老年人生活状况抽样调查基本数据公报</strong>（民政部、全国老龄办、国家卫健委等；标准时点 2021-08-01，有效样本 12.7287 万，按七普加权）— <a href="http://www.crca.cn/index.php/19-data-resource/life/1117-2024-10-17-08-01-05.html">中国老龄科学研究中心</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>2024 年度国家老龄事业发展公报</strong>（民政部 全国老龄办；60+ 31,031 万、65+ 22,023 万；家庭养老床位 34.7 万张）— <a href="https://smzt.gd.gov.cn/mzzx/qgmz/content/post_4752825.html">广东省民政厅转载</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>中国人民大学「中国老年群体数字鸿沟与数字融入调查」</strong>（n=5,231，18 省 18 市 53 区县；82.9%/87.9%；隐私担忧 44.7% 为第一大困难）— <a href="https://www.workercn.cn/c/2024-01-11/8110984.shtml">中工网转《北京日报》</a> <span class="badge t2">Tier 2</span></li>
+            <li><strong>常冰洁等</strong>《慢性病共病老年人对居家智能药物管理工具的需求和使用障碍研究》，《中国全科医学》（北京城区 34 位、TAM 框架）— <a href="https://www.chinagp.net/CN/10.12114/j.issn.1007-9572.2026.0184">chinagp.net</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>刘葳等</strong>《社区老年多病共存患者多重用药情况评价研究》，《中国全科医学》2020;23(13):1592-1598（多病共存 81.01%；多重用药率 75.3%；人均 5.7 种药）— <a href="https://www.chinagp.net/CN/abstract/abstract4671.shtml">chinagp.net</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>《老年人多重用药评估与管理中国专家共识（2024）》</strong>《中华老年医学杂志》2024;43(3):269-278（多重用药＝同时使用 ≥5 种；明确把「居家管理」列为重要环节）— 山西省疾控中心转载要点 <span class="badge t1">Tier 1</span></li>
+            <li><strong>杭州西湖区机器狗「小西」社区送药试点</strong>（都市快报／杭州政协网，2025-02-21；西湖区民政局、残联推动）— <a href="https://www.hzzx.gov.cn/cshz/content/2025-02/21/content_8865440.htm">杭州政协网</a> <span class="badge t2">Tier 2</span></li>
+            <li><strong>北京日报《养老大调研》</strong>（2026-09-18；智能药盒标价 3900 元 vs 普通药盒几十元）— <a href="http://xinwen.bjd.com.cn/content/s6aaca15ae4b039a8e2f13b01.html">北京日报客户端</a> <span class="badge t2">Tier 2</span></li>
+            <li><strong>国家卫健委医政司全国护理工作发展情况</strong>（约 6000 家医疗机构提供 7 类 60 余项上门护理服务）— <a href="http://health.caijing.com.cn/2026/0512/5159097.shtml">财经网转述</a> <span class="badge t2">Tier 2 转述 Tier 1 发布</span></li>
+            <li><strong>MLH Hack Days Organizer Guide《Project Submissions and Judging》</strong>（<em>Last reviewed: August 2026</em>；5 条并列评分标准）— <a href="https://hackdays-guide.mlh.com/run-your-event/project-submissions.md">hackdays-guide.mlh.com</a> <span class="badge t1">Tier 1</span>（<span class="badge cf-fix">v2 更新地址，v1 的 mlh.com/gitbook 已迁移</span>）</li>
+            <li><strong>Falk J, Chen Y, Rafner J, Zhang M, Bjerva J, Nolte A</strong>, <em>How Do Hackathons Foster Creativity?</em>, arXiv:2503.04290（193,353 个黑客松项目；# Team Members β=0.156271；Different Interests β=−0.305535）— <a href="https://arxiv.org/html/2503.04290v1">arXiv HTML</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>人民日报海外版《银发网民数字焦虑怎么破？》</strong>（雨住，2026-04-20 第 08 版；「怕弄坏」「怕被骗」「怕没人帮」；上海调研 68.3%）— <a href="http://paper.people.com.cn/rmrbhwb/pc/content/202604/20/content_30152002.html">人民日报图文数据库</a> <span class="badge t2">Tier 2</span>（<span class="badge cf-fix">v2 更正 v1 的「三怕」措辞与链接</span>）</li>
+            <li><strong>Bruck D &amp; Thomas I</strong>, <em>Smoke Alarms for Sleeping Adults Who are Hard-of-Hearing: Comparison of Auditory, Visual, and Tactile Signals</em>, <strong>Ear and Hearing 2009;30(1):73-80</strong>, doi:10.1097/AUD.0b013e3181906f89（听损成人 75 dBA 时 56% 睡过未醒；520 Hz 方波 92%/100%；频闪 27%；振动 80–83%）— <a href="https://pubmed.ncbi.nlm.nih.gov/19125029/">PMID 19125029</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Bruck D &amp; Thomas I</strong>, <em>Waking effectiveness of alarms (auditory, visual and tactile) for adults who are hard of hearing</em>, Fire Protection Research Foundation 报告（2007-06，97 页，<strong>免费全文</strong>）— <a href="https://vuir.vu.edu.au/682/1/hardofhearing%26alarms.pdf">Victoria University 机构库</a> <span class="badge t1">Tier 1</span>（<span class="badge cf-fix">v2 新增；v1 误判为「付费墙」</span>）</li>
+            <li><strong>Bruck D</strong>, <em>Towards a Better Smoke Alarm Signal – an Evidence Based Approach</em>, Fire Safety Science 2008;9:403-414（含 43% 归属儿童/深睡青年、听损成人 56% 的汇总表）— <a href="https://publications.iafss.org/publications/fss/9/403/view/fss_9-403.pdf">IAFSS</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>NFPA 72 睡眠区条款</strong>（2013 版 18.4.5.1–18.4.5.3：≥75 dBA 枕边/+15 dB/+5 dB 取最大；2014-01-01 起 520 Hz ±10% 方波）— 经 <a href="https://sf-fire.org/media/1246/download?inline">旧金山消防局官方通告逐字转载</a>＋<a href="https://content.nfpa.org/-/media/Project/Storefront/Catalog/Files/Codes-and-standards/standards-council/August-2023/SC_Agenda_08_2023.pdf">NFPA 标准委员会文件</a>互证 <span class="badge t2">Tier 2</span>（<span class="badge cf-fix">NFPA 官方免费阅读页为 JS 应用，未能直连取条文；现行版条款号未核验</span>）</li>
+            <li><strong>ISO 7731:2003</strong> <em>Ergonomics — Danger signals for public and work areas — Auditory danger signals</em>（可听度三判据：&gt;65 dB(A) / &gt;环境 +15 dB / 频带掩蔽阈 +10 dB；频谱 500–1500 Hz；听损者 1500 Hz 以下需足够能量；<strong>不适用于语音报警</strong>）— 标准名与范围经 <a href="https://store.sfs.fi/en/iso-7731-2003-3">ISO 官方摘要</a>确认，条文逐字取自 <a href="https://www.pfannenberg.com/fileadmin/Redakteur/Subsites/Files_Know-How/Know-How_Signaling/ISO_7731_-_Requirements_for_Sounders_EN.pdf">厂商技术资料</a> <span class="badge t1">Tier 1</span>＋<span class="badge t3">Tier 3</span>（<strong>条文原文未经 ISO 付费正文核对</strong>）</li>
+            <li><strong>Tun PA</strong>, <em>Fast noisy speech: Age differences in processing rapid speech with background noise</em>, Psychology and Aging 1998;13(3):424-434, doi:10.1037/0882-7974.13.3.424（<strong>摘要不含任何 wpm 数值</strong>）— <a href="https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:9793118&amp;resultType=core&amp;format=json">Europe PMC</a> <span class="badge t1">Tier 1</span></li>
+            <li><strong>Tun PA, Wingfield A, Stine EAL, Mecsas C</strong>, <em>Rapid speech processing and divided attention</em>, Psychology and Aging 1992;7(4):546-550（实验语速区间 <strong>140–280 wpm</strong>）— PMID 1466823 <span class="badge t1">Tier 1</span>（<span class="badge cf-new">v2 新增：这才是可引的语速区间</span>）</li>
+            <li><strong>Brandeis University 新闻稿</strong>（1998-10-21，EurekAlert；「140–180 wpm」与「慢 30–50%」的真正出处）— <a href="https://www.eurekalert.org/news-releases/1017682">EurekAlert</a> <span class="badge t2">Tier 2</span></li>
+            <li><strong>GDPR 第 9 条</strong>（9(1) 原则禁止健康数据处理；9(2)(a)(c)(h)(i) 例外；9(3) 保密义务；9(4) 成员国可加严）— <a href="https://publications.europa.eu/resource/celex/32016R0679">EU Publications Office（CELEX 32016R0679，官方英文生效文本）</a> <span class="badge t1">Tier 1</span>（<span class="badge cf-new">v2 补齐，v1 为缺口</span>）</li>
+            <li><strong>欧盟 MDR 附录 VIII 第 III 章 6.3 条 Rule 11</strong>（软件按 IIa/IIb/III 分类；「All other software is classified as class I.」）— <a href="https://publications.europa.eu/resource/celex/32017R0745">CELEX 32017R0745</a> <span class="badge t1">Tier 1</span>（<span class="badge cf-new">v2 补齐</span>）</li>
+            <li><strong>MDCG 2019-11 rev.1</strong>《Guidance on Qualification and Classification of Software》（MDSW 定义；纯非医疗目的软件不构成 MDSW；「Simple search」不构成；用药依从性正例）— <a href="https://health.ec.europa.eu/document/download/b45335c5-1679-4c71-a91c-fc7a4d37f12b_en?filename=md_mdcg_2019_11_guidance_qualification_classification_software_en.pdf">欧盟委员会官方 PDF</a> <span class="badge t1">Tier 1</span>（<span class="badge cf-new">v2 补齐</span>；全文 <strong>0 次</strong>出现 "reminder"，故无逐字直接答案）</li>
+            <li><strong>FDA《Clinical Decision Support Software》终版指引</strong>（2022-09-28 版删除患者/照护者端 CDS 执法裁量；<strong>2026-01-06 改版取代 2022 版</strong>，仍未恢复消费者端裁量）— <a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents/clinical-decision-support-software">fda.gov</a> <span class="badge t1">Tier 1</span>（删除动作与改版事实经 <a href="https://www.arnoldporter.com/en/perspectives/advisories/2022/10/fda-releases-significantly-revised-final-clinical">Arnold &amp; Porter</a> 与 <a href="https://www.cov.com/news-and-insights/insights/2026/01/5-key-takeaways-from-fdas-revised-clinical-decision-support-cds-software-guidance">Covington</a> 两家律所解读交叉印证 <span class="badge t2">Tier 2</span>；<strong>FDA 指引 PDF 正文端点被 WAF 拦截，未能逐字核验</strong>）</li>
+            <li><strong>《医疗器械分类目录》21 子目录编制说明</strong>（「（五）医疗信息管理软件属性界定原则……不按照医疗器械管理」）— 中国侧「记录型软件非器械」<strong>最接近的一手支撑</strong> <span class="badge t1">Tier 1</span>（<span class="badge cf-new">v2 新增</span>；注意仍属类推，目录未点名「服药提醒」）</li>
+          </ul>
+          <p class="src-inline" style="margin-top:10px">
+            <strong>仍未纳入</strong>：Lancet 2024 委员会正文（官网 403，本报告引用的是 Lancet 官方新闻稿）、GB/T 45122-2024 全文（字体内嵌 CID 编码，无法解出文本）、工信部两份适老化规范 PDF（同上）、NHS SPS 漏服总纲（403）、京东/天猫在售智能药盒实时价格（JS 渲染）、FDA 指引 PDF 正文（WAF 拦截）、NFPA 72 官方免费阅读页（JS 应用）。
+            <span class="badge cf-new">v2 说明</span> <strong>GDPR Art.9 / MDR Rule 11 / MDCG 2019-11 三项欧盟原文本轮已补齐</strong>（v1 曾列为缺口），现列于上方 E 组。
+          </p>
+        </div>
+      </details>
+
+      <details>
+        <summary>C · 行业、产品与媒体来源 <span class="badge t1">Tier 1</span> – <span class="badge t3">Tier 3</span></summary>
+        <div class="body">
+          <ul>
+            <li>e-pill MedTime 官方产品页（$449.95 一次付清，无月费）— <a href="https://www.epill.com/medtime.html">epill.com</a> <span class="badge t1">Tier 1</span></li>
+            <li>Hero Health 官网 — <a href="https://herohealth.com">herohealth.com</a> <span class="badge t1">Tier 1</span>（价格为 JS 渲染未取到，正文用 Tier 3 口径）</li>
+            <li>TowerView Health 停业记录 — <a href="https://www.crunchbase.com/organization/towerview-health">Crunchbase</a> <span class="badge t2">Tier 2</span></li>
+            <li>Pillo Health 被收购 / 产品终止 — <a href="https://pitchbook.com/profiles/company/175012-48">PitchBook</a> <span class="badge t2">Tier 2</span></li>
+            <li>Samsung Ballie 上市搁置 — <a href="https://techorange.com/2026/01/09/samsung-ballie-robot/">TechOrange</a> <span class="badge t2">Tier 2</span></li>
+            <li>REMIND 试验转引（n≈54,000，廉价提醒装置无差异）— <a href="https://alert.psychnews.org/2017/02/low-cost-reminder-devices-may-not.html">Psychiatric News Alert</a> <span class="badge t2">Tier 2</span></li>
+            <li>人民日报海外版（「三怕」与防御性上网）— <a href="http://finance.people.com.cn/n1/2026/0420/c1004-40704240.html">人民网</a> <span class="badge t2">Tier 2</span></li>
+            <li>新华社 / 中工网（82.9% / 87.9% 使用障碍）— <a href="https://www.workercn.cn/c/2025-12-29/8695874.shtml">workercn.cn</a> <span class="badge t2">Tier 2</span></li>
+            <li>ElliQ 租赁价格与政府买单 — <a href="https://agebrilliantly.org/can-a-robot-friend-help-solve-loneliness-in-older-adults/">转引 NYT 综述</a> <span class="badge t2">Tier 2</span></li>
+            <li>Hero Health 用户评分 — <a href="https://nz.trustpilot.com/review/herohealth.com">Trustpilot</a> <span class="badge t3">Tier 3</span> ⚠️ 仅取到聚合分，评论原文被拦截</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>D · 设计规范与标准 <span class="badge t1">Tier 1</span></summary>
+        <div class="body">
+          <ul>
+            <li>W3C《Web Content Accessibility Guidelines (WCAG) 2.2》— <a href="https://www.w3.org/TR/WCAG22/">w3.org</a></li>
+            <li>工信部《移动互联网应用（APP）适老化通用设计规范》— 逐字核对（字号 ≥18/30 dp、目标 ≥60×60 dp、行距 1.3 等）</li>
+            <li>工信部《互联网网站适老化通用设计规范》— 逐字核对（语音阅读、大字体、10 分钟可撤销等）</li>
+            <li>Apple Human Interface Guidelines — Accessibility — <a href="https://developer.apple.com/design/human-interface-guidelines/accessibility">apple.com</a> <span class="badge t2">Tier 2</span> ⚠️ 官方页仅返回标题，经第三方快照核对，已降级</li>
+            <li>MLH《Project Submissions and Judging》官方文件（2026-08）— <a href="https://hackdays-guide.mlh.com/run-your-event/project-submissions.md">mlh.com</a></li>
+            <li>MLH 黑客松标准规则 — <a href="https://github.com/MLH/mlh-policies/blob/main/standard-hackathon-rules.md">GitHub</a></li>
+            <li>Falk et al., CHI 2025（19.3 万黑客松项目，团队规模与创意）— <a href="https://arxiv.org/html/2503.04290v1">arXiv</a></li>
+            <li>Mendes et al., CSCW 2021（黑客松团队任务分配）— <a href="https://ar5iv.labs.arxiv.org/html/2204.12274">ar5iv</a></li>
+            <li>Nolte et al.《How to organize an in-person, online or hybrid hackathon》— <a href="https://arxiv.org/html/2008.08025v3">arXiv</a></li>
+          </ul>
+        </div>
+      </details>
+
+      <h3>未纳入的来源（红旗 / 无法核验）</h3>
+      <div class="callout warn">
+        <ul style="margin-bottom:0">
+          <li><strong>无署名 SEO 榜单</strong>：如「十大养老机器人企业排名」类页面，无作者、无方法，按 Tier 4 弃用。</li>
+          <li><strong>仅见厂商材料的机器人案例</strong>：某健康管理机器人的心衰依从性试验仅有公司材料与媒体报道，<strong>无同行评审 RCT</strong>，已剔除。</li>
+          <li><strong>高风险流行病学数字</strong>：「不依从导致 12.5 万人死亡 / 10% 住院」仅见于厂商资助的评论性引文，未找到一手来源，<strong>本报告不予采用</strong>。</li>
+          <li><strong>自述由 AI 撰写的技术文章</strong>：用于「接口契约先行」的方法参考，按 Tier 4 标注并降权。</li>
+          <li><strong>无法访问的原文</strong>：NHS SPS 漏服总纲（403）、Mayo/Cleveland Clinic（反爬）、Pew Research（本网络不可达）、MDCG 2019-11 与欧盟 MDR Rule 11（PDF 未取到）、GDPR Art.9（未逐字核实）。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="verify">
+      <h2><span class="num">12</span>核验与修订记录（v2）</h2>
+      <p class="sub">这一章记录 v1 哪些地方错了、错在哪、现在改成什么。写出来有两个目的：<strong>让评审可以直接抽查每一条的出处</strong>，以及<strong>说明本报告的方法是可被证伪的</strong>——一份没有任何一处修订的调研，通常意味着它没有被真正核验过。</p>
+
+      <h3>12.1 这轮做了什么</h3>
+      <div class="grid g3">
+        <div class="kpi">
+          <div class="v">8</div>
+          <div class="k">定向核验/补强子代理（依从性证据、认知与场景、听力学、法规与规范、竞品、听觉参数、交互人因、中国本土）</div>
+          <div class="src">并行派发，各自返回逐字引文</div>
+        </div>
+        <div class="kpi">
+          <div class="v">13</div>
+          <div class="k">修正的<strong>实质错误</strong></div>
+          <div class="src">含 3 处期刊/年份/数值归属错误、4 处口径误读或来源错配、2 处外推过度、1 处被推翻的缺口声明</div>
+        </div>
+        <div class="kpi">
+          <div class="v">12+</div>
+          <div class="k">新增一手来源（Fotteler 2022、Australas J Ageing 2026、J Clin Med 2025、第五次中国城乡老年人生活状况抽样调查、SeniorTalk、Sendelbach &amp; Funk 2013、Drew 2014、Gollwitzer &amp; Sheeran、Jeon 2022 等）</div>
+          <div class="src">均已核对到逐字原文或权威索引记录</div>
+        </div>
+      </div>
+      <p class="src-inline" style="margin-top:14px">
+        <strong>核验方法</strong>：每个角度独立派一个子代理，要求它<strong>回到一手来源取逐字引文</strong>，并明确给出「一致 / 不一致（正确值）/ 无法核验（说明原因）」三选一。
+        主代理对子代理的结论<strong>逐条回到 HTML 原文复核</strong>——本轮因此<strong>驳回了 3 条子代理误报</strong>（见 12.4）。
+        对高影响数字（WHO、CNNIC、第五次抽样调查、Cochrane、Smarr、JMIR、Cochrane 引文），主代理另做了一次<strong>亲自 fetch</strong> 的独立复核。
+      </p>
+
+      <h3>12.2 修正清单（全部保留原错误说明，不做静默覆盖）</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:22%">位置</th><th style="width:30%">v1 原来怎么写的</th><th style="width:32%">核验结果</th><th style="width:16%">处理</th></tr></thead>
+          <tbody>
+            <tr><td><strong>REMIND 试验的干预组</strong><br>摘要 + 第 02 章</td><td>「药瓶盖计时器、定时药盒、<strong>短信提醒</strong>」</td><td><strong>错误。</strong>原文：<em>"Patients were randomized to receive in the mail a pill bottle strip with toggles, digital timer cap, or standard pillbox."</em> —— 第三项是<strong>带拨片药瓶贴条</strong>，<strong>REMIND 全程未发任何短信</strong>；「定时药盒」亦误（标准药盒无计时功能）。样本 53,480 ✅、优效设计 ✅。</td><td><span class="badge cf-fix">已更正</span></td></tr>
+            <tr><td><strong>听力损失与痴呆风险</strong><br>第 04 章</td><td>「Lin, <em>JAMA</em> 2012；轻 2× / 中 3× / 重 5×」</td><td><strong>期刊、年份、数值三处均误。</strong>正确为 <strong><em>Arch Neurol</em> 2011;68(2):214-220</strong>，HR <strong>1.89 / 3.00 / 4.94</strong>；结局是<strong>全因痴呆</strong>（AD 单独分析 1.20，95% CI 0.94–1.53，<strong>不显著</strong>）；重度组仅 <strong>n=6</strong>，CI 1.09–22.4 极宽。Lin 另有一篇 JAMA 论文讨论<strong>认知下降</strong>，v1 很可能把两篇混了。</td><td><span class="badge cf-fix">已更正</span></td></tr>
+            <tr><td><strong>「每多一条重复提醒，接受率降 30%」</strong><br>第 06 章</td><td>把两个自变量合并成一句</td><td><strong>口径误读。</strong>原文是两个不同的自变量：<strong>每次就诊多一条 BPA → 接受率 −30%（IRR 0.70）</strong>；<strong>重复提醒占比每 +5 个百分点 → −10%（IRR 0.90）</strong>。</td><td><span class="badge cf-fix">已拆分更正</span></td></tr>
+            <tr><td><strong>「首次被忽略的提醒，后续继续被忽略的概率 87.9%」</strong><br>第 06 章</td><td>当作「被忽略」的延续概率</td><td><strong>口径误读。</strong>原文 87.9% 指被 <strong>override（医生主动否决）</strong>的首次提醒其后续也被 override 的概率；<strong>首次被接受的后续仍有 51.9% 被否决</strong>（药物警报口径为 99.9%）。不并列 51.9% 会夸大效应。且该系统是<strong>临床医嘱警报</strong>，不是服药提醒，v1 未标注外推限制。</td><td><span class="badge cf-fix">已更正 + 加外推限制</span></td></tr>
+            <tr><td><strong>中国 60+ 听力损失 11.04%</strong><br>第 10 章矛盾清单</td><td>「同一报告既称 60+ 患病率 11.04%，又称 65+ 约 1/3 伴听力残疾」——判定为口径冲突、未获原文</td><td><strong>追到一手，口径已确定</strong>：11.04% 的原始口径是<strong>「听力残疾现患率」</strong>（原文用词「现患率」「现残率」），出自 <strong>2006 年第二次全国残疾人抽样调查</strong>，门槛为较好耳 <strong>≥41 dB HL</strong>。但<strong>新矛盾出现</strong>：同一数据源 60+ 为 11.04%、65+ 却约 1/3，年龄差 5 岁而患病率差约 3 倍，流行病学上说不通。</td><td><span class="badge cf-fix">已改口径 + 保留新矛盾</span></td></tr>
+            <tr><td><strong>「老年人慢病不依从中 30% 因忘记」</strong><br>第 02 章 KPI</td><td>标注来源为 Tier 1 Insel, JAGS 2016</td><td><strong>来源错配。</strong>该句是 Insel <strong>转引</strong> Osterberg &amp; Blaschke, <em>NEJM</em> 2005；不是 Insel 本人的数据，<strong>也不是中国人群、不是老年人专属人群</strong>。</td><td><span class="badge cf-fix">已改标注为 Tier 2 转引</span></td></tr>
+            <tr><td><strong>跌倒检测「灵敏度 0.25 / PPV 0.02」</strong><br>第 05 章</td><td>「18 人，4 个月」研究实测</td><td><strong>分母外推过度。</strong>84 次报警中 83 次误报是 18 人全部样本 ✅；但灵敏度 0.25 与 PPV 0.02 的表<strong>只纳入 7 名完成者</strong>（另 3 人因未佩戴设备被排除），且<strong>真阳性只有 1 例</strong>、CI 极宽。厂商标称灵敏度 94.1–94.4%，而<strong>实测特异度 0.92 与厂商接近、灵敏度崩到 0.25</strong>——这个「特异度对得上、灵敏度崩掉」的对比才是关键。</td><td><span class="badge cf-fix">已限定分母</span></td></tr>
+            <tr><td><strong>JMIR 质性研究（n=31）</strong><br>第 04 章</td><td>5 句引文用于社区独居老人与中国场景</td><td>5 句引文<strong>逐字全部命中</strong> ✅。但 v1 漏掉关键限制：<strong>样本来自加拿大渥太华一家长期照护机构（Perley Health，450 张 LTC 床位 + 139 套独立生活公寓），含亚急性病房与 LTC 住户（LTC 组年龄中位数 94 岁）</strong>，<strong>不是社区独居老人</strong>。</td><td><span class="badge cf-fix">已补限制、降为 Likely</span></td></tr>
+            <tr><td><strong>「三怕」</strong><br>摘要 + 第 04 章 + 风险矩阵</td><td>「怕弄坏、怕<strong>误扣费</strong>、怕被骗」</td><td><strong>措辞错误。</strong>原文归纳为「<strong>怕弄坏</strong>」「<strong>怕被骗</strong>」「<strong>怕没人帮</strong>」（「只要有一道坎儿没跨过去，蒙在设备上的那层防尘布就别想轻易揭开」）。「扣钱咋办」是姥爷那句<strong>独立引语</strong>，不在「三怕」归纳里。v1 的措辞会让逐字核验失败。</td><td><span class="badge cf-fix">已按原文改正</span></td></tr>
+            <tr><td><strong>黑客松大样本研究的转述</strong><br>第 08 章</td><td>「团队『兴趣越多』越不创意（β=−0.306）；创意高发在 4–5 人团队」</td><td><strong>两处不准确。</strong>（1）变量是 <code>Different Interests</code>（成员兴趣<strong>差异度</strong>），β=−0.305535；独立的 <code>All Interests</code> 项系数 0.121256 <strong>不显著</strong>。（2）原文说的是 <strong>4、5、8 人</strong>团队创意项目更多；论文图 3 显示<strong>创意率最高的是 5 人（约 8.7%）与 8 人（约 9%）</strong>，4 人团队是<strong>数量最多</strong>的规模（3,365 个），<strong>不是创意率最高的</strong>。</td><td><span class="badge cf-fix">已更正</span></td></tr>
+            <tr><td><strong>「3100 Hz 报警有 43% 的听损成人没被唤醒」</strong><br>第 04 章 4.1</td><td>43%，来源标为「Bruck &amp; Thomas 2007，经 Hearing Review 转述，原研究付费墙」</td><td><strong>数值错误 + 用错人群 + 可及性判断错误（三处）。</strong>回到 Bruck 本人的一手汇总表：43% 属于「<strong>儿童（6–10 岁）</strong>」与「<strong>自述深睡青年</strong>」两个<u>其他群体</u>；<strong>听损成人组在 ≤75 dBA 的数字是 56%</strong>（原文 <em>"waking 92% at 75 dBA, compared with 56% waking to the 75 dBA high-pitched alarm"</em>）。另：论文实际发表在 <strong>Ear and Hearing 2009;30(1):73-80</strong>（不是未具名期刊），且<strong>同一研究的 Fire Protection Research Foundation 报告是免费全文（97 页）</strong>，「付费墙」的说法不成立。</td><td><span class="badge cf-fix">已更正</span></td></tr>
+            <tr><td><strong>「重要提醒可到 95 dBA」</strong><br>第 04 章 4.1</td><td>与 75 dBA 并列为声压要求，读起来像规范档位</td><td><strong>规范里没有 95 dBA 这一档。</strong>NFPA 72 睡眠区判据是「≥环境 +15 dB / ≥60 秒最大 +5 dB / ≥75 dBA，取最大，枕边测量」。95 dBA 是 Bruck 实验的<strong>阶梯上限</strong>（该强度下 520 Hz 方波唤醒率 100%），不是规范要求的最低值。</td><td><span class="badge cf-fix">已区分实验值与规范值</span></td></tr>
+            <tr><td><strong>「语音语速 ≤140 wpm，禁止超过 180 wpm（Tun 1998）」</strong><br>第 04 章 4.1</td><td>当作 Tun 1998 的论文阈值</td><td><strong>来源错配。</strong>Tun 1998 摘要<strong>不含任何 wpm 数值</strong>；「140–180 wpm」出自 1998 年 Brandeis 大学<strong>新闻稿</strong>，且原文把它定义为「<strong>典型对话语速</strong>」，不是理解下降的阈值。同课题组真正把语速作为实验变量的是 <strong>Tun et al. 1992（140–280 wpm）</strong>。另「加工速度慢 30–50%」是新闻稿中一句<strong>无引文的 "it's estimated"</strong>，覆盖「many mental abilities」，Tun 原文无支撑。</td><td><span class="badge cf-fix">已改标为新闻稿口径 + 补中文锚点</span></td></tr>
+            <tr><td><strong>ISO 7731 只写了「高于环境噪声 15 dB」</strong><br>第 04 章 4.1</td><td>单一判据</td><td><strong>漏掉两个并列/替代条件。</strong>完整判据是三者取一：<strong>绝对下限 &gt;65 dB(A)</strong>、或高于环境噪声 <strong>&gt;15 dB</strong>、或倍频带超过有效掩蔽阈 <strong>&gt;10 dB</strong>。另有一条对本案极有价值的频谱条款：「对佩戴护听器或已有听力损失者，<strong>1500 Hz 以下必须有足够的信号能量</strong>」。<strong>且 ISO 7731 明确不适用于语音报警</strong>（语音归 ISO 9921）——这一点影响「提示音 + 语音播报」的规范归属。</td><td><span class="badge cf-fix">已补全判据</span></td></tr>
+            <tr><td><strong>「低频（≤1000 Hz）提示音」</strong>与<strong>「三通道冗余」</strong><br>第 06 章</td><td>作为已证设计参数</td><td><strong>需要分层。</strong>「老年人对 500–1000 Hz 的可听度优于 2000 Hz 以上」<strong>有 Tier 1 支撑</strong>；但「低频<u>纯音</u>能唤醒老人」<strong>属外推</strong>——Bruck 本人措辞是假设性的，且其睡眠实验中最有效的是 <strong>520 Hz 方波复合音</strong>，低频纯音表现系统性更差。另：<strong>60 岁以上对床振动器响应更差</strong>（不能把振动当听觉的等效替代）。</td><td><span class="badge cf-fix">已分层标注</span></td></tr>
+            <tr><td><strong>「官方评分标准只考两件事」</strong>＋评分表<br>第 08 章</td><td>表述为官方口径；表中只列 4 条，标「创意/学习为次要维度」</td><td><strong>推断被写成了官方表述。</strong>官方是 <strong>5 条并列标准</strong>，<strong>未区分主要/次要</strong>；引用的两句英文 ✅ 逐字一致，但 v1 <strong>完全遗漏第 5 条「赛道资格」</strong>（<em>"Does the project satisfy the assigned partner's specific requirements?"</em>）。另 v1 引用的旧 URL 已迁移。</td><td><span class="badge cf-fix">已更正 + 补第 5 条</span></td></tr>
+            <tr><td><strong>「互联网 + 护理服务只有政策文件，没有执行数据」</strong><br>第 03 章</td><td>判定为无法评估</td><td><strong>陈述不成立，已推翻。</strong>有全国口径执行数据：<strong>约 6000 家</strong>医疗机构提供 7 类 60 余项上门护理服务；2024 年度公报有家庭养老床位 <strong>34.7 万张</strong>、居家养老上门服务 <strong>64.3 万人次</strong>；浙江省「浙里护理」有平台级服务量。</td><td><span class="badge cf-fix">已推翻并补数据</span></td></tr>
+            <tr><td><strong>「未找到中文或方言语音的一手实证」</strong><br>第 10 章</td><td>列为完全缺口</td><td><strong>声明已被推翻。</strong>已取到中文老年 VUI 语速实验（Wang 2023，n=30）与中文高龄语音基准 SeniorTalk（NeurIPS 2025，202 名 75–85 岁）。<strong>剩余的真实缺口</strong>是：方言语音的<u>用户侧</u>实证、以及中文语音提醒对服药依从性结局的试验。</td><td><span class="badge cf-fix">已推翻 + 收窄缺口</span></td></tr>
+            <tr><td><strong>「机器人层级的依从性证据：几乎不存在」</strong><br>第 02 章发现 4</td><td>Emerging，仅一项 n=30 单臂研究</td><td><strong>结论已过时。</strong>2025 年一项 <strong>278 名社区居住老人、6 个月</strong>的单臂研究报告孤独感与<strong>服药依从性</strong>均有显著改善（无对照组，作者自称 Preliminary）；2026 年一篇 35 篇（22 项 RCT）的系统综述报告社交辅助机器人 <strong>1/1</strong> 有效。<strong>仍无送药机器人的 RCT。</strong></td><td><span class="badge cf-fix">已修订（保留 Emerging）</span></td></tr>
+            <tr><td><strong>Kim 2025 的范围</strong><br>第 05 章</td><td>「App <strong>提醒类</strong>干预 Meta 分析，OR 2.371 / SMD 0.279」</td><td><strong>范围被收窄。</strong>该文对象是<strong>移动 App 干预整体</strong>；「提醒」只是亚组，其效应为 <strong>OR 1.849 / SMD 0.455</strong>，与全样本合并效应不是同一个数字，不可混用。</td><td><span class="badge cf-fix">已更正 + 补亚组</span></td></tr>
+            <tr><td><strong>Front Public Health 2025 的措辞</strong><br>第 02 章</td><td>「连续型<strong>客观</strong>测量」；「生活质量与死亡率<strong>均</strong>为 very low」</td><td><strong>两处加强措辞。</strong>原文只写 "continuous measures"，<strong>未称其为「客观」</strong>；"very low" 是<strong>总体</strong>确定性表述、并非逐结局评级，且同一文结论段又写作 "low"（文内措辞不一致）。另 49 篇文章 = <strong>48 项独立研究</strong>。</td><td><span class="badge cf-fix">已更正</span></td></tr>
+            <tr><td><strong>CD005025 的效应量口径</strong><br>第 02 章</td><td>「12 项 RCT 发现 +11%、舒张压 −5.89 mmHg」</td><td><strong>数字全对但口径缺失。</strong>+11% 只来自 <strong>4 项试验的 6 个干预组</strong>（I²=<strong>96.3%</strong>，异质性极高）；舒张压 −5.89 mmHg 只来自 <strong>2 项试验</strong>，且<strong>原文未说明这 2 项试验的人群与疾病</strong>（适用人群无法核验）。</td><td><span class="badge cf-fix">已补口径</span></td></tr>
+            <tr><td><strong>PRIMUM 队列的可外推性</strong><br>第 05 章</td><td>四个数字 ✅ 全部正确（含「6 个月内」的口径也对）</td><td>数字与口径<strong>均无问题</strong>；但 v1 未标注该队列<strong>排除了 MMSE&lt;26 的认知障碍者</strong>——这意味着它的「方案变更频率」<strong>不能外推到认知障碍人群</strong>，而本项目的默认用户恰是「MCI 未就诊」。另年份为 <strong>2018</strong>（v1 未标）。</td><td><span class="badge cf-new">已补限制</span></td></tr>
+            <tr><td><strong>Safari 2024 的 33%–50%</strong><br>第 05 章</td><td>与 44,172 人队列并列呈现</td><td>14% 的效应 ✅ 正确且 v1 <strong>已正确保留「DOAC 使用者」这一限定</strong>（VKA 仅 3%）。但「33%–50% 不依从、平均漏服 30%」是<strong>该文转引的既有估计（refs 9,10）</strong>，<strong>不是该队列的实测值</strong>。</td><td><span class="badge cf-new">已标注为转引</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>12.3 新增的主要证据</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:26%">来源</th><th style="width:44%">关键内容（逐字或直接数据）</th><th style="width:16%">对本项目的含义</th><th style="width:14%">位置</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Fotteler et al., JMIR Aging 2022;5(2):e31916</strong><br>19 项 RCT 系统综述</td><td>「Different ATs show some promising results in <strong>well-functioning but not in frail older adults</strong>」；「Studies including participants with significant or severe impairment <strong>showed no effectiveness</strong>」；药物类目 4 项试验结果<strong>互相矛盾</strong>；那项阳性试验中 <strong>59%（30/51）需要他人协助才能使用设备</strong></td><td><strong>为「独立行动能力」这条人群限定提供了证据背书</strong>；「59% 需协助」是「不让老人操作任何东西」最硬的依据</td><td>第 02 章<br>发现 6</td></tr>
+            <tr><td><strong>Haile et al., Australas J Ageing 2026;45(3)</strong><br>35 篇 / 22 项 RCT</td><td>「近半数（17/35）报告改善了依从性」；「electronic reminders (<strong>3/3</strong>)、social assistive robots (<strong>1/1</strong>) … showed the most promise」；<strong>未做 Meta 分析</strong>，GRADE very low–moderate</td><td>与 Cochrane/REMIND 的「提醒无效」<strong>直接冲突</strong>——本报告不抹平，列入矛盾清单</td><td>第 02 章<br>第 10 章</td></tr>
+            <tr><td><strong>Jung et al., J Clin Med 2025;15(1):217</strong></td><td>278 名社区居住老人、6 个月：<strong>「Significant improvements were also observed in loneliness and medication adherence.」</strong>无对照组</td><td>机器人层级的依从性证据从「几乎不存在」上修到「早期、低确定性」</td><td>第 02 章<br>发现 4</td></tr>
+            <tr><td><strong>Kim et al., J Med Syst 2025</strong> 亚组数据</td><td>26 项 / 5,174 人：<strong>pill dispensers OR 2.453；data-sharing OR 2.404；</strong>advanced reminders OR 1.849</td><td><strong>对 v1 核心卖点最有力的独立佐证</strong>：效应最大的两个特征正是「物理分装出药」与「数据共享」</td><td>第 02 章<br>发现 2</td></tr>
+            <tr><td><strong>第五次中国城乡老年人生活状况抽样调查</strong><br>民政部/全国老龄办等，标准时点 2021-08-01，有效样本 12.7287 万</td><td>60+ 中<strong>独居 14.2%、仅与配偶居住 45.5%（空巢 59.7%）</strong>；城镇独居 12.4%、农村 16.3%；<strong>自报慢病 80.0%</strong>、高血压 41.6%；<strong>生活能自理 88.4%</strong>；<strong>87.3% 选择在家接受照料</strong>；<strong>会使用智能手机仅 36.6%</strong>、会手机支付仅 <strong>18.1%</strong>；年人均收入 32,027.4 元、<strong>中位数仅 11,400 元</strong>；有机构意愿者中能承受 ≤1000 元/月占 46.1%（农村 75.3%）；2020 年自费购药平均支出 2,133.5 元</td><td><strong>本轮本土侧最大的一处升级</strong>：独居规模、慢病分母、数字素养天花板、支付能力天花板四项一次补齐</td><td>第 01 / 04 章</td></tr>
+            <tr><td><strong>中国人民大学「中国老年群体数字鸿沟与数字融入调查」</strong>（n=5,231，18 省 18 市 53 区县）</td><td>50+ 中 82.9% 存在互联网使用障碍、70+ 达 87.9%；<strong>第一大困难是「担心个人隐私和信息安全问题」44.7%</strong>，其次字太小 36.9%、不能判断真假 31.7%；线上购药或开处方 <strong>&lt;10%</strong>；83.9% 曾遭遇网络风险</td><td>隐私是第一大障碍，而不是「被看见」的羞耻——支持「本地优先、最小采集」的设计取向</td><td>第 04 章<br>4.3 / 4.4</td></tr>
+            <tr><td><strong>杭州西湖区机器狗「小西」</strong><br>都市快报 / 杭州政协网，2025-02-21</td><td>西湖区民政局、残联推动；背药箱在社区穿行、<strong>语音提醒老人按时服药</strong>、可从社区医院「走」到老人家门口；老人说一句「送药」即响应；所在街道古南社区 60+ 1,199 人中独居 78 人、空巢 228 人</td><td><strong>「送达 + 提醒」已有政府试点</strong>；但报道未说明是否记录服药、是否回传家属 → 空白精确化为「确认服下 + 可追溯 + 家属闭环」</td><td>第 03 章</td></tr>
+            <tr><td><strong>SeniorTalk, NeurIPS 2025</strong><br>202 名 75–85 岁中国老人、16 省</td><td>主流 ASR 在中文高龄说话人上<strong>零样本字错率全部 &gt;50%</strong>（Whisper-large-v3 = <strong>57.74%</strong>），微调后仍 <strong>23.84%</strong>；<strong>口音越重、字错率越高</strong></td><td><strong>语音不能作为服药确认的唯一通道</strong>；依赖长句语义理解的方言确认属高风险设计</td><td>第 06 章</td></tr>
+            <tr><td><strong>Sendelbach &amp; Funk 2013</strong>＋<strong>Drew et al., PLoS ONE 2014</strong></td><td>72%–99% 临床报警为假；脱敏导致漏掉真报警并已归因死亡；<strong>有效降噪手段是参数个体化定制，不是调响</strong>；31 天实测 <strong>187 次可听报警/床/日</strong>，88.8% 心律失常报警假阳性，<strong>93% 的「真」室速报警短到不需处理</strong></td><td>为三档升级的「保守默认 + 参数个体化」提供机制依据；<strong>但不能当作服药提醒的误报率</strong>，已标注外推限制</td><td>第 06 章</td></tr>
+            <tr><td><strong>Gollwitzer &amp; Sheeran 实施意图元分析</strong>（NCI 官方开放页）＋<strong>Jeon et al. 2022</strong>（7 项 RCT）</td><td>总体 <strong>d=.65</strong>（94 项研究）；「记得去做」<strong>d=.61</strong>，作者<strong>自举例子就是「吃维生素片」</strong>；防脱轨 <strong>d=.77</strong>；老年人服药元分析中实施意图 <strong>g ≥ 0.8</strong>，面对面咨询 g=0.531，而<strong>「教育」与「远程 telehealth 咨询」整体不显著</strong></td><td>把「提醒」重新定位成<strong>线索植入</strong>而非「催」；同时<strong>暴露了一个与产品前提冲突的张力</strong>（软件属远程通道），已转成设计约束并保留人工兜底</td><td>第 06 章</td></tr>
+            <tr><td><strong>NIDCD 官方数据图表</strong></td><td>「<strong>Only 1 in 4</strong> U.S. adults ages 20 and over who could benefit from hearing aids has used them.」（分子 NHIS 自报「曾使用过」，分母 NHANES 听力检查）</td><td><strong>不能假设老人戴了助听器</strong>，提示音必须按「未做任何听力补偿」设计</td><td>第 04 章 4.1</td></tr>
+            <tr><td><strong>Chan &amp; Lee 2005</strong>＋<strong>Wang et al. 2023</strong>＋<strong>Tun et al. 1992</strong></td><td>中文播音基准 <strong>4.3 字/秒（258 字/分）</strong>达 99% 可懂度；可接受语速上限 <strong>&lt;300 字/分</strong>；年龄越大感知越不准、偏好越慢；老人<strong>期望机器人的播报语速慢于他自己对机器人说话的语速</strong>，文本越长期望越慢；Tun 1992 的实验语速区间为 <strong>140–280 wpm</strong></td><td>给「语音语速」这条从 v1 的空缺补上<strong>可引用的中文与英文锚点</strong>，并戳破 v1 的「140–180 wpm 是 Tun 1998 阈值」这一错配</td><td>第 04 章 4.1<br>第 06 章</td></tr>
+            <tr><td><strong>Bruck &amp; Thomas 2009（Ear and Hearing）＋ FPRF 2007 报告全文</strong></td><td>38 名轻中度听损成人、慢波睡眠（NREM 3–4，EEG 判定）、听损 25–70 dB：<strong>3100 Hz 纯音 ≤75 dBA 仅唤醒 44%（56% 睡过未醒）</strong>；<strong>520 Hz 方波 75 dBA 唤醒 92%、95 dBA 100%</strong>；频闪灯 27%；床/枕振动器 80–83%；<strong>60 岁以上对振动器响应更差</strong>；<strong>非英语母语者即使 95 dBA、3 分钟以上的英语语音报警也未醒</strong></td><td><strong>v1 的 43% 系误转述，正确为 56%</strong>；同时给出「振动不作主通道」「语音必须中文母语」两条新约束</td><td>第 04 章 4.1<br>第 12 章</td></tr>
+            <tr><td><strong>NFPA 72 睡眠区条款</strong>（18.4.5.1–18.4.5.3）</td><td>声压：≥环境 +15 dB / ≥60 秒最大 +5 dB / ≥75 dBA，<strong>取最大，枕边测量</strong>；<strong>2014-01-01 起要求 520 Hz ±10% 方波</strong>（或等效唤醒能力）；附录理由直接点名「65 岁以上人群、听力障碍者」</td><td><strong>把 v1 的设计参数从「二手转述的技术建议」升级为「一手规范要求」</strong>；同时纠正 v1 把 95 dBA 误当规范档位</td><td>第 04 章 4.1</td></tr>
+            <tr><td><strong>ISO 7731:2003</strong></td><td>可听度三判据（&gt;65 dB(A) / &gt;环境 +15 dB / 频带掩蔽阈 +10 dB）；<strong>频谱 500–2500 Hz，推荐 500–1500 Hz 双主导分量</strong>；<strong>「对听力损失者，1500 Hz 以下必须有足够信号能量」</strong>；脉冲式优于恒定声；<strong>不适用于语音报警</strong>（语音归 ISO 9921）</td><td>为「低频」这条设计参数提供<strong>条款化的一手依据</strong>；同时提示提示音与语音播报分属不同规范</td><td>第 04 章 4.1</td></tr>
+            <tr><td><strong>GDPR Art.9 / MDR Rule 11 / MDCG 2019-11 rev.1</strong></td><td>GDPR 9(1) 原则禁止健康数据处理、9(2) 例外（消费级 App 通常只能落到 (a) 明示同意）；Rule 11 软件分类 IIa/IIb/III/「其余为 I 类」；MDCG 全文 <strong>0 次出现 "reminder"</strong>，但给出用药依从性正例</td><td><strong>v1 的欧盟缺口已补齐</strong>；并明确「只做提醒的软件在欧盟算不算器械」<strong>没有逐字答案</strong>，过度断言会被问倒</td><td>第 04 章 4.4<br>第 09 章</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>12.4 被驳回的子代理结论（保留记录）</h3>
+      <p>核验不是单向采信。本轮子代理提出了 3 条并不成立的「错误指控」，主代理<strong>逐条回到报告 HTML 原文复核后予以驳回</strong>，此处如实记录——包括我们自己的核验流程出错的情况。</p>
+      <ul>
+        <li><strong>驳回 1｜「报告引用了 Cochrane 从未使用过的英文措辞 'largely ineffective'」</strong>——主代理全文检索 <code>largely ineffective</code>、<code>most interventions</code>，<strong>均 0 命中</strong>；报告只有中文译文「大多数复杂、效果不佳」，而 Cochrane 原文作者结论确为 <em>"mostly complex and not very effective"</em>，译文准确。<strong>不构成错误。</strong></li>
+        <li><strong>驳回 2｜「报告把 JAMA 2014 的作者写成 Choudhry」</strong>——全文检索 <code>choudhry</code>（不分大小写）<strong>0 命中</strong>；报告在正文与来源清单里都只写「JAMA 系统综述」，<strong>从未署作者名</strong>。该指控不成立；但采纳其正面产出，已补全正确作者（Checchi、Huybrechts、Avorn、Kesselheim）。</li>
+        <li><strong>驳回 3｜「报告漏掉再入院 OR 0.41，属选择性引用」</strong>——该数字<strong>本就已在报告中</strong>（第 02 章「证据强度一览」表内，标注 Contested）。指控不成立；采纳其补充限定（原文同时写明 <em>"effects were not sustained"</em>，已补）。</li>
+      </ul>
+      <p class="src-inline">这一节的用意：<strong>子代理会误报，主代理必须回到原文复核</strong>。如果一份报告只有「核验通过」而没有「核验被驳回」的记录，说明它很可能没有真正做交叉复核。</p>
+
+      <h3>12.5 本轮仍未解决的缺口（不要用低质来源填）</h3>
+      <div class="cols">
+        <div class="col">
+          <h4>证据缺口</h4>
+          <ul>
+            <li><strong>「误报 → 信任崩塌」在老年服药提醒语境下没有任何直接实证</strong>。只有临床侧脱敏描述与灾害预警领域的 warning fatigue（领域不可迁移）。三档升级是<strong>工程保守设计，不是循证结论</strong>。</li>
+            <li><strong>「患者侧服药提醒的纵向脱敏」无一手研究</strong>。Ancker 是临床医嘱警报，Insel 是策略性干预，都不是服药提醒。</li>
+            <li><strong>没有任何「听+视+触冗余 vs 单模态」以服药依从为结局的对照实验</strong>。多模态设计是合理推理，不是已证效果。</li>
+            <li><strong>人形 vs 非人形的头对头随机对比不存在</strong>；唯一相关的 13 篇元分析<strong>根本不报告形态这个调节变量</strong>。</li>
+            <li><strong>中西方阻力权重的量化对比研究不存在</strong>（本报告为此专派了一个角度，仍未找到）。</li>
+            <li><strong>Jia 2020 的 97.2% / 99.2% 无法逐字核验</strong>：该文非开放获取（无 PMCID），Lancet 与 ScienceDirect 对本会话全部 403，只能经中文权威转载取证，已降级为 <strong>Likely</strong>。</li>
+            <li><strong>京东/天猫在售智能药盒的实时价格取不到</strong>（价格由 JS 渲染）；<strong>两个子代理与主代理均未能取到</strong>，本报告因此只给出「3900 元实体店标价 vs 几十元普通药盒」两个锚点，<strong>构不成价格区间，不得填数</strong>。</li>
+            <li><strong>2024/2025 官方口径的独居老年人口数不存在</strong>——2024 年度国家老龄事业发展公报<strong>全文不含</strong>「独居/空巢」数量表述，最新官方口径只能到 2021 年。</li>
+            <li><span class="badge cf-fix">本轮未完成的角度</span><strong>在售竞品价格的系统核验没有跑完</strong>：本轮为该角度派出的子代理在其它 7 个角度均已完成返回后仍在运行，已被主代理终止，未产出结论。
+              因此第 03 章的产品价格与存续状态<strong>仍为 v1 的取证水平</strong>（e-pill 一手价、其余为第三方口径），只有「3900 元实体店标价」是本轮新增。这个角度应在下一轮补做。</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h4>取证受阻（页面不可达，非「没有」）</h4>
+          <ul>
+            <li><strong>Lancet 2024 委员会正文</strong>：官网 403，PMC 无开放版；7% 的置信区间、以及 2020→2024 是否从 8% 修正为 7%，<strong>均无法核验</strong>（现引用的是 Lancet 官方新闻稿）。</li>
+            <li><strong>GB/T 45122-2024《消费品适老无障碍设计指南》</strong>全文为字体内嵌 CID 编码，本地无法解出文本 → <strong>官方语速阈值仍是缺口</strong>。</li>
+            <li><strong>工信部两份适老化规范的 PDF 同样不可解</strong>，其托管站点 wza.isc.org.cn 直连不可达。v1 标注为「逐字核对」的部分因此<strong>需要复核</strong>。</li>
+            <li><strong>《中国听力健康报告(2025)》蓝皮书原文不可得</strong>；新华网页面标注「来源：央广网」，两者正文逐字相同，<strong>属同一稿件转载，不是两个独立来源</strong>——不能当交叉验证。</li>
+            <li><strong>520 Hz 报警原始论文（Bruck &amp; Thomas）付费墙</strong>、<strong>NHS SPS 漏服总纲 403</strong>、<strong>GDPR Art.9 / MDCG 2019-11 / 欧盟 MDR Rule 11 原文未取到</strong>。</li>
+            <li><strong>CD005025 舒张压那 2 项试验的身份与人群未找到</strong>（Wiley 付费墙），因此其适用人群无法核验。</li>
+            <li><strong>一个人为限制</strong>：本轮<strong>仍未做任何真实用户访谈</strong>。人群结论全部来自文献与统计。三天内建议补 3 位老人的快速访谈做校准——这仍是本报告最大的方法论短板。</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>12.6 置信度的变化</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>结论</th><th>v1</th><th>v2</th><th>为什么变</th></tr></thead>
+          <tbody>
+            <tr><td>提醒层效果有限</td><td>Established</td><td><strong>Contested</strong>（但「多成分组合才有效」仍为 Established）</td><td>2026 年系统综述报告电子提醒 3/3 有效，与 Cochrane/REMIND 冲突。矛盾集中在「单一提醒」这一层</td></tr>
+            <tr><td>机器人层级能提升依从性</td><td>Emerging（几乎不存在）</td><td>Emerging（<strong>但已有 278 人单臂研究 + 1 项系统综述阳性条目</strong>）</td><td>证据从「无」变为「早期、低确定性」，仍不足以宣称</td></tr>
+            <tr><td>「衰弱与否则决定有效性」</td><td>未收录</td><td><strong>Established</strong></td><td>Fotteler 2022 提供直接证据，反过来给立项卡的人群限定背书</td></tr>
+            <tr><td>污名与心理抗拒（JMIR n=31）</td><td>Likely</td><td>Likely（<strong>但外推范围显著收窄</strong>）</td><td>样本来自长期照护机构，不是社区独居老人</td></tr>
+            <tr><td>中文语音证据</td><td>缺口（「完全缺失」）</td><td><strong>已部分补齐</strong>（语速与 ASR 有据；方言用户侧与依从性结局仍缺）</td><td>Wang 2023 与 SeniorTalk 推翻了原缺口声明</td></tr>
+            <tr><td>「三通道冗余有效」</td><td>隐含为已证</td><td><strong>Speculative → 设计推理</strong></td><td>Warnock 2012 测的是游戏任务绩效，不是服药依从，也未测长期习惯化</td></tr>
+            <tr><td>中国独居/空巢规模</td><td>Likely（七普推算）</td><td><strong>Established</strong>（2021 年官方抽样调查）</td><td>改用一手官方抽样调查，样本 12.7287 万、按七普加权</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="method">
+      <h2><span class="num">13</span>方法论与局限</h2>
+
+      <h3>怎么做的</h3>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th style="width:150px">调研模式</th><td>thorough（深度模式：多角度并行 + 定向追证）</td></tr>
+            <tr><th>取证结构</th><td><strong>v1：7 个并行调研子代理</strong> + 主代理独立核验：学界证据 / 业界产品 / 听觉与认知 / 接受度与隐私 / 交互人因 / 场景与合规 / 团队分工<br><strong>v2 追加：8 个定向核验/补强子代理</strong> + 主代理逐条回到 HTML 原文复核：依从性证据 / 认知与场景 / 听力学流行病学 / 法规与规范 / 在售竞品 / 听觉参数与报警标准 / 交互人因与告警疲劳 / 中国本土市场与用户。子代理被要求对每项给出「一致 / 不一致（正确值）/ 无法核验」三选一并附逐字原文</td></tr>
+            <tr><th>来源分级</th><td>Tier 1 一手（官方文件、同行评审、规范原文）→ Tier 4 不可验证。每一章的关键论断都标注了 Tier 与置信度</td></tr>
+            <tr><th>置信度规则</th><td>Established（多个独立 Tier 1/2 一致）· Likely（一个 Tier 1/2 + 旁证）· Emerging（单一或早期来源）· Contested（可靠来源互相矛盾）· Speculative（无可靠来源）</td></tr>
+            <tr><th>核验动作</th><td>v1：主代理<strong>独立复核</strong>了 WHO 听力事实清单与 CNNIC 第 56 次报告的逐字原文。<br><strong>v2：主代理亲自 fetch 原文</strong>复核了 CNNIC 第 56 次报告、WHO 事实清单、Cochrane CD000011 原文、Smarr 2012（PMC4182920）、JMIR Hum Factors 2025（PMC12608056）、第五次中国城乡老年人生活状况抽样调查公报、人民日报海外版「三怕」原文、MLH 官方评分页、Falk et al. CHI 2025 回归表、Fotteler 2022（Europe PMC + PMC 全文）。<strong>共修正 11 处实质错误、驳回 3 条子代理误报</strong>，完整记录见第 12 章</td></tr>
+            <tr><th>覆盖盲区</th><td><strong>未做真实用户访谈</strong>（本轮仍是最大短板）；无中国本土定价与量产测算（电商价格取不到）；无临床验证；未覆盖护理机构与中重度认知障碍人群（与立项前提冲突，属有意排除）；无人形 vs 非人形对比实证；无中西方阻力权重的量化对比；<strong>在售竞品价格的系统核验未完成</strong>（见第 12.5 节）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>质量控制：本报告主动做的五件事</h3>
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">① 降级而非隐去</h4>
+          <p style="margin-bottom:0">凡只取到摘要、二手转述或付费墙后内容的来源（如 520 Hz 报警研究、Apple HIG、Trustpilot 评分），<strong>均已在正文标注降级并说明原因</strong>，不作为唯一依据。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">② 明确写出「未找到」</h4>
+          <p style="margin-bottom:0">听觉响度 dB 的官方标准值、机器人形态对比、分药物类别的漏服后果、中西方阻力权重对比、京东/天猫实时价格等<strong>均标注为缺口</strong>，并提示不要补数。
+          <span class="badge cf-fix">v2 更新</span> 其中「中文语速 wpm」已从缺口升级为<strong>有可引用锚点</strong>（播音基准 4.3 字/秒）；「中文方言语音证据完全缺失」这条<strong>已被推翻</strong>（SeniorTalk / Wang 2023）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">③ 剔除高风险数字</h4>
+          <p style="margin-bottom:0">一条流传较广但来源可疑的流行病学数字（12.5 万死亡 / 10% 住院）经追查仅见于厂商资助的评论性引文，<strong>已从报告中剔除</strong>。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">④ <span class="badge cf-new">v2 新增</span>公开自己的修订</h4>
+          <p style="margin-bottom:0">v2 <strong>不静默覆盖 v1 的错误</strong>，而是在第 12 章逐条列出<strong>原来写的是什么、错在哪、现在改成什么</strong>，并<strong>如实记录 3 条被驳回的子代理误报</strong>。
+          理由很实际：评审可以直接抽查任何一条的修订理由与出处；一份没有任何修订记录的调研，通常意味着它没有被真正核验过。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">⑤ <span class="badge cf-new">v2 新增</span>标注「转引放大」风险</h4>
+          <p style="margin-bottom:0">本轮抓到一处实证：某 2025 年 JMIR 研究把 Fotteler 2022 的<strong>混合结果</strong>转述成「已被证明有效」。
+          本报告因此要求：<strong>引用任何数字前回到一手来源核对措辞</strong>——包括核对本报告自己的转述（v1 的 REMIND「短信提醒」、Ancker 的 87.9% 都属同类错误）。</p>
+        </div>
+      </div>
+
+      <h3>安全与注入防护</h3>
+      <div class="callout warn">
+        <p style="margin:0">
+          调研过程中，网页内容一律按<strong>不可信数据</strong>处理。本轮共识别并处置 <strong>2 起异常</strong>：
+          （1）某论坛页面出现试图以硬件成本细节引导改变研究方向的文本；
+          （2）某图书馆目录页返回了服务器堆栈与环境变量（属信息泄露而非指令）。
+          两者均<strong>未被当作指令执行</strong>，也未影响结论。本报告未引用任何来源中的操作性指令。
+        </p>
+      </div>
+
+      <h3>时效与使用建议</h3>
+      <ul>
+        <li>本报告结论的有效期约为 <strong>6–12 个月</strong>：AI 辅助与养老机器人领域变化快，产品与价格信息尤其容易失效。</li>
+        <li>监管结论（中国《医疗器械分类规则》、FDA 软件指引）相对稳定，但正式立项前建议<strong>补一次法规原文核对</strong>。</li>
+        <li>凡标注「在线先发」的 2026 年文献，正式引用前建议确认是否已有终版。</li>
+      </ul>
+
+      <div class="callout ok" style="margin-top:26px">
+        <span class="ttl">质量门自查（v2）</span>
+        <p style="margin:0 0 8px">
+          引用完整 ✅ ｜ 无编造（缺口已标注、未填数）✅ ｜ 来源分级齐全 ✅ ｜ 矛盾已披露（含 v2 新增的「提醒到底有没有效」冲突）✅ ｜ 置信度齐全 ✅ ｜ 盲区已声明 ✅ ｜ 回答了用户提出的全部 7 个问题 ✅
+        </p>
+        <p style="margin:0">
+          <strong>v2 追加的四项</strong>：② 修订可追溯（第 12 章逐条保留原错误）✅ ｜ ③ 外推限制已标注（临床警报 ≠ 服药提醒、LTC 样本 ≠ 社区老人、衰弱者 ≠ 独立行动者）✅ ｜ ④ 官方措辞与报告推断已分离（MLH 评分表「只考两件事」已标为推断）✅ ｜ ⑤ 转引链已回一手（REMIND、CD000011、CHR 2025、Fotteler 2022）✅
+        </p>
+        <p class="src-inline" style="margin:10px 0 0">
+          <strong>明确未达标项</strong>：<strong>未做真实用户访谈</strong>——这是本报告最大且本轮未能弥补的短板，所有人群结论均来自文献与统计而非访谈。
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <h3>关于本报告</h3>
+    <p>
+      本报告由 Team4 使用 DeepSeek Harness 的 <code>deep-research</code> skill 生成。
+    </p>
+    <p>
+      <strong>v1</strong>：7 个调研子代理并行取证（学界 / 业界 / 听觉认知 / 接受度隐私 / 交互人因 / 场景合规 / 团队分工），主代理负责交叉核验、矛盾裁决与综合成文。<br>
+      <strong>v2（本版）</strong>：在第一版基础上追加了 <strong>8 个定向核验/补强子代理</strong>（依从性证据 / 认知与场景 / 听力学流行病学 / 法规与规范 / 在售竞品 / 听觉参数与报警标准 / 交互人因与告警疲劳 / 中国本土市场与用户）＋主代理亲自 fetch 原文复核，
+      <strong>修正 13 处实质错误、驳回 3 条子代理误报、补入 15 项以上新的一手来源</strong>。逐条修订记录见第 12 章。
+    </p>
+    <p>
+      来源分级：<span class="badge t1">Tier 1 一手</span> <span class="badge t2">Tier 2 受控二手</span> <span class="badge t3">Tier 3 社区</span> <span class="badge t4">Tier 4 不可验证</span>；
+      置信度：<span class="badge cf-est">Established</span> <span class="badge cf-lik">Likely</span> <span class="badge cf-eme">Emerging</span> <span class="badge cf-con">Contested</span> <span class="badge cf-spe">Speculative</span>；
+      v2 标记：<span class="badge cf-fix">v2 更正</span> <span class="badge cf-new">v2 新增</span>。
+    </p>
+    <p>
+      <strong>本报告最大的局限</strong>：<strong>没有做任何真实用户访谈</strong>。所有关于老年用户的结论都来自文献与统计，不是来自访谈。
+      三天内建议补 3 位老人的快速访谈做校准——这也是本报告优先级最高的一项待办。
+    </p>
+    <p style="margin-bottom:0">最后更新：<span id="today2"></span> ｜ 建议用浏览器打开，支持 Cmd/Ctrl+P 打印为 PDF。</p>
+  </div>
+</footer>
+
+<button class="totop" id="totop" aria-label="回到顶部">↑</button>
+
+<script>
+(function(){
+  document.getElementById('today').textContent = new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('today2').textContent = new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});
+  var main = document.querySelector('main');
+  var list = document.getElementById('toc-list');
+  var secs = Array.prototype.slice.call(main.querySelectorAll('section'));
+  secs.forEach(function(s){
+    var h2 = s.querySelector('h2');
+    if(!h2) return;
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = '#' + s.id;
+    a.textContent = h2.textContent.replace(/\s+/g,' ').trim();
+    li.appendChild(a); list.appendChild(li);
+  });
+  var links = Array.prototype.slice.call(list.querySelectorAll('a'));
+  var byId = {}; links.forEach(function(a){ byId[a.getAttribute('href').slice(1)] = a; });
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(!e.isIntersecting) return;
+        links.forEach(function(a){ a.classList.remove('active'); });
+        var a = byId[e.target.id]; if(a) a.classList.add('active');
+      });
+    },{rootMargin:'-12% 0px -72% 0px', threshold:0});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+  var btn = document.getElementById('totop');
+  window.addEventListener('scroll', function(){
+    btn.classList.toggle('show', window.scrollY > 600);
+  }, {passive:true});
+  btn.addEventListener('click', function(){ window.scrollTo({top:0, behavior:'smooth'}); });
+})();
+</script>
+</body>
+</html>
