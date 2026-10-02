@@ -29,19 +29,33 @@
 
 | 事项 | 状态 |
 |---|---|
-| 本地 git 仓库 + P0 基线提交 | ✅ 完成（`p0-baseline`） |
-| GitHub 建仓 `liuchun878/medbot-sim`（public） | ⬜ 待做（见 [AGENTS.md](AGENTS.md) 第 5 节与分工文档第 9 节） |
+| 本地 git 仓库 + `p0-baseline` / `p0.5-parallel-ready` 提交与 tag | ✅ 完成 |
+| `origin` 指向 `https://github.com/liuchun878/medbot-sim.git` | ✅ 已完成配置 |
+| **本机 GitHub 凭据** | ❌ **无** —— 实测 `git credential fill` 失败：`credential.helper=osxkeychain` 已配置但 keychain 无条目；且无 `gh` CLI、无 SSH key |
+| GitHub 建仓（public） | ⬜ 待做 —— 匿名探测 `github.com/liuchun878/medbot-sim` 返回 **404，仓库尚不存在** |
+| 推送 `main` + tags | ⬜ 待做 —— 被上一条阻塞 |
 | 邀请两位队员（Write 权限） | ⬜ 待做 |
 | 替换 `CODEOWNERS` 里的 `@TODO-R` / `@TODO-S` | ⬜ 待做（**邀请后立刻做**） |
 | 保护 `main`（PR + 1 approval） | ⬜ 推荐 |
+
+**一条命令完成建仓 + 推送**：
+
+```bash
+cd "/Users/liuchun/Downloads/机器人"
+GITHUB_TOKEN=<你的PAT> bash scripts/publish.sh
+```
+
+脚本会检测仓库是否存在、不存在就用 API 创建（public、不带 README），然后推 `main` 与全部 tag。
+若不想用 token：先在 `github.com/new` 手建 `medbot-sim`（**不要勾 README/.gitignore/license**），再跑 `bash scripts/publish.sh` 或 `git push -u origin main --tags`。
 
 ## 阻塞与风险
 
 | # | 事项 | 影响 | 处置 |
 |---|---|---|---|
-| 1 | 两条线的 GitHub 用户名未知 | `CODEOWNERS` 无法生效，PR 不会自动请求 reviewer | 邀请队员后替换占位 handle |
-| 2 | R 与 S 在 `H0` 之前无法真正开工 | 并行会被推到下午 | `H0` 必须在 D1 上午最前面完成；若延后，R/S 先写接入代码 + 假数据自测，**不空等** |
-| 3 | 工作量整体超约 10%（每人 16–18h vs 可用 15–16h） | 里程碑可能压线 | 由每人的「最先砍」清单释放（见 tasks.yaml 的 `cut_first`），**不靠加班** |
+| 1 | **本机无 GitHub 凭据，且远端仓库尚未创建** | `git push` 报 `Repository not found`；**队员现在无法 clone**，也就无法基于主仓开工 | 队长跑 `GITHUB_TOKEN=<PAT> bash scripts/publish.sh`（自动建仓+推送）；或网页建仓后 `git push -u origin main --tags` |
+| 2 | 两条线的 GitHub 用户名未知 | `CODEOWNERS` 不生效，PR 不会自动请求 reviewer | 邀请队员后替换占位 handle |
+| 3 | R 与 S 在 `H0` 之前无法真正开工 | 并行会被推到下午 | `H0` 必须在 D1 上午最前面完成；若延后，R/S 先写接入代码 + 假数据自测，**不空等** |
+| 4 | 工作量超预算（明细 ≈69.5 人时 vs 两天可用 ≈44 人时） | 里程碑可能压线 | 由每人的「最先砍」清单释放（见 tasks.yaml 的 `cut_first`），**不靠加班** |
 
 ## 最近决定（decision log）
 
@@ -56,6 +70,11 @@
 
 ## 下一步（按顺序）
 
-1. 队长：建仓 + 邀请队员 + 替换 `CODEOWNERS` 占位 handle（见分工文档第 9 节）
+1. **队长：发布主仓**（这是当前唯一的硬阻塞，队员在它完成前无法 clone）：
+   ```bash
+   cd "/Users/liuchun/Downloads/机器人"
+   GITHUB_TOKEN=<你的PAT> bash scripts/publish.sh
+   ```
+   成功后到 **Settings → Collaborators** 邀请两位队员（Write 权限），并把 [CODEOWNERS](CODEOWNERS) 的 `@TODO-R` / `@TODO-S` 换成真实用户名。
 2. 三人一起 review [契约-接口.md](契约-接口.md)，Day 1 11:00 正式冻结
-3. M1 开工：**H 先交 `H0`**，R 与 S 立即并行
+3. M1 开工：**H 先交 `H0`（命令接口空实现）**，R 与 S 立即并行
