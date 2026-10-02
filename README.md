@@ -33,6 +33,33 @@ Team4 ｜ Vibe Coding Camp · 立项工作坊
 闭环**按环节**落到三条线（11 个环节全部有主责，不留无主环节），详见 [docs/三线分工与并行开发规范.md](docs/三线分工与并行开发规范.md) 第 1 节。
 **合并顺序固定为 H → R → S**，每个里程碑合并一次。
 
+## 队员上手（克隆后 5 分钟）
+
+```bash
+git clone https://github.com/liuchun878/medbot-sim.git
+cd medbot-sim
+```
+
+**按顺序读这 4 份**（顺序不要跳）：
+
+1. [AGENTS.md](AGENTS.md) —— 入口：谁负责什么、能改哪些文件、红线、验证方法
+2. [契约-接口.md](契约-接口.md) —— 接口真相：命令签名、数据结构、状态机（**冲突时以它为准**）
+3. [plan/tasks.yaml](plan/tasks.yaml) —— 找到你的线、你的块、你的任务 id 与验收标准
+4. [STATUS.md](STATUS.md) —— 现在卡在哪、你这一步能不能开工
+
+**每条线的第一步**：
+
+| 线 | 分支名 | 第一个任务 | 第一件要交付的东西 | 自测 |
+|---|---|---|---|---|
+| **R** | `feat/r-hud-shell` | `R1` | `prototype/index.html` + `css/hud.css`（留 `#scene` / `#hud` 挂载点） | 叠层对比度 ≥4.5:1、点击目标 ≥60×60、100% 缩放不裁切 |
+| **S** | `feat/s-scene3d` | `S2` → `S1` | vendored Three.js 两文件 + `scene3d.js` 骨架（含 WebGL 检测与 2D 降级入口） | **断网刷新可加载**、Network 零外部请求 |
+| **H** | `feat/h-store-contract` | **`H0`（最高优先，卡住全队）** | `store.js` 命令接口**空实现**（签名对、返回合法默认值） | `store.getState()` 返回含空数组的合法快照 |
+
+> ⚠️ **`H0` 是并行开发的生命线**：R 与 S 都依赖命令接口存在。空实现即可，**不必等业务逻辑写完**。
+> ⚠️ **M1 之前 `prototype/` 里只有 `AGENTS.md`、还没有页面**。此时 `cd prototype && python3 -m http.server` 只会列目录，这是正常的，不是你的环境坏了。`R1` / `S1` 落地后才有可打开的页面。
+
+**开工前只做三件事**：切到你的分支（`feat/r-…`）、只改你那条线的文件、改完按 [AGENTS.md](AGENTS.md) 第 4 节的 4 项验证跑一遍。
+
 ## 阶段进度
 
 | 阶段 | tag | 状态 |
