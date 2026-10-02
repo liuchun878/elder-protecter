@@ -1,4 +1,4 @@
-# medbot-sim · 送药机器人仿真演示
+# elder-protecter · 送药机器人仿真演示
 
 Team4 ｜ Vibe Coding Camp · 立项工作坊
 
@@ -17,6 +17,7 @@ Team4 ｜ Vibe Coding Camp · 立项工作坊
 | [plan/tasks.yaml](plan/tasks.yaml) | **任务真相**（机器可读）：任务、归属、依赖、验收、状态 |
 | [STATUS.md](STATUS.md) | 当前进度、阻塞与决定日志 |
 | [docs/三线分工与并行开发规范.md](docs/三线分工与并行开发规范.md) | 三线分工、闭环责任矩阵、里程碑合并规则、交叉验证 |
+| [docs/决策与讨论记录.md](docs/决策与讨论记录.md) | **讨论过程留痕**：14 项决策的来源与备选、被否决的方案、分歧处理、开放问题与反思 |
 | [仿真呈现与开发阶段计划.md](仿真呈现与开发阶段计划.md) | 呈现规格、5 分钟演示时间轴、开发阶段 P0–P6、降级阶梯 |
 | [两天开发计划.md](两天开发计划.md) | 两天交付与验收基线（红线、答辩口径） |
 | [送药机器人调研报告.html](送药机器人调研报告.html) | 立项调研报告 v2（13 章，证据附件） |
@@ -36,8 +37,8 @@ Team4 ｜ Vibe Coding Camp · 立项工作坊
 ## 队员上手（克隆后 5 分钟）
 
 ```bash
-git clone https://github.com/liuchun878/medbot-sim.git
-cd medbot-sim
+git clone https://github.com/liuchun878/elder-protecter.git
+cd elder-protecter
 ```
 
 **按顺序读这 4 份**（顺序不要跳）：

@@ -13,8 +13,8 @@ updated: "2026-10-02"
 
 repo:
   owner: liuchun878
-  name: medbot-sim
-  url: "https://github.com/liuchun878/medbot-sim"
+  name: elder-protecter
+  url: "https://github.com/liuchun878/elder-protecter"
   visibility: public
   default_branch: main
   note: "main 只接受里程碑合并；个人分支 feat/<r|s|h>-<主题>"

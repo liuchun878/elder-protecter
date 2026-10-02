@@ -20,7 +20,7 @@
 set -euo pipefail
 
 OWNER="${OWNER:-liuchun878}"
-REPO="${REPO:-medbot-sim}"
+REPO="${REPO:-elder-protecter}"
 BRANCH="${BRANCH:-main}"
 DESC="送药机器人仿真演示（Team4 · Vibe Coding Camp 立项工作坊）"
 TOPICS='{"names":["hackathon","threejs","elderly-care","simulation","medication-adherence"]}'

@@ -49,7 +49,7 @@ fi
 
 if ! git remote get-url origin >/dev/null 2>&1; then
   echo "还没配置 origin。先执行：" >&2
-  echo "  git remote add origin https://github.com/liuchun878/medbot-sim.git" >&2
+  echo "  git remote add origin https://github.com/liuchun878/elder-protecter.git" >&2
   exit 1
 fi
 

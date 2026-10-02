@@ -14,8 +14,10 @@
 - **`docs/三线分工与并行开发规范.md`** —— 分工按**产出**切为 **R 机器人 / S 场景 / H 人**；含**闭环责任矩阵**（11 个环节全部有主责，堵住"按角色切没人管闭环"的漏洞）、文件独占归属、每人 4 个半天块、里程碑合并顺序 **H → R → S**、交叉验证环、GitHub 设置。
 - **`plan/tasks.yaml`** —— 机器可读任务板：8 个里程碑、27 个任务（按线/块/依赖/验收/最先砍排序）、闭环责任矩阵、合并顺序与验证环。
 - **`AGENTS.md`**（根）与 **`prototype/AGENTS.md`**（嵌套）—— agent 入口与目录级模块规则；实测被 harness 的 `agent-instructions` 自动加载生效。
+- **`docs/决策与讨论记录.md`** —— 讨论过程留痕：14 项决策（每项标来源：🧑用户裁定 / 📊证据推出 / 🔧工程权衡）、14 项被否决或搁置的方案及原因、5 处分歧的处理、6 项开放问题、5 条诚实反思。
 - **`STATUS.md`** —— 进度板、阻塞与决定日志。
 - **`CODEOWNERS`**、**`.github/pull_request_template.md`** —— 三线归属自动指派与 PR 自检清单。
+- **`scripts/publish.sh`** —— 一键发布：建仓（若不存在）+ 推 main 与 tags，token 只经 600 权限临时配置文件传入。
 
 ### 关键决定
 
@@ -26,7 +28,12 @@
 
 ### 待办（队长）
 
-- GitHub 建仓 `liuchun878/medbot-sim`（public）、邀请两位队员（Write）、替换 `CODEOWNERS` 占位 handle。
+- **推送到主仓 `liuchun878/elder-protecter`**：仓库已建好（public、空仓、默认分支 `main`），**当前唯一硬阻塞是本机缺 GitHub 凭据**，详见 [STATUS.md](STATUS.md) 阻塞 #1。
+- 推送后：邀请两位队员（Write 权限）、替换 `CODEOWNERS` 占位 handle、保护 `main`。
+
+### 命名变更
+
+- 主仓名由早期文档默认的 `medbot-sim` 据实改为 **`elder-protecter`**；全部文档、脚本与 `origin` 已同步。
 
 ### 尚未包含
 
@@ -47,7 +54,7 @@
 - 呈现形态：**3D 居家仿真场景**（Three.js），主屏场景 + HTML 适老化叠层 + 副屏家属端
 - 架构前提：**仿真层与功能层解耦**，3D 可随时降级为 2D 俯视仿真而功能不减
 - 依赖：Three.js 全量 vendored（约 2.12 MB，两个文件），**无 CDN、零构建**；因只有 ES module，运行必须走静态服务器
-- 仓库：`liuchun878/medbot-sim`（public），`main` + 阶段分支，每阶段一个 annotated tag
+- 仓库：`liuchun878/elder-protecter`（public），`main` + 阶段分支，每阶段一个 annotated tag
 
 ### 尚未包含
 
