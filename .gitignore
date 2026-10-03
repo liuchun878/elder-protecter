@@ -1,0 +1,15 @@
+# SolidWorks 临时/备份文件
+~$*.SLDPRT
+~$*.SLDASM
+*.SLDPRT.bak
+*.SLDASM.bak
+*.swp
+
+# Windows / 编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# DSH / 工具产物
+__pycache__/
+*.pyc
