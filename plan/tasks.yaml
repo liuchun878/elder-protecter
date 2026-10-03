@@ -412,7 +412,8 @@ tasks:
     files: [recordings/**, docs/演示机预检.md]
     depends_on: [S7]
     acceptance: "三场景各一条录屏；预检清单含 WebGL 与中文 TTS 体检"
-    status: todo
+    p1_note: "2026-10-03 提前交付 15 秒演示片 recordings/promo-15s.mp4 + 可复跑脚本 scripts/record-promo.mjs（?film=1 逐帧驱动，含家属端）；三场景录屏与预检仍待 M6"
+    status: doing
 
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:

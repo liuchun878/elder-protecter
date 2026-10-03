@@ -31,7 +31,8 @@ const CAMERA_PRESETS = {
   // 固定等距斜俯视主视角：能看到客厅（沙发 · 王阿姨）、卧室、厨房三个分区与前景的充电座
   wide: { position: [7.1, 6.5, 8.6], lookAt: [0.35, 0.45, 0.25], fov: 42 },
   // 药盘特写机位（陈列时可切换；降级第 1 项会砍掉它）
-  tray: { position: [2.35, 1.5, 3.15], lookAt: [1.4, 0.75, 1.0], fov: 34 },
+  // 按「机器人在客厅停靠点」标定：能同时看到机器人正面、抬起的药盘与沙发上的王阿姨
+  tray: { position: [3.5, 1.1, -0.6], lookAt: [1.2, 0.52, 1.35], fov: 36 },
 };
 
 /**
@@ -130,6 +131,16 @@ export function createScene3D({ container }) {
 
     setCameraMode(mode) {
       applyCameraPreset(mode);
+    },
+
+    /** 任意机位（拍摄模式/陈列用）：{ position:{x,y,z}, lookAt:{x,y,z}, fov? } */
+    setCameraLook({ position, lookAt, fov } = {}) {
+      if (position) camera.position.set(position.x, position.y, position.z);
+      if (lookAt) camera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+      if (fov) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
     },
 
     getCameraMode() {

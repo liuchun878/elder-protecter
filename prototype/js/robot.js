@@ -89,14 +89,26 @@ function buildRobot() {
   const pillbox = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.09, 0.18), mat(ORANGE, 0.7));
   pillbox.position.y = 0.43;
   trayGroup.add(pillbox);
+
+  // 温水杯（纯几何体，无外部资产）：递药时与药盒一起放在托盘上
+  const cup = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.04, 0.11, 18),
+    new THREE.MeshStandardMaterial({ color: 0xeaf6f8, roughness: 0.25, metalness: 0.05 }),
+  );
+  cup.position.set(0.17, 0.44, 0.1); // 放在药盒靠前一侧：镜头从正面 3/4 角度能同时看到药盒与温水
+  trayGroup.add(cup);
+  const water = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.02, 0.06), mat(0xdfeef1, 0.4));
+  water.position.set(0.17, 0.418, 0.1);
+  trayGroup.add(water);
+
   trayGroup.position.y = 0.52;
   group.add(trayGroup);
 
-  return { group, ring, trayGroup, beacon, pillbox };
+  return { group, ring, trayGroup, beacon, pillbox, cup };
 }
 
 export function createRobot(sceneApi) {
-  const { group, ring, trayGroup, beacon, pillbox } = buildRobot();
+  const { group, ring, trayGroup, beacon, pillbox, cup } = buildRobot();
 
   /** 仅视觉状态（不是业务状态）：位置积分、朝向、药盘动画进度 */
   const view = {
@@ -135,6 +147,14 @@ export function createRobot(sceneApi) {
 
     const arrived = stepTowards(target, dt);
 
+    // 到位后转身面对人（送货时），而不是继续朝着行进方向——否则永远是背影对着老人
+    if (arrived && carrying) {
+      const person = sceneApi.getWaypoint(location);
+      if (person) {
+        view.facing = Math.atan2(person.x - group.position.x, person.z - group.position.z);
+      }
+    }
+
     // 平滑转向（视觉缓冲，避免瞬间转头）
     const delta = ((view.facing - group.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     group.rotation.y += delta * Math.min(1, dt * 8);
@@ -145,8 +165,9 @@ export function createRobot(sceneApi) {
     view.trayY += Math.max(-trayStep, Math.min(trayStep, view.trayTarget - view.trayY));
     trayGroup.position.y = 0.52 + view.trayY;
 
-    // 药盒只在「有提示事件」时出现在托盘上；取走后（activeEventId 清空）消失
+    // 药盒与温水杯只在「有提示事件」时出现在托盘上；取走后（activeEventId 清空）消失
     pillbox.visible = carrying;
+    cup.visible = carrying;
 
     // 提示时的发光脉冲（灯效与通道切换同步，不只靠颜色：HUD 同步换大字）
     view.pulse += dt;

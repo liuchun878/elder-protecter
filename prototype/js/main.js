@@ -24,6 +24,8 @@ import { audio } from './audio.js';
 
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
+/** 拍摄模式：`?film=1` —— 由 scripts/record-promo.mjs 逐帧驱动，用于可复现录屏 */
+const FILM_MODE = params.get('film') === '1';
 
 /* ── 假数据种子（P1：假数据种子，契约 §4.1）────────────────────────────
  * 三个时段、四条计划、零冲突。场景 2 的「阿莫西林 08:00」由家属端现场加，
@@ -236,6 +238,8 @@ function startMainView() {
   clock = createClock({
     demoStart: DEFAULT_DEMO_START,
     acceleration: 60,
+    // 拍摄模式：时钟只走脚本给的步长，录屏逐帧可复现
+    manual: FILM_MODE,
     onTick: (tick) => {
       store.setClock(tick);
       schedule.tick();
@@ -246,7 +250,8 @@ function startMainView() {
   // 演示时钟「仅内存、刷新即复位」——先把今天尚未了结的事件退回 scheduled，再开始走表
   store.setClock(clock.snapshot());
   schedule.reconcileOnBoot();
-  clock.start();
+  // 拍摄模式没有 clock.start() 的首次 onTick，这里补一次「物化今日计划」
+  if (FILM_MODE) schedule.tick();
 
   // 最新快照缓存：每帧给表现层用（避免每帧深拷贝 state）
   let latest = store.getState();
@@ -256,6 +261,65 @@ function startMainView() {
   });
   hud.render(latest);
 
+  /**
+   * 拍摄模式（`?film=1`）：不自动走表，动画由外部逐帧驱动，录屏因此完全可复现。
+   * 用法见 scripts/record-promo.mjs；正常演示不受任何影响。
+   */
+  if (FILM_MODE) {
+    const paint = () => {
+      scene.render(latest, 0); // 只重绘、不推进：保证合成器随时有最新画面
+      window.requestAnimationFrame(paint);
+    };
+    window.requestAnimationFrame(paint);
+    window.film = {
+      /** 推进一帧（默认 1/24 秒）并重绘 */
+      step(dt = 1 / 24) {
+        robot.update(latest, dt);
+        person.update(latest, dt);
+        scene.render(latest, dt);
+      },
+      /** 推进演示时钟（秒）——会触发到点判定，等同演示者拨表 */
+      advanceDemo(seconds) {
+        clock.advance(seconds);
+      },
+      setPresence(location) {
+        presence.setLocation(location);
+      },
+      camera(mode) {
+        scene.setCameraMode(mode);
+      },
+      /**
+       * 运镜：以**机器人当前位置与朝向**为基准的跟随机位（拍摄模式专用）。
+       * angleDeg 是相对机器人正面的水平偏角；distance 米；aimLead 沿机器人正面方向的前视偏移。
+       */
+      followCam({ distance = 2.4, height = 1.2, angleDeg = 35, aimHeight = 0.6, aimLead = 0, fov = 40 } = {}) {
+        const p = robot.group.position;
+        const facing = robot.group.rotation.y;
+        const angle = facing + (angleDeg * Math.PI) / 180;
+        scene.setCameraLook({
+          position: { x: p.x + Math.sin(angle) * distance, y: height, z: p.z + Math.cos(angle) * distance },
+          lookAt: {
+            x: p.x + Math.sin(facing) * aimLead,
+            y: aimHeight,
+            z: p.z + Math.cos(facing) * aimLead,
+          },
+          fov,
+        });
+      },
+      /** 点「已取走」：与长者端按钮同一条命令 */
+      confirmActive() {
+        const id = latest.activeEventId;
+        if (id) machine.confirm(id, 'tray_taken');
+        return id;
+      },
+      state: () => latest,
+      sceneKind: scene.kind,
+    };
+    audio.attachUnlock();
+    return { scene, robot, person, hud, film: true };
+  }
+
+  clock.start();
   let last = performance.now();
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.1);
@@ -288,7 +352,8 @@ function boot() {
     startFamilyView();
     return;
   }
-  mountBanner();
+  // 拍摄模式下不挂顶栏：录屏画面里不出现调试/离线提示条
+  if (!FILM_MODE) mountBanner();
   startMainView();
   window.debug = debugApi;
 }

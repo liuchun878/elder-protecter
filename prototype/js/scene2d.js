@@ -121,6 +121,9 @@ export function createScene2D({ container }) {
     setCameraMode(mode) {
       view.mode = mode;
     },
+    setCameraLook() {
+      /* 2D 俯视没有机位概念 */
+    },
     getCameraMode() {
       return view.mode;
     },

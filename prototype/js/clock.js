@@ -25,14 +25,20 @@ export function toLocalISO(date) {
   );
 }
 
-export function createClock({ demoStart = DEFAULT_DEMO_START, acceleration = 60, onTick, intervalMs = 200 } = {}) {
+export function createClock({ demoStart = DEFAULT_DEMO_START, acceleration = 60, onTick, intervalMs = 200, manual = false } = {}) {
   let baseDemoMs = new Date(demoStart).getTime();
   let baseRealMs = Date.now();
   let acc = acceleration;
   let running = false;
   let timer = null;
+  /**
+   * manual = true：时钟**只走脚本给的步长**，不掺入真实时间。
+   * 用于拍摄模式录屏——同一份分镜每次渲染出的每一帧都一致（可复现），不受机器快慢影响。
+   */
+  let manualMode = manual;
 
   function demoMs() {
+    if (manualMode) return baseDemoMs;
     return baseDemoMs + (Date.now() - baseRealMs) * acc;
   }
 
@@ -89,6 +95,14 @@ export function createClock({ demoStart = DEFAULT_DEMO_START, acceleration = 60,
     advance(seconds) {
       rebase(demoMs() + seconds * 1000);
       emit();
+    },
+    setManual(flag) {
+      rebase(demoMs());
+      manualMode = Boolean(flag);
+      emit();
+    },
+    isManual() {
+      return manualMode;
     },
     reset() {
       rebase(new Date(demoStart).getTime());
