@@ -8,7 +8,9 @@
 | --- | --- |
 | `unnc-sophicar/` | 机器人结构设计原始文件（SolidWorks） |
 | `suite-3d/` | 套房 3D 交互预览（浏览器打开 `suite-3d/index.html`） |
+| `suite-interactive/` | 套房可交互场景（浏览器打开 `suite-interactive/index.html`） |
 | `family-app/` | **子女端提示 App** —— 子女手机端交互原型（浏览器打开 `family-app/index.html`） |
+| `功能展示/` | **结构—功能爆炸图 + 显示模块表情与功能区分**（`功能展示.svg` / `功能展示.png`） |
 
 ## unnc-sophicar 说明
 

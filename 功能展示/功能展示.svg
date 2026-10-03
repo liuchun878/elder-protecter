@@ -1,0 +1,462 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1930 1370" width="1930" height="1370" font-family="'Microsoft YaHei','PingFang SC','HarmonyOS Sans SC',sans-serif">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#f5f5f2"/><stop offset="1" stop-color="#e7e7e3"/>
+  </linearGradient>
+  <linearGradient id="shellFront" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#fafaf8"/><stop offset="1" stop-color="#e3e3df"/>
+  </linearGradient>
+  <linearGradient id="shellBack" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#efefec"/><stop offset="1" stop-color="#cbcbc6"/>
+  </linearGradient>
+  <linearGradient id="headGr" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e5e5e2"/>
+  </linearGradient>
+  <linearGradient id="screenGr" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#18212b"/><stop offset="1" stop-color="#0d1218"/>
+  </linearGradient>
+  <linearGradient id="trayTop" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fdfdfb"/><stop offset="1" stop-color="#e8e8e3"/>
+  </linearGradient>
+  <linearGradient id="doorGr" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#fdfdfc"/><stop offset="1" stop-color="#dededa"/>
+  </linearGradient>
+  <radialGradient id="eyeGlow" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#c6f2ff" stop-opacity=".95"/><stop offset="1" stop-color="#5fd0f5" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowCyan" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#8fdcf8" stop-opacity=".40"/><stop offset="1" stop-color="#8fdcf8" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowGreen" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#7cf0a6" stop-opacity=".40"/><stop offset="1" stop-color="#7cf0a6" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowAmber" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#ffc861" stop-opacity=".40"/><stop offset="1" stop-color="#ffc861" stop-opacity="0"/>
+  </radialGradient>
+  <pattern id="hatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="7" stroke="#c8c8c2" stroke-width="1"/>
+  </pattern>
+  <pattern id="hatchDark" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="0" y2="7" stroke="#6f6f68" stroke-width="1"/>
+  </pattern>
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0H0V40" fill="none" stroke="#8f8f88" stroke-width=".6" opacity=".16"/>
+  </pattern>
+  <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="9" stdDeviation="11" flood-color="#5a5a52" flood-opacity=".2"/>
+  </filter>
+  <filter id="wheelShadow" x="-60%" y="-60%" width="220%" height="220%">
+    <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#3c3c36" flood-opacity=".42"/>
+  </filter>
+  <style>
+    .pn{font-size:21px;font-weight:700;fill:#1b1b18;letter-spacing:.6px}
+    .fn{font-size:15.5px;font-weight:600;fill:#a8761a;letter-spacing:.4px}
+    .sub{font-size:12px;fill:#8c8c85;letter-spacing:.3px}
+    .lead{fill:none;stroke:#3b3b36;stroke-width:1.5}
+    .leadd{fill:none;stroke:#a8761a;stroke-width:1.5}
+    .dot{fill:#3b3b36}
+    .dotg{fill:#a8761a}
+    .grp{font-size:15px;font-weight:700;fill:#2b2b26;letter-spacing:1.2px}
+    .h1{font-size:31px;font-weight:700;fill:#15150f;letter-spacing:1px}
+    .h2{font-size:13px;fill:#6d6d66;letter-spacing:1.3px}
+    .foot{font-size:13.5px;fill:#4a4a44;letter-spacing:.3px}
+    .boxN{font-size:14.5px;font-weight:700;fill:#242420}
+    .boxS{font-size:11.5px;fill:#8c8c85;letter-spacing:.3px}
+    .dimc{font-size:11.5px;fill:#7d7d76;letter-spacing:.3px}
+    .exp{font-size:12.5px;font-weight:700;fill:#8c8c85;letter-spacing:1.6px}
+    .plate{font-size:10.5px;font-weight:700;fill:#3a3a34;letter-spacing:.6px}
+    .chipY{font-size:12.5px;font-weight:700;fill:#3d6b7d;letter-spacing:.6px}
+    .chipG{font-size:12.5px;font-weight:700;fill:#2f7d55;letter-spacing:.6px}
+    .chipA{font-size:12.5px;font-weight:700;fill:#9a6a12;letter-spacing:.6px}
+    .cfn{font-size:14.5px;font-weight:600;fill:#a8761a;letter-spacing:.4px}
+    .csub{font-size:12px;fill:#8c8c85;letter-spacing:.3px}
+    .mono{font-family:'JetBrains Mono','Cascadia Mono',Consolas,monospace;font-size:11px;fill:#7d7d76;letter-spacing:.4px}
+  </style>
+</defs>
+
+<!-- ================= 画布 ================= -->
+<rect width="1930" height="1370" fill="url(#bg)"/>
+<rect x="20" y="20" width="1890" height="1330" fill="none" stroke="#c9c9c2" stroke-width="1.2"/>
+<rect x="26" y="26" width="1878" height="1318" fill="none" stroke="#dcdcd6" stroke-width=".8"/>
+<rect x="60" y="118" width="1000" height="858" fill="url(#grid)" opacity=".5"/>
+
+<!-- ================= 标题栏 ================= -->
+<rect x="60" y="52" width="4" height="30" fill="#a8761a"/>
+<text class="h1" x="78" y="78">居家送药机器人 · 结构 — 功能 爆炸图</text>
+<text class="h2" x="760" y="70">EXPLODED STRUCTURE / FUNCTION MAP</text>
+<text class="h2" x="760" y="88">MODEL: RHINE-AGV-P-1 ｜ BODY: EGG-SHELL ｜ DRIVE: 4-WHEEL</text>
+<text class="h2" x="1870" y="70" text-anchor="end">尺寸单位：mm</text>
+<text class="h2" x="1870" y="88" text-anchor="end">SHEET 01 / 01　REV. C</text>
+<line x1="60" y1="104" x2="1870" y2="104" stroke="#b6b6af" stroke-width="1.2"/>
+
+<!-- ================= 分解方向 ================= -->
+<line x1="800" y1="120" x2="800" y2="146" stroke="#2f2f2a" stroke-width="1"/>
+<line x1="742" y1="120" x2="800" y2="120" stroke="#2f2f2a" stroke-width="1"/>
+<text class="exp" x="736" y="124" text-anchor="end">EXPLODE ↑ 头部弹起</text>
+
+<!-- ================= 底：移动轮组 ================= -->
+<g id="base">
+  <ellipse cx="800" cy="944" rx="240" ry="46" fill="#c7c7c1" opacity=".9"/>
+  <ellipse cx="800" cy="908" rx="240" ry="46" fill="#eaeae6" stroke="#b5b5af" stroke-width="1.4"/>
+  <ellipse cx="800" cy="908" rx="198" ry="34" fill="none" stroke="#c6c6c0" stroke-width="1"/>
+  <ellipse cx="800" cy="908" rx="122" ry="20" fill="#deded9"/>
+
+  <!-- 后轮 -->
+  <g transform="translate(668,930)">
+    <ellipse cx="0" cy="18" rx="33" ry="9" fill="#b9b9b3" opacity=".5"/>
+    <rect x="-12" y="-30" width="24" height="30" rx="4" fill="#71716a" stroke="#3f3f3a" stroke-width="1.1"/>
+    <circle cx="0" cy="2" r="25" fill="#2f2f2b" stroke="#1c1c18" stroke-width="1.3" filter="url(#wheelShadow)"/>
+    <circle cx="0" cy="2" r="16" fill="#4c4c46"/>
+    <circle cx="0" cy="2" r="16" fill="url(#hatchDark)" opacity=".45"/>
+    <circle cx="0" cy="2" r="7.5" fill="#2a2a26" stroke="#74746c" stroke-width="1.2"/>
+    <path d="M0 -25 L0 29 M-25 2 L25 2" stroke="#15150f" stroke-width="3" opacity=".5"/>
+    <path d="M-17 -18 L17 22 M17 -18 L-17 22" stroke="#15150f" stroke-width="3" opacity=".5"/>
+  </g>
+  <g transform="translate(932,930)">
+    <ellipse cx="0" cy="18" rx="33" ry="9" fill="#b9b9b3" opacity=".5"/>
+    <rect x="-12" y="-30" width="24" height="30" rx="4" fill="#71716a" stroke="#3f3f3a" stroke-width="1.1"/>
+    <circle cx="0" cy="2" r="25" fill="#2f2f2b" stroke="#1c1c18" stroke-width="1.3" filter="url(#wheelShadow)"/>
+    <circle cx="0" cy="2" r="16" fill="#4c4c46"/>
+    <circle cx="0" cy="2" r="16" fill="url(#hatchDark)" opacity=".45"/>
+    <circle cx="0" cy="2" r="7.5" fill="#2a2a26" stroke="#74746c" stroke-width="1.2"/>
+    <path d="M0 -25 L0 29 M-25 2 L25 2" stroke="#15150f" stroke-width="3" opacity=".5"/>
+    <path d="M-17 -18 L17 22 M17 -18 L-17 22" stroke="#15150f" stroke-width="3" opacity=".5"/>
+  </g>
+  <!-- 前轮（近端，稍大） -->
+  <g transform="translate(608,956)">
+    <ellipse cx="0" cy="20" rx="38" ry="10" fill="#b0b0aa" opacity=".5"/>
+    <rect x="-14" y="-32" width="28" height="32" rx="4" fill="#7a7a72" stroke="#3f3f3a" stroke-width="1.1"/>
+    <circle cx="0" cy="2" r="29" fill="#33332e" stroke="#1c1c18" stroke-width="1.5" filter="url(#wheelShadow)"/>
+    <circle cx="0" cy="2" r="19" fill="#4f4f49"/>
+    <circle cx="0" cy="2" r="19" fill="url(#hatchDark)" opacity=".45"/>
+    <circle cx="0" cy="2" r="9" fill="#2a2a26" stroke="#76766e" stroke-width="1.3"/>
+    <path d="M0 -29 L0 33 M-29 2 L29 2" stroke="#15150f" stroke-width="3.4" opacity=".5"/>
+    <path d="M-20 -21 L20 25 M20 -21 L-20 25" stroke="#15150f" stroke-width="3.4" opacity=".5"/>
+  </g>
+  <g transform="translate(992,956)">
+    <ellipse cx="0" cy="20" rx="38" ry="10" fill="#b0b0aa" opacity=".5"/>
+    <rect x="-14" y="-32" width="28" height="32" rx="4" fill="#7a7a72" stroke="#3f3f3a" stroke-width="1.1"/>
+    <circle cx="0" cy="2" r="29" fill="#33332e" stroke="#1c1c18" stroke-width="1.5" filter="url(#wheelShadow)"/>
+    <circle cx="0" cy="2" r="19" fill="#4f4f49"/>
+    <circle cx="0" cy="2" r="19" fill="url(#hatchDark)" opacity=".45"/>
+    <circle cx="0" cy="2" r="9" fill="#2a2a26" stroke="#76766e" stroke-width="1.3"/>
+    <path d="M0 -29 L0 33 M-29 2 L29 2" stroke="#15150f" stroke-width="3.4" opacity=".5"/>
+    <path d="M-20 -21 L20 25 M20 -21 L-20 25" stroke="#15150f" stroke-width="3.4" opacity=".5"/>
+  </g>
+</g>
+
+<!-- ================= 躯体：蛋壳 ================= -->
+<g id="body">
+  <!-- 后壳 + 壳厚剖面 -->
+  <path d="M800 396 C 1020 396, 1064 640, 1064 736 C 1064 826, 988 880, 800 880
+           C 612 880, 536 826, 536 736 C 536 640, 580 396, 800 396 Z"
+        fill="url(#shellBack)" stroke="#a9a9a2" stroke-width="1.4"/>
+  <path d="M606 452 C 578 650, 574 820, 646 858" fill="none" stroke="url(#hatch)" stroke-width="40" opacity=".7"/>
+  <path d="M994 452 C 1022 650, 1026 820, 954 858" fill="none" stroke="url(#hatch)" stroke-width="40" opacity=".7"/>
+
+  <!-- 内舱腔体 -->
+  <path d="M690 500 C 668 636, 672 762, 728 800 L 872 800 C 928 762, 932 636, 910 500
+           C 868 480, 732 480, 690 500 Z" fill="#6a6a62" stroke="#44443f" stroke-width="1.4"/>
+  <path d="M690 500 C 668 636, 672 762, 728 800 L 872 800 C 928 762, 932 636, 910 500
+           C 868 480, 732 480, 690 500 Z" fill="url(#hatchDark)" opacity=".22"/>
+  <!-- 舱内结构：托举框架与限位 -->
+  <path d="M700 560 C 686 640, 688 730, 726 776" fill="none" stroke="#8d8d86" stroke-width="3"/>
+  <path d="M900 560 C 914 640, 912 730, 874 776" fill="none" stroke="#8d8d86" stroke-width="3"/>
+  <line x1="714" y1="640" x2="886" y2="640" stroke="#84847c" stroke-width="2.4"/>
+  <line x1="706" y1="672" x2="894" y2="672" stroke="#84847c" stroke-width="2.4"/>
+  <line x1="700" y1="704" x2="900" y2="704" stroke="#84847c" stroke-width="2.4"/>
+  <line x1="736" y1="792" x2="864" y2="792" stroke="#84847c" stroke-width="2.4"/>
+  <ellipse cx="800" cy="800" rx="92" ry="16" fill="#4e4e48" opacity=".75"/>
+  <!-- 舱壁厚度 -->
+  <path d="M690 500 C 668 636, 672 762, 728 800" fill="none" stroke="#95958e" stroke-width="5"/>
+  <path d="M910 500 C 932 636, 928 762, 872 800" fill="none" stroke="#95958e" stroke-width="5"/>
+
+  <!-- 内部升降导轨 -->
+  <line x1="706" y1="524" x2="706" y2="782" stroke="#9a9a93" stroke-width="4"/>
+  <line x1="894" y1="524" x2="894" y2="782" stroke="#9a9a93" stroke-width="4"/>
+
+  <!-- 前壳：左半 / 右半（蛋形包夹） -->
+  <path d="M800 402 C 646 402, 604 646, 604 740 C 604 818, 668 866, 800 866
+           C 700 838, 660 792, 660 730 C 660 640, 700 430, 800 402 Z"
+        fill="url(#shellFront)" stroke="#bfbfb8" stroke-width="1.3"/>
+  <path d="M800 402 C 954 402, 996 646, 996 740 C 996 818, 932 866, 800 866
+           C 900 838, 940 792, 940 730 C 940 640, 900 430, 800 402 Z"
+        fill="url(#shellFront)" stroke="#bfbfb8" stroke-width="1.3"/>
+  <!-- 前壳厚度高光 -->
+  <path d="M660 730 C 660 640, 700 430, 800 402" fill="none" stroke="#ffffff" stroke-width="3" opacity=".9"/>
+  <path d="M940 730 C 940 640, 900 430, 800 402" fill="none" stroke="#ffffff" stroke-width="3" opacity=".9"/>
+  <!-- 舱门开口（关门位虚线） -->
+  <rect x="672" y="596" width="256" height="212" rx="26" fill="none" stroke="#9c9c95" stroke-width="1.8" stroke-dasharray="9 6"/>
+  <!-- 蛋形曲面母线（体积感） -->
+  <path d="M748 418 C 726 480, 716 540, 714 588" fill="none" stroke="#d6d6d0" stroke-width="1.4"/>
+  <path d="M852 418 C 874 480, 884 540, 886 588" fill="none" stroke="#d6d6d0" stroke-width="1.4"/>
+  <path d="M700 452 C 682 520, 674 570, 672 600" fill="none" stroke="#dededa" stroke-width="1.2"/>
+  <path d="M900 452 C 918 520, 926 570, 928 600" fill="none" stroke="#dededa" stroke-width="1.2"/>
+</g>
+
+<!-- ================= 内部：托盘 + 药 + 水（俯视透视） ================= -->
+<g id="cargo">
+  <!-- 托盘台面（后缘高、前缘低） -->
+  <path d="M690 664 L 910 664 L 938 744 L 662 744 Z" fill="url(#trayTop)" stroke="#adada6" stroke-width="1.5"/>
+  <!-- 托盘前立面 -->
+  <path d="M662 744 L 938 744 L 938 760 L 662 760 Z" fill="#d9d9d3" stroke="#adada6" stroke-width="1.2"/>
+  <!-- 托盘侧挡边 -->
+  <path d="M690 664 L 662 744 L 662 760 L 690 680 Z" fill="#e6e6e1" stroke="#bcbcb5" stroke-width="1"/>
+  <path d="M910 664 L 938 744 L 938 760 L 910 680 Z" fill="#cfcfc9" stroke="#bcbcb5" stroke-width="1"/>
+  <!-- 托盘定位槽 -->
+  <line x1="700" y1="676" x2="676" y2="742" stroke="#c6c6bf" stroke-width="1"/>
+  <line x1="900" y1="676" x2="924" y2="742" stroke="#c6c6bf" stroke-width="1"/>
+
+  <!-- 药盒 + 三片药 -->
+  <g transform="translate(700,690)">
+    <path d="M0 0 L 84 0 L 96 22 L -12 22 Z" fill="#f3f3ef" stroke="#b6b6af" stroke-width="1.2"/>
+    <ellipse cx="16" cy="-3" rx="13" ry="5.6" fill="#fdfdfb" stroke="#a8a8a1" stroke-width="1.1"/>
+    <ellipse cx="44" cy="-3" rx="13" ry="5.6" fill="#fdfdfb" stroke="#a8a8a1" stroke-width="1.1"/>
+    <ellipse cx="72" cy="-3" rx="13" ry="5.6" fill="#fdfdfb" stroke="#a8a8a1" stroke-width="1.1"/>
+    <path d="M10 -3 L22 -3 M38 -3 L50 -3 M66 -3 L78 -3" stroke="#c3c3bc" stroke-width="1.5"/>
+  </g>
+
+  <!-- 隔板 -->
+  <path d="M806 672 L 812 672 L 818 748 L 812 748 Z" fill="#cbcbc4" stroke="#b0b0a9" stroke-width="1"/>
+
+  <!-- 水杯 -->
+  <g transform="translate(842,678)">
+    <path d="M0 0 L 52 0 L 45 46 L 7 46 Z" fill="#eef7f9" opacity=".62" stroke="#a3bfc6" stroke-width="1.5"/>
+    <path d="M4.6 26 L 47.4 26 L 45 46 L 7 46 Z" fill="#bfe3ea" opacity=".85"/>
+    <ellipse cx="26" cy="0" rx="26" ry="6.6" fill="#f8fdfe" stroke="#a3bfc6" stroke-width="1.3"/>
+    <ellipse cx="26" cy="26" rx="21.5" ry="5.5" fill="#d9eff4" stroke="#a3bfc6" stroke-width="1.1"/>
+  </g>
+
+  <!-- 舱门：铰链在左下，外开约 75°（向观察者方向倒下） -->
+  <g transform="translate(690,596)">
+    <path d="M0 0 L 46 16 L 12 128 L -34 112 Z" fill="url(#doorGr)" stroke="#a8a8a1" stroke-width="1.5"/>
+    <path d="M4 8 L 16 12 L -14 112 L -26 108 Z" fill="#f6f6f3" opacity=".85"/>
+    <rect x="-10" y="4" width="14" height="16" rx="3" fill="#8f8f88" transform="rotate(19)"/>
+    <rect x="-42" y="104" width="14" height="16" rx="3" fill="#8f8f88" transform="rotate(19)"/>
+    <path d="M52 26 C 96 62, 66 132, 20 148" fill="none" stroke="#a8761a" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <path d="M20 148 L 32 144 M20 148 L 26 136" stroke="#a8761a" stroke-width="1.5" fill="none"/>
+  </g>
+</g>
+
+<!-- ================= 头部总成（弹起） ================= -->
+<g id="head">
+  <rect x="790" y="326" width="20" height="54" rx="6" fill="#e4e4e0" stroke="#b6b6b0" stroke-width="1.3"/>
+  <line x1="786" y1="326" x2="814" y2="326" stroke="#a8761a" stroke-width="2" stroke-dasharray="5 4"/>
+  <rect x="640" y="146" width="320" height="200" rx="34" fill="url(#headGr)" stroke="#aeaea7" stroke-width="1.6" filter="url(#softShadow)"/>
+  <rect x="652" y="158" width="296" height="176" rx="28" fill="none" stroke="#d9d9d3" stroke-width="1.2"/>
+  <rect x="668" y="173" width="264" height="90" rx="8" fill="url(#screenGr)" stroke="#2b333d" stroke-width="1.4"/>
+  <circle cx="740" cy="212" r="26" fill="url(#eyeGlow)"/>
+  <circle cx="860" cy="212" r="26" fill="url(#eyeGlow)"/>
+  <circle cx="740" cy="212" r="14" fill="#8fdcf8"/>
+  <circle cx="860" cy="212" r="14" fill="#8fdcf8"/>
+  <circle cx="744" cy="207" r="5" fill="#eafbff"/>
+  <circle cx="864" cy="207" r="5" fill="#eafbff"/>
+  <rect x="776" y="243" width="48" height="7" rx="3.5" fill="#3f5f70"/>
+  <rect x="680" y="280" width="240" height="28" rx="4" fill="#1b232c"/>
+  <text x="800" y="299" text-anchor="middle" font-size="15" font-weight="700" fill="#8fdcf8" letter-spacing="1">请取药 · 药已备好</text>
+  <circle cx="708" cy="326" r="5" fill="#c4c4bd"/><circle cx="892" cy="326" r="5" fill="#c4c4bd"/>
+</g>
+
+<!-- ================= 引线标注 ================= -->
+<g id="callouts">
+  <!-- ① 显示模块 -->
+  <circle cx="672" cy="200" r="4.5" class="dotg"/>
+  <path class="leadd" d="M672 200 L 470 200 L 420 170"/>
+  <circle cx="420" cy="170" r="4" class="dotg"/>
+  <text class="pn" x="404" y="142" text-anchor="end">显示模块</text>
+  <text class="sub" x="404" y="162" text-anchor="end">DISPLAY MODULE · 约 7 in</text>
+  <text class="fn" x="404" y="188" text-anchor="end">功能 ▸ 给予提示</text>
+  <text class="sub" x="404" y="208" text-anchor="end">文字 + 表情：请取药 / 药已备好</text>
+
+  <!-- ② 头部总成 -->
+  <circle cx="800" cy="340" r="4.5" class="dot"/>
+  <path class="lead" d="M800 340 L 800 362 L 470 362 L 424 392"/>
+  <circle cx="424" cy="392" r="4" class="dot"/>
+  <text class="pn" x="408" y="368" text-anchor="end">头部总成</text>
+  <text class="sub" x="408" y="388" text-anchor="end">HEAD UNIT · 可拆装（分离面）</text>
+  <text class="fn" x="408" y="414" text-anchor="end">功能 ▸ 人机交互界面</text>
+  <text class="sub" x="408" y="434" text-anchor="end">承担提示、语音问答、状态显示</text>
+
+  <!-- ③ 壳体上舱段 -->
+  <circle cx="694" cy="470" r="4.5" class="dot"/>
+  <path class="lead" d="M694 470 L 470 470 L 424 502"/>
+  <circle cx="424" cy="502" r="4" class="dot"/>
+  <text class="pn" x="408" y="478" text-anchor="end">壳体上舱段</text>
+  <text class="sub" x="408" y="498" text-anchor="end">UPPER SHELL · 容纳电控 / 水箱</text>
+  <text class="fn" x="408" y="524" text-anchor="end">功能 ▸ 包裹内部机构</text>
+  <text class="sub" x="408" y="544" text-anchor="end">整壳封闭，异物与液体不进入</text>
+
+  <!-- ④ 舱门 -->
+  <circle cx="700" cy="700" r="4.5" class="dotg"/>
+  <path class="leadd" d="M700 700 L 470 700 L 424 730"/>
+  <circle cx="424" cy="730" r="4" class="dotg"/>
+  <text class="pn" x="408" y="706" text-anchor="end">舱门（可开合）</text>
+  <text class="sub" x="408" y="726" text-anchor="end">CARGO DOOR · 下部铰链</text>
+  <text class="fn" x="408" y="752" text-anchor="end">功能 ▸ 打开后取出药 &amp; 水</text>
+  <text class="sub" x="408" y="772" text-anchor="end">外开约 75°，不夹手、不挡视线</text>
+
+  <!-- ⑤ 药片 -->
+  <circle cx="712" cy="706" r="4.5" class="dot"/>
+  <path class="lead" d="M712 706 L 712 852 L 470 852 L 424 882"/>
+  <circle cx="424" cy="882" r="4" class="dot"/>
+  <text class="pn" x="408" y="858" text-anchor="end">药片（该次剂量）</text>
+  <text class="sub" x="408" y="878" text-anchor="end">PILLS · 一次一格，不多出</text>
+  <text class="fn" x="408" y="904" text-anchor="end">功能 ▸ 送出药</text>
+  <text class="sub" x="408" y="924" text-anchor="end">内部机构推送至托盘送餐区</text>
+
+  <!-- ⑥ 移动轮组 + 底盘 -->
+  <circle cx="608" cy="956" r="4.5" class="dotg"/>
+  <path class="leadd" d="M608 956 L 470 956 L 424 1000"/>
+  <circle cx="424" cy="1000" r="4" class="dotg"/>
+  <text class="pn" x="408" y="972" text-anchor="end">移动轮组 / 底盘</text>
+  <text class="sub" x="408" y="992" text-anchor="end">DRIVE WHEELS · 四轮独立</text>
+  <text class="fn" x="408" y="1018" text-anchor="end">功能 ▸ 自由行动</text>
+  <text class="sub" x="408" y="1038" text-anchor="end">自主导航 / 绕障 / 回充电桩</text>
+
+  <!-- ⑦ 蛋壳状外壳（右侧，全图最醒目） -->
+  <circle cx="1016" cy="700" r="5" class="dot"/>
+  <path class="lead" d="M1016 700 L 1090 700 L 1090 1240 L 700 1240"/>
+  <circle cx="700" cy="1240" r="4.5" class="dot"/>
+  <text class="pn" x="684" y="1222" font-size="23" text-anchor="end">蛋壳状外壳</text>
+  <text class="sub" x="684" y="1246" font-size="12.5" text-anchor="end">EGG-SHELL CHASSIS · 无棱角整壳</text>
+  <text class="fn" x="684" y="1320" font-size="16.5" text-anchor="end">功能 ▸ 避免磕碰伤人</text>
+  <text class="sub" x="684" y="1300" font-size="12.5" text-anchor="end">全曲面过渡，碰撞时无尖锐着力点</text>
+  <text class="sub" x="684" y="1320" font-size="12.5" text-anchor="end">与人体接触处为圆弧缓冲面</text>
+</g>
+
+<!-- ================= 右下：内部舱位剖面 ================= -->
+﻿<g id="detail">
+  <rect x="1120" y="1092" width="420" height="252" fill="#f8f8f5" stroke="#c2c2bb" stroke-width="1.3"/>
+  <rect x="1120" y="1092" width="420" height="28" fill="#ebebe6" stroke="#c2c2bb" stroke-width="1.3"/>
+  <text class="boxN" x="1134" y="1112" font-size="13.5">内部舱位（舱门打开后 · 送出药 &amp; 水）</text>
+  <text class="boxS" x="1526" y="1111" text-anchor="end">SECTION A-A</text>
+
+  <!-- 壳体剖面 -->
+  <path d="M1150 1166 C 1170 1152, 1250 1150, 1310 1158 L 1310 1284 C 1250 1292, 1170 1290, 1150 1278 Z"
+        fill="#e6e6e1" stroke="#b6b6b0" stroke-width="1.2"/>
+  <path d="M1150 1166 C 1170 1152, 1250 1150, 1310 1158" fill="none" stroke="url(#hatch)" stroke-width="9" opacity=".7"/>
+  <path d="M1150 1278 C 1170 1290, 1250 1292, 1310 1284" fill="none" stroke="url(#hatch)" stroke-width="9" opacity=".7"/>
+  <path d="M1150 1166 L 1150 1278" fill="none" stroke="#a9a9a2" stroke-width="5"/>
+
+  <!-- 升降导轨 -->
+  <line x1="1172" y1="1182" x2="1172" y2="1268" stroke="#9a9a93" stroke-width="2.6"/>
+  <line x1="1294" y1="1182" x2="1294" y2="1268" stroke="#9a9a93" stroke-width="2.6"/>
+
+  <!-- 托盘 -->
+  <path d="M1166 1214 L 1300 1214 L 1310 1236 L 1158 1236 Z" fill="url(#trayTop)" stroke="#adada6" stroke-width="1.2"/>
+  <path d="M1158 1236 L 1310 1236 L 1310 1246 L 1158 1246 Z" fill="#d9d9d3" stroke="#adada6" stroke-width="1"/>
+
+  <!-- 药 -->
+  <g transform="translate(1176,1200)">
+    <path d="M0 0 L 48 0 L 54 13 L -6 13 Z" fill="#f3f3ef" stroke="#b6b6af" stroke-width="1"/>
+    <ellipse cx="10" cy="-3" rx="9" ry="3.8" fill="#fdfdfb" stroke="#a8a8a1" stroke-width="1"/>
+    <ellipse cx="30" cy="-3" rx="9" ry="3.8" fill="#fdfdfb" stroke="#a8a8a1" stroke-width="1"/>
+  </g>
+  <!-- 水杯 -->
+  <g transform="translate(1246,1180)">
+    <path d="M0 0 L 34 0 L 28 36 L 6 36 Z" fill="#eef7f9" opacity=".62" stroke="#a3bfc6" stroke-width="1.2"/>
+    <path d="M3 20 L 31 20 L 28 36 L 6 36 Z" fill="#bfe3ea" opacity=".85"/>
+    <ellipse cx="17" cy="0" rx="17" ry="4.6" fill="#f8fdfe" stroke="#a3bfc6" stroke-width="1.1"/>
+    <ellipse cx="17" cy="20" rx="14" ry="3.8" fill="#d9eff4" stroke="#a3bfc6" stroke-width="1"/>
+  </g>
+
+  <!-- 舱门（外开） -->
+  <path d="M1318 1152 L 1348 1164 L 1322 1248 L 1292 1236 Z" fill="url(#doorGr)" stroke="#a8a8a1" stroke-width="1.2"/>
+  <path d="M1318 1152 C 1360 1172, 1342 1230, 1322 1248" fill="none" stroke="#a8761a" stroke-width="1.3" stroke-dasharray="5 4"/>
+
+  <!-- 取药动作 -->
+  <path d="M1326 1200 L 1386 1200" stroke="#a8761a" stroke-width="1.5" fill="none"/>
+  <path d="M1386 1200 L 1377 1195 M1386 1200 L 1377 1205" stroke="#a8761a" stroke-width="1.5" fill="none"/>
+  <text class="plate" x="1330" y="1186" font-size="10">取药动作</text>
+  <text class="plate" x="1330" y="1218" font-size="10">（摄像头判定）</text>
+
+  <!-- 零件标注 -->
+  <line x1="1180" y1="1196" x2="1180" y2="1264" stroke="#7d7d76" stroke-width="1" stroke-dasharray="3 3"/>
+  <line x1="1264" y1="1178" x2="1264" y2="1264" stroke="#7d7d76" stroke-width="1" stroke-dasharray="3 3"/>
+  <text class="plate" x="1166" y="1280" font-size="10.5">药品</text>
+  <text class="plate" x="1242" y="1280" font-size="10.5">水杯</text>
+  <text class="plate" x="1290" y="1280" font-size="10.5">托盘</text>
+
+  <!-- 闭环流程 -->
+  <line x1="1134" y1="1296" x2="1526" y2="1296" stroke="#d2d2cc" stroke-width="1"/>
+  <text class="boxS" x="1134" y="1316">开门（停稳 2 s 后）▸ 老人取药 &amp; 水</text>
+  <text class="boxS" x="1134" y="1336">药片消失 + 杯子放回 ▸ 托盘收回，记录已服药</text>
+</g>
+
+
+<!-- ================= 右栏：显示模块 · 表情与功能区分 ================= -->
+﻿<g id="expressions">
+  <!-- 分区标题 -->
+  <rect x="1532" y="126" width="4" height="28" fill="#a8761a"/>
+  <text x="1550" y="150" font-size="17" font-weight="700" fill="#1b1b18" letter-spacing=".4">显示模块 · 表情与功能区分</text>
+  <text class="h2" x="1550" y="170">SCREEN STATES / EXPRESSION ↔ FUNCTION</text>
+  <line x1="1532" y1="186" x2="1870" y2="186" stroke="#c2c2bb" stroke-width="1"/>
+
+  <!-- ── STATE 01 · 提示 ── -->
+  <rect x="1540" y="202" width="320" height="392" fill="#f8f8f5" stroke="#c2c2bb" stroke-width="1.3"/>
+  <rect x="1540" y="202" width="5" height="392" fill="#4aa8d8"/>
+  <rect x="1556" y="218" width="112" height="24" fill="#e6f3fa" stroke="#8fc2da" stroke-width="1"/>
+  <text class="chipY" x="1612" y="235" text-anchor="middle">用药时段 · 提示</text>
+  <text class="mono" x="1846" y="235" text-anchor="end">STATE 01</text>
+
+  <rect x="1563" y="256" width="274" height="150" rx="20" fill="#fdfdfc" stroke="#c9c9c2" stroke-width="1.4"/>
+  <rect x="1575" y="268" width="250" height="126" rx="12" fill="url(#screenGr)" stroke="#2b333d" stroke-width="1.3"/>
+  <circle cx="1700" cy="316" r="72" fill="url(#glowCyan)"/>
+  <circle cx="1672" cy="308" r="13" fill="#8fdcf8"/>
+  <circle cx="1728" cy="308" r="13" fill="#8fdcf8"/>
+  <circle cx="1676" cy="303" r="4.4" fill="#eafbff"/>
+  <circle cx="1732" cy="303" r="4.4" fill="#eafbff"/>
+  <rect x="1688" y="336" width="24" height="6" rx="3" fill="#3f5f70"/>
+  <rect x="1585" y="352" width="230" height="30" rx="4" fill="#1b232c"/>
+  <text x="1700" y="373" text-anchor="middle" font-size="15" font-weight="700" fill="#8fdcf8" letter-spacing=".8">请取药 · 药已备好</text>
+
+  <text class="cfn" x="1556" y="436" font-size="14">功能 ▸ 给予提示</text>
+  <text class="csub" x="1556" y="458">到点排程触发，屏幕与舱门同步打开</text>
+  <text class="csub" x="1556" y="478">语气中性、指示明确，配合定向语音</text>
+  <text class="csub" x="1556" y="498">屏高与倾角正对坐姿 / 站姿视线</text>
+  <text class="mono" x="1556" y="524">COLOR　#8FDCF8（青）</text>
+  <text class="mono" x="1556" y="546">AFTER　判定通过 → STATE 02</text>
+  <text class="csub" x="1556" y="570">此刻不推送子女端（常规场景不打扰）</text>
+
+  <!-- ── STATE 02 · 完成 ── -->
+  <rect x="1540" y="614" width="320" height="374" fill="#f6faf7" stroke="#bcd8c6" stroke-width="1.3"/>
+  <rect x="1540" y="614" width="5" height="374" fill="#43c47a"/>
+  <rect x="1556" y="630" width="130" height="24" fill="#e8f7ee" stroke="#96cfae" stroke-width="1"/>
+  <text class="chipG" x="1621" y="647" text-anchor="middle">服药完成后 · 完成</text>
+  <text class="mono" x="1846" y="647" text-anchor="end">STATE 02</text>
+
+  <rect x="1563" y="668" width="274" height="150" rx="20" fill="#fdfdfc" stroke="#c9c9c2" stroke-width="1.4"/>
+  <rect x="1575" y="680" width="250" height="126" rx="12" fill="url(#screenGr)" stroke="#2b333d" stroke-width="1.3"/>
+  <circle cx="1700" cy="728" r="72" fill="url(#glowGreen)"/>
+  <path d="M1662 728 C 1670 712, 1688 712, 1696 728" fill="none" stroke="#7cf0a6" stroke-width="5" stroke-linecap="round"/>
+  <path d="M1706 728 C 1714 712, 1732 712, 1740 728" fill="none" stroke="#7cf0a6" stroke-width="5" stroke-linecap="round"/>
+  <path d="M1678 740 C 1690 760, 1712 760, 1724 740" fill="none" stroke="#7cf0a6" stroke-width="4.5" stroke-linecap="round"/>
+  <rect x="1585" y="764" width="230" height="30" rx="4" fill="#1b232c"/>
+  <text x="1700" y="785" text-anchor="middle" font-size="15" font-weight="700" fill="#7cf0a6" letter-spacing=".8">已服药 · 祝您健康</text>
+
+  <text class="cfn" x="1556" y="848" font-size="14">功能 ▸ 正向反馈 + 情绪安抚</text>
+  <text class="csub" x="1556" y="870">判定「药片消失 + 杯子放回」后立即切换</text>
+  <text class="csub" x="1556" y="890">把「已完成」做得看得见，减少重复取药焦虑</text>
+  <text class="csub" x="1556" y="910">笑脸与祝福语属非医疗表述，不做疗效暗示</text>
+  <text class="mono" x="1556" y="936">COLOR　#7CF0A6（绿 · 已完成）</text>
+  <text class="mono" x="1556" y="958">NEXT　约 10 s 回待机 → 返回充电桩</text>
+  <text class="csub" x="1556" y="978">子女端同步：推送「已按时服药」</text>
+
+  <!-- ── STATE 03 · 待重试 ── -->
+  <rect x="1540" y="1004" width="320" height="130" fill="#fdfaf3" stroke="#e0cfa4" stroke-width="1.3"/>
+  <rect x="1540" y="1004" width="5" height="130" fill="#d8a12a"/>
+  <rect x="1556" y="1020" width="140" height="24" fill="#faf1dd" stroke="#dcc48c" stroke-width="1"/>
+  <text class="chipA" x="1626" y="1037" text-anchor="middle">待重试 · 未完成</text>
+  <text class="mono" x="1846" y="1037" text-anchor="end">STATE 03</text>
+  <text class="cfn" x="1556" y="1072" font-size="14">功能 ▸ 温和升级（已提示，尚未完成）</text>
+  <text class="csub" x="1556" y="1094">表情转琥珀色 + 语音加大：每 2 min 复述一次</text>
+  <text class="csub" x="1556" y="1114">10 min 未取走 → 收回药片与水并上报子女端</text>
+</g>
+
+<!-- ================= 左下：功能总结 ================= -->
+<g id="footer">
+  <rect x="60" y="1290" width="620" height="46" fill="#f4f4f1"/>
+  <text class="foot" x="72" y="1316" font-size="13">功能链：<tspan font-weight="700">显示模块→给予提示</tspan>　▸　<tspan font-weight="700">蛋壳外壳→避免磕碰伤人</tspan>　▸　<tspan font-weight="700">轮组→自由行动</tspan>　▸　<tspan font-weight="700">舱门内托盘→送出药&amp;水</tspan></text>
+  <text class="boxS" x="72" y="1334" font-size="10.5">演示用爆炸图 ｜ 王阿姨为虚构人物 ｜ 机器人不是医疗器械，不提供诊断 ｜ 摄像头画面不上传云端</text>
+</g>
+</svg>
