@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>点哪走哪 · 老奶奶 3D 演示</title>
+<meta name="description" content="Three.js 场景：点一下地面，老奶奶就会走过去。程序化建模 + 走路动画，离线单页可用。" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='11' r='7' fill='%23dedcd6'/%3E%3Cpath d='M6 30c0-6 4.5-9 10-9s10 3 10 9z' fill='%2346577a'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles/app.css" />
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<!-- 左上：控制台（大字号、可收起） -->
+<aside id="panel" class="panel" aria-label="控制台"></aside>
+
+<!-- 底部提示条 -->
+<div class="hintbar">
+  <b>点一下地面 / 地毯</b>，老奶奶就走过去 ·
+  <b>拖动</b>换视角 · <b>滚轮</b>远近 ·
+  <span class="kbd">Esc</span> 站住 ·
+  <span class="kbd">H</span> 帮助
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+
+<!-- 首次进入的引导卡 -->
+<div id="welcome" class="welcome show" role="dialog" aria-label="怎么玩">
+  <div class="wcard">
+    <h1>点哪里，老奶奶就走到哪里</h1>
+    <p class="lead">这是一个可以直接玩的 3D 小演示：用鼠标（或手指）在房间的地板、地毯上点一下，角色会转身、迈步走过去，走路动画和脚步都是实时算出来的。</p>
+    <ul>
+      <li><b>点地面</b>　指定目的地，地上会出现一个光圈标记</li>
+      <li><b>拖动画面</b>　绕着房间转视角；<b>滚轮</b> 拉近拉远</li>
+      <li><b>控制台按钮</b>　"去哪里走走" 里可以一键去沙发、茶几、窗边、门口</li>
+      <li><b>送药机器人</b>　点"送药过来"，它会开到奶奶面前递上药盒</li>
+      <li><b>语音播报 / 大字模式</b>　给视力、听力不便的使用者准备的开关</li>
+    </ul>
+    <div class="wrow">
+      <button id="wStart" class="primary">知道了，开始</button>
+      <button id="wHelp" class="ghost">再看看说明</button>
+    </div>
+    <div class="wfoot">人物、机器人、房间全部由代码程序化生成（Three.js，无外部模型文件），断网也能跑。</div>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="src/grandma.js"></script>
+<script src="src/robot.js"></script>
+<script src="src/environment.js"></script>
+<script src="src/main.js"></script>
+<script>
+  // 引导卡按钮（放在这里，保证在 main.js 初始化之后仍然有效）
+  (function () {
+    var w = document.getElementById('welcome');
+    document.getElementById('wStart').addEventListener('click', function () {
+      w.classList.remove('show');
+      if (window.APP && window.APP.S) window.APP.S.moved = true;
+    });
+    document.getElementById('wHelp').addEventListener('click', function (e) { e.stopPropagation(); });
+  })();
+</script>
+</body>
+</html>
