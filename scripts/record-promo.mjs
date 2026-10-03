@@ -87,22 +87,22 @@ const SEGMENTS = [
   {
     frames: 20,
     say: '不催、不反复喊 —— 一次只要求一个动作',
-    cam: (k) => ({ followCam: { distance: lerp(2.2, 1.95, k), height: 1.18, angleDeg: lerp(38, 30, k), aimHeight: 0.68, fov: 40 } }),
+    cam: (k) => ({ followCam: { distance: lerp(2.2, 1.95, k), height: 1.18, angleDeg: lerp(38, 30, k), aimHeight: 0.76, fov: 40 } }),
   },
   {
     frames: 56,
     say: '药盒与温水放在托盘上：大字屏 + 语音念医嘱原文',
-    cam: (k) => ({ followCam: { distance: lerp(1.5, 1.38, k), height: lerp(1.6, 1.56, k), angleDeg: lerp(26, 18, k), aimHeight: lerp(1.14, 1.18, k), aimLead: -0.16, fov: 40 } }),
+    cam: (k) => ({ followCam: { distance: lerp(1.95, 1.78, k), height: lerp(1.22, 1.14, k), angleDeg: lerp(34, 29, k), aimHeight: lerp(0.82, 0.84, k), aimLead: 0.03, fov: 38 } }),
   },
   {
     frames: 18,
     say: '取走即确认（点一下，或托盘传感器事件）',
-    cam: () => ({ followCam: { distance: 1.38, height: 1.56, angleDeg: 18, aimHeight: 1.18, aimLead: -0.16, fov: 40 } }),
+    cam: () => ({ followCam: { distance: 1.78, height: 1.14, angleDeg: 29, aimHeight: 0.84, aimLead: 0.03, fov: 38 } }),
   },
   {
     frames: 58,
     say: '重复取药会被拦住；记录写在本机，双时间戳可追溯',
-    cam: (k) => ({ followCam: { distance: lerp(1.7, 3.4, k), height: lerp(1.05, 1.5, k), angleDeg: lerp(28, 88, k), aimHeight: lerp(0.75, 0.5, k), fov: 42 } }),
+    cam: (k) => ({ followCam: { distance: lerp(1.7, 3.4, k), height: lerp(1.05, 1.5, k), angleDeg: lerp(28, 88, k), aimHeight: lerp(0.8, 0.55, k), fov: 42 } }),
   },
   {
     frames: 54,

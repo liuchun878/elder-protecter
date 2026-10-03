@@ -37,11 +37,11 @@
 |---|---|---|---|
 | R | `prototype/index.html` | 46 | 挂载点 `#scene` / `#hud` / `#family` / `#debug` / `#banner` + import map；内联 data URI favicon（避免 `/favicon.ico` 404） |
 | R | `prototype/css/hud.css` | 610 | 适老化硬数值落地：正文 14.6:1、主色 4.8:1、最大字号 44px、点击目标 ≥60×60、行距 1.45 |
-| R | `prototype/js/robot.js` | 369 | **按真实样机 UNNC-AGV 复刻**：四根 2020 型材立柱 + 400×400 三层铝板 + 两个 Ø154 差速驱动轮（MD36 电机 + 联轴器）+ 两个 Ø38 万向轮 + P761S 电池 + 底部发光带 + 方形升降药盘；仍是 state 的纯函数 |
+| R | `prototype/js/robot.js` | 452 | 真机 UNNC-AGV 底盘（Ø154 差速轮 + MD36 电机 + 万向轮 + 发光带）+ 白色圆润机身 + **正面方舱口（两扇对开舱门 ~128°）+ 前伸托盘（温水杯 + 掀盖药盒）** + 独立头部（颈部/摄像头/灯环）+ 木纹饰板；state 的纯函数 |
 | R | `prototype/js/hud.js` | 243 | 长者端大字面板、药格灯（颜色 + 文字双编码）、一键确认、防重复 |
 | R | `prototype/js/audio.js` | 108 | `speechSynthesis`（zh-CN，rate 0.85）+ 静默降级 + **520 Hz 低频提示音**（WebAudio 合成，无音频资产） |
-| S | `prototype/js/scene3d.js` | 193 | 渲染循环 / 固定等距斜俯视 + 药盘特写两机位 / 光照 / WebGL 检测 / 场景 API；阴影默认关、pixelRatio ≤2 |
-| S | `prototype/js/room.js` | 308 | 8m×6m 三个功能区 + 家具几何体；**路径点真相**（`WAYPOINTS` / `APPROACH_POINTS` / `DOCK`） |
+| S | `prototype/js/scene3d.js` | 292 | 场景/相机/渲染循环；**ACES 色调映射 + PCFSoft 软阴影 + 程序化 PMREM 环境光 + 背景穹顶**；场景 API |
+| S | `prototype/js/room.js` | 590 | 写实公寓：木地板 / 暖白墙 / **后墙整面大窗（窗外城市 + 薄纱窗帘）** / 沙发+抱枕 / 茶几 / 地毯 / 电视柜 / 床+床品 / 床头柜 / 五斗柜 / 厨房台面+上柜+水槽龙头 / 圆餐桌+椅 / 绿植 / 画与挂钟（全部程序化贴图） |
 | S | `prototype/js/scene2d.js` | 166 | 0 级降级：2D 俯视仿真，**与 3D 同一组场景 API** |
 | S | `prototype/js/clock.js` | 103 | 演示时钟 1/60×/600×、直接设时钟、推进、复位；**不 import 任何模块**，仅内存 |
 | S | `prototype/js/main.js` | 297 | 只做装配：订阅 → 各 `render/update`；视图路由 `?view=family`；调试抽屉（`` ` `` / Ctrl+Shift+D）；假数据种子；启动对账 |
@@ -53,13 +53,14 @@
 | H | `prototype/js/log.js` | 102 | 追加式记录 + **双时间戳** + 时间线 + JSON 导出 |
 | H | `prototype/js/escalate.js` | 144 | T+60s 换通道换措辞 → T+180s 通知家属（level 2）→ 冷却去重 → 三选项 → `skipped_known` |
 | H | `prototype/js/family.js` | 245 | 家属端：计划录入/停用恢复、待处置通知三选项、时间线（只记事实）、导出 |
-| H | `prototype/js/person.js` | 774 | 王阿姨（**已重建**）：7.2 头身分节骨骼；颅骨/开衫用回转体一次成型；五官 + 圆眼镜 + 银发；坐/躺/走姿态由座面高度与臂长反解，姿态过渡为角度插值 |
+| H | `prototype/js/person.js` | 782 | 王阿姨：7.2 头身分节骨骼；颅骨/开衫用回转体一次成型；五官 + 圆眼镜 + 银发；衣物加程序化布纹；坐/躺/走姿态由座面高度与臂长反解 |
+| S | `prototype/js/textures.js` | 409 | **程序化贴图**（木地板/墙面/布纹/地毯/木纹/石材/窗外城市/叶片）+ PMREM 环境场景；零外部资产、固定 seed 可复现 |
 | S | `prototype/vendor/three/**` | 2.12 MB | three@0.186.1（`three.module.js` + `three.core.js` + LICENSE）；哈希见 [THIRD-PARTY.md](THIRD-PARTY.md) |
 | S | `scripts/record-promo.mjs` | 388 | 录屏管线：`?film=1` 逐帧驱动 + 截帧 + ffmpeg 编码 + 合成音轨（只用 Node 内置模块） |
 | S | `recordings/promo-15s.mp4` | — | 15.0s · 1600×900 · 24fps · 1.9 MB：待机→出发→送达→取走确认→返航→**家属端**→收尾卡 |
 | 公共 | `LICENSE` / `THIRD-PARTY.md` | — | MIT 与第三方许可核查（P1 加入，与计划附录 A/C 一致） |
 
-**合计**：20 个源文件 · 4,645 行（不含 vendored 依赖与 mp4）。
+**合计**：21 个源文件 · 4,838 行（不含 vendored 依赖与 mp4）。
 
 ## 自测记录（跑了什么、看到什么）
 
@@ -93,6 +94,12 @@
 | 24 | 机器人造型核对（无头 Chrome 多机位）：整体 / 正面 / 侧面 / 底盘 / 药盘特写 / 全景 六档 | ✅ 无穿模；药盒与水杯都落在盘内 |
 | 25 | 机器人行为未变：仍是 `state` 的纯函数，药盘抬升 0.6s、发光脉冲、药盒/水杯随事件显隐 | ✅ 契约 §1.1 不变 |
 | 26 | 两处模型重建后重渲染：360 帧 → 2.09 MB mp4，渲染期零控制台异常 | ✅ |
+| 27 | **场景写实化**：程序化贴图（木地板/墙/布纹/石材/窗外城市）+ ACES 色调映射 + PCFSoft 软阴影 + 程序化 IBL，全部运行时生成，仓库零图片资产 | ✅ 2026-10-03 |
+| 28 | 写实化后仍**零外部请求**：`grep` 扫 `https?://`／`fetch(`／`importScripts` 全为 0；`textures.js` 只 import `three` | ✅ |
+| 29 | **机器人递药改为开舱递药**：舱门对开 ~128° → 托盘前伸 0.19 m，托盘上是温水杯 + 掀盖药盒；仍是 `state` 的纯函数（`activeEventId` 驱动） | ✅ 契约 v1.4 |
+| 30 | 关键依赖未被写实化破坏：沙发座面顶仍 0.49、餐椅座面顶仍 0.47、床垫顶仍 0.54、枕头仍 z≈-2.35（person.js 反解坐/躺姿态用） | ✅ 已逐条核对 |
+| 31 | `scene2d.js` 家具坐标已同步到新 `room.js`（含餐椅 (2.6,-0.72) 座面 0.47） | ✅ |
+| 32 | 开软阴影后逐帧成本实测：约 1.34 s/帧（截图）→ 360 帧约 8 min；软阴影可一键关掉换帧率 | ⚠️ 可接受，已记入降级表 |
 
 **关于"断网刷新"的口径**：本项目用 `localhost` 静态服务器，DevTools 的 Offline 会连本地请求一并掐断，因此
 "刷新仍可用"在**这台服务器的语义下**不成立；成立的是更实质的两条：**运行期零外部请求** + **加载完成后断网仍可交互与落库**。

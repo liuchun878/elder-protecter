@@ -23,20 +23,28 @@
  */
 
 import * as THREE from 'three';
+import { fabric } from './textures.js';
 
 /* ── 配色（王阿姨：银发 · 圆眼镜 · 粉开衫）────────────────────────── */
 
+/** 开衫/衬衫/裤子给一层程序化布纹：纯色在写实光照下会「塑料感」很重 */
+const knit = (tone, repeat) => new THREE.MeshStandardMaterial({
+  map: fabric({ tone, repeat, seed: 3 }),
+  roughness: 0.94,
+  metalness: 0.0,
+});
+
 const M = {
   skin: new THREE.MeshStandardMaterial({ color: 0xf0cbab, roughness: 0.6, metalness: 0.0 }),
-  hair: new THREE.MeshStandardMaterial({ color: 0xd4d1cb, roughness: 0.68, metalness: 0.02 }),
-  hairDeep: new THREE.MeshStandardMaterial({ color: 0xbfbbb4, roughness: 0.72, metalness: 0.02, side: THREE.DoubleSide }),
+  hair: new THREE.MeshStandardMaterial({ color: 0xc6c2bb, roughness: 0.72, metalness: 0.02 }),
+  hairDeep: new THREE.MeshStandardMaterial({ color: 0xafaaa3, roughness: 0.76, metalness: 0.02, side: THREE.DoubleSide }),
   brow: new THREE.MeshStandardMaterial({ color: 0x8e8880, roughness: 0.8, metalness: 0.0 }),
-  cardigan: new THREE.MeshStandardMaterial({ color: 0xc5888c, roughness: 0.94, metalness: 0.0 }),
+  cardigan: knit(0xbe8f92, [3, 4]),
   cardiganDark: new THREE.MeshStandardMaterial({ color: 0xac757c, roughness: 0.94, metalness: 0.0 }),
   // 开衫是「开襟外壳」，正反面都要可见
-  cardiganShell: new THREE.MeshStandardMaterial({ color: 0xc5888c, roughness: 0.94, metalness: 0.0, side: THREE.DoubleSide }),
-  blouse: new THREE.MeshStandardMaterial({ color: 0xf7f0e5, roughness: 0.92, metalness: 0.0 }),
-  trouser: new THREE.MeshStandardMaterial({ color: 0x8e99a8, roughness: 0.9, metalness: 0.0 }),
+  cardiganShell: Object.assign(knit(0xbe8f92, [3, 4]), { side: THREE.DoubleSide }),
+  blouse: knit(0xf7f0e5, [4, 5]),
+  trouser: knit(0x8e99a8, [3, 3]),
   shoe: new THREE.MeshStandardMaterial({ color: 0x585560, roughness: 0.6, metalness: 0.03 }),
   sole: new THREE.MeshStandardMaterial({ color: 0x3d3b42, roughness: 0.82, metalness: 0.0 }),
   frame: new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 0.34, metalness: 0.38 }),

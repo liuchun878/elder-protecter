@@ -266,9 +266,11 @@ tasks:
     files: [prototype/js/robot.js]
     depends_on: [R1]
     acceptance: "robot.update(state, dt) 是 state 的纯函数；按 activeEventId 切换状态；外观与 unnc-sophicar/UNNC-AGV-P-1.STEP 量出的尺寸一致（442×402×807 mm，立柱 ±0.1345、驱动轮 x=±0.198、顶板 0.800）"
-    note: "v2 复刻：解析 STEP 装配体的逐级放置矩阵（并交叉用 OpenCASCADE 细分复核）量出真实尺寸，
-           改成四立柱 + 三层铝板 + 差速驱动轮 + 万向轮 + P761S 电池 + 底部发光带 + 方形升降药盘。
-           仍然只用 Box/Cylinder/Sphere/Torus，不落任何 CAD 文件或网格（红线不变）。"
+    note: "v2 复刻：解析 STEP 装配体的逐级放置矩阵（并交叉用 OpenCASCADE 细分复核）量出真实尺寸。
+           v3：底盘保留真机实测尺寸（Ø154 差速轮 / MD36 电机 / 万向轮 / 底板 / 发光带），
+           机身改为白色圆润立柱 + 正面方舱口（两扇对开舱门 ~128°）+ 前伸托盘（温水杯 + 掀盖药盒）
+           + 独立头部（颈部/摄像头/灯环）；递药动作由「顶部药盘抬升」改为「开舱递药」。
+           仍然只用 Box/Cylinder/Sphere/Torus/Extrude，不落任何 CAD 文件或网格（红线不变）。"
     cut_first: "发光环与细节 → 单个方块（功能不受影响）"
     status: done
   - id: R3

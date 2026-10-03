@@ -17,12 +17,23 @@ const ZONES = [
 ];
 
 const FURNITURE = [
-  { x: 3.35, z: 1.4, w: 0.9, d: 2.0, color: '#7fb3c8', radius: 0.1 }, // 沙发
-  { x: 0.15, z: 1.35, w: 1.0, d: 0.62, color: '#b98a5f', radius: 0.08 }, // 茶几
-  { x: -2.75, z: -1.6, w: 1.6, d: 1.95, color: '#f4f1ee', radius: 0.12 }, // 床
-  { x: 2.6, z: -2.7, w: 2.4, d: 0.6, color: '#e3d3c0', radius: 0.06 }, // 台面
-  { x: 2.6, z: -1.45, w: 1.24, d: 1.24, color: '#b98a5f', radius: 0.6 }, // 餐桌
-  { x: -2.5, z: 0.9, w: 0.62, d: 0.5, color: '#b98a5f', radius: 0.06 }, // 边几
+  // ⚠️ 这些坐标必须与 room.js 保持一致（同一人拥有这两个文件，改一处要同步另一处）
+  { x: 3.38, z: 1.4, w: 0.84, d: 2.04, color: '#8d97a1', radius: 0.1 }, // 沙发
+  { x: 0.15, z: 1.35, w: 0.92, d: 0.54, color: '#b98a5f', radius: 0.08 }, // 茶几
+  { x: -2.95, z: -1.55, w: 1.62, d: 2.02, color: '#f4f1ee', radius: 0.12 }, // 床
+  { x: -2.95, z: -2.4, w: 1.54, d: 0.12, color: '#9d7148', radius: 0.04 }, // 床头板
+  { x: -1.83, z: -2.34, w: 0.46, d: 0.44, color: '#b98a5f', radius: 0.05 }, // 床头柜
+  { x: -3.76, z: 0.28, w: 0.44, d: 1.34, color: '#b98a5f', radius: 0.05 }, // 五斗柜
+  { x: 3.13, z: -2.68, w: 1.63, d: 0.6, color: '#e3d3c0', radius: 0.06 }, // 厨房台面（主）
+  { x: 3.64, z: -1.65, w: 0.58, d: 1.44, color: '#e3d3c0', radius: 0.06 }, // 厨房台面（转角）
+  { x: 2.55, z: -1.38, w: 1.16, d: 1.16, color: '#b98a5f', radius: 0.6 }, // 餐桌
+  { x: 2.6, z: -0.72, w: 0.42, d: 0.42, color: '#8f6740', radius: 0.04 }, // 餐椅（person.js 落位）
+  { x: 1.94, z: -1.92, w: 0.42, d: 0.42, color: '#8f6740', radius: 0.04 },
+  { x: 2.58, z: -2.06, w: 0.42, d: 0.42, color: '#8f6740', radius: 0.04 },
+  { x: 3.45, z: -0.05, w: 0.48, d: 0.48, color: '#b98a5f', radius: 0.04 }, // 边几
+  { x: -3.55, z: 0.9, w: 1.7, d: 0.44, color: '#8f6740', radius: 0.04 }, // 电视柜
+  { x: 3.62, z: 2.62, w: 0.5, d: 0.5, color: '#8fbf8f', radius: 0.25 }, // 绿植
+  { x: -3.4, z: 0.2, w: 0.5, d: 0.5, color: '#8fbf8f', radius: 0.25 }, // 绿植
 ];
 
 export function createScene2D({ container }) {
