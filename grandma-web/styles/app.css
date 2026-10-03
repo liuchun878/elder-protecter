@@ -1,0 +1,145 @@
+/* =============================================================================
+ * app.css — 界面样式
+ * 设计取向：给家里的老人用，所以字号大、对比强、按钮大、面板可收起。
+ * ========================================================================== */
+
+:root{
+  --ink:#171a1f;
+  --ink2:#4d5560;
+  --line:rgba(20,22,25,.12);
+  --card:rgba(253,252,250,.92);
+  --accent:#1f5fa8;
+  --accent-soft:#e7f0fb;
+  --warm:#c8791f;
+  --radius:16px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#10141c;color:var(--ink);
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased}
+#stage{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+
+/* ------------------------------------------------------------ 控制台 */
+
+.panel{
+  position:fixed;left:16px;top:16px;width:302px;
+  padding:14px 15px 16px;
+  background:var(--card);
+  backdrop-filter:blur(16px) saturate(1.1);
+  border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 24px 60px -30px rgba(10,14,22,.65);
+  max-height:calc(100% - 32px);overflow:auto;overscroll-behavior:contain;
+  user-select:none;font-size:15px;
+}
+.panel.folded{max-height:64px;overflow:hidden}
+.panel.folded > *:not(.panel-head){display:none}
+
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.panel-head .ttl{font-size:17px;font-weight:700;letter-spacing:.02em}
+.fold{font:inherit;font-size:13px;padding:5px 10px;border-radius:9px;border:1px solid var(--line);
+  background:#fff;color:var(--ink2);cursor:pointer}
+.fold:hover{background:#f4f1ec}
+
+.cap{font-size:12.5px;font-weight:700;letter-spacing:.10em;color:var(--ink2);
+  margin:15px 0 8px;text-transform:none}
+.cap::before{content:"";display:inline-block;width:14px;height:2px;background:var(--warm);
+  vertical-align:middle;margin-right:7px;border-radius:2px}
+
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.btns.three{grid-template-columns:1fr 1fr 1fr}
+
+.panel button{
+  font:inherit;font-size:14px;color:var(--ink);background:#fff;
+  border:1px solid var(--line);border-radius:11px;padding:10px 8px;cursor:pointer;
+  transition:background .12s ease,transform .06s ease;
+  min-height:44px;
+}
+.panel button:hover{background:#f5f2ec}
+.panel button:active{transform:translateY(1px)}
+.panel button.on{background:#1d2026;color:#fbfaf8;border-color:#1d2026}
+.panel button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* 目的地大按钮 */
+.btns.dest{grid-template-columns:1fr 1fr;gap:8px}
+.dest-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:11px 12px !important;text-align:left;min-height:58px}
+.dest-btn b{font-size:15.5px;font-weight:700}
+.dest-btn i{font-style:normal;font-size:12px;color:var(--ink2)}
+.dest-btn:hover{background:var(--accent-soft);border-color:#c3d8f0}
+.dest-btn:hover i{color:#2c5c95}
+
+.stat{margin-top:15px;padding-top:12px;border-top:1px solid var(--line);
+  font-size:13.5px;line-height:1.95;color:var(--ink2);
+  font-variant-numeric:tabular-nums}
+.stat b{color:var(--ink);font-weight:700}
+
+/* ------------------------------------------------------------ 提示条 */
+
+.hintbar{
+  position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+  padding:9px 18px;border-radius:999px;
+  background:rgba(18,21,27,.72);color:#eef1f5;
+  font-size:13.5px;letter-spacing:.01em;white-space:nowrap;
+  backdrop-filter:blur(10px);pointer-events:none;user-select:none;
+}
+.hintbar b{color:#ffd79a;font-weight:700}
+.kbd{display:inline-block;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.16);
+  font-size:12px;margin:0 1px}
+
+/* ------------------------------------------------------------ 提示 / 引导 */
+
+.toast{
+  position:fixed;left:50%;top:20px;transform:translate(-50%,-14px);
+  padding:12px 24px;border-radius:14px;background:rgba(23,26,31,.92);color:#fff;
+  font-size:17px;font-weight:600;opacity:0;pointer-events:none;
+  transition:opacity .22s ease,transform .22s ease;z-index:9;
+  box-shadow:0 18px 40px -22px rgba(0,0,0,.8);
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.welcome{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:radial-gradient(120% 90% at 50% 40%,rgba(12,16,24,.72),rgba(8,10,16,.92));
+  z-index:20;padding:24px}
+.welcome.show{display:flex}
+.wcard{width:min(680px,94vw);max-height:92vh;overflow:auto;
+  background:#fdfcfa;border-radius:22px;padding:30px 32px 26px;
+  box-shadow:0 40px 90px -40px rgba(0,0,0,.85)}
+.wcard h1{margin:0 0 10px;font-size:30px;line-height:1.25;letter-spacing:-.01em}
+.wcard .lead{margin:0 0 16px;font-size:17px;line-height:1.75;color:var(--ink2)}
+.wcard ul{margin:0;padding-left:0;list-style:none}
+.wcard li{font-size:16.5px;line-height:1.9;color:var(--ink2);
+  padding-left:24px;position:relative}
+.wcard li::before{content:"›";position:absolute;left:6px;color:var(--warm);font-weight:700}
+.wcard li b{color:var(--ink)}
+.wrow{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.wcard button{font:inherit;font-size:17px;padding:12px 22px;border-radius:12px;cursor:pointer;
+  border:1px solid var(--line);background:#fff;color:var(--ink);min-height:50px}
+.wcard button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.wcard button.ghost{background:#fff}
+.wfoot{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  font-size:13.5px;color:var(--ink2);line-height:1.7}
+
+/* ------------------------------------------------------------ 大字模式 */
+
+body.big{font-size:19px}
+body.big .panel{width:352px;font-size:18px}
+body.big .cap{font-size:15px}
+body.big .panel button{font-size:17px;min-height:52px}
+body.big .dest-btn b{font-size:18px}
+body.big .dest-btn i{font-size:14px}
+body.big .stat{font-size:16px}
+body.big .hintbar{font-size:16px}
+body.big .toast{font-size:21px}
+body.big .wcard h1{font-size:34px}
+body.big .wcard li{font-size:19px}
+body.big .wcard .lead{font-size:19px}
+
+/* ------------------------------------------------------------ 窄屏 */
+
+@media (max-width:760px){
+  .panel{left:10px;right:10px;top:10px;width:auto;max-height:52vh}
+  .hintbar{font-size:12px;padding:8px 14px;white-space:normal;text-align:center;max-width:92vw}
+  .wcard{padding:24px 20px}
+  .wcard h1{font-size:24px}
+}
