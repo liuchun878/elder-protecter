@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>送药机器人 · 立项调研报告（Team 4）</title>
+<style>
+:root{
+  --ink:#1b1f24; --ink2:#3d4652; --muted:#6b7684; --line:#e3e7ec;
+  --bg:#f6f8fa; --card:#ffffff; --accent:#1a5fb4; --accent-soft:#eaf1fb;
+  --warn:#b35c00; --warn-soft:#fff5e6; --bad:#a4262c; --bad-soft:#fdecec;
+  --ok:#1a7f4b; --ok-soft:#e8f6ee;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC","Source Han Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.75; font-size:16px;
+}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px 80px}
+header.top{background:linear-gradient(135deg,#12386e,#1a5fb4 60%,#2a7ec4);color:#fff;padding:44px 0 36px;margin-bottom:26px}
+header.top .wrap{padding-bottom:0}
+h1{font-size:30px;line-height:1.35;margin:0 0 12px;letter-spacing:.5px}
+.sub{font-size:14.5px;opacity:.93;margin:0}
+.kv{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.kv span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:3px 12px;font-size:13px}
+main{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:34px 34px 44px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+h2{font-size:23px;margin:48px 0 14px;padding-bottom:10px;border-bottom:2px solid var(--line);scroll-margin-top:16px}
+h2:first-of-type{margin-top:8px}
+h3{font-size:18px;margin:30px 0 10px;color:#12386e}
+h4{font-size:16px;margin:22px 0 8px;color:var(--ink2)}
+p{margin:10px 0}
+ul,ol{margin:10px 0 10px 0;padding-left:24px}
+li{margin:6px 0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{background:#f1f4f8;padding:1px 6px;border-radius:5px;font-size:13.5px}
+strong{color:#0f2b52}
+.box{border-radius:11px;padding:18px 20px;margin:18px 0;border:1px solid var(--line);background:#fbfcfe}
+.box.accent{background:var(--accent-soft);border-color:#c6dbf7}
+.box.warn{background:var(--warn-soft);border-color:#f2d5a8}
+.box.bad{background:var(--bad-soft);border-color:#f3c9cb}
+.box.ok{background:var(--ok-soft);border-color:#bfe3cd}
+.box h3{margin-top:0}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid;margin-left:6px;vertical-align:1px;white-space:nowrap}
+.t-high{color:var(--ok);border-color:#9fd6b6;background:var(--ok-soft)}
+.t-mid{color:var(--warn);border-color:#f0cf9e;background:var(--warn-soft)}
+.t-low{color:var(--bad);border-color:#eebec0;background:var(--bad-soft)}
+.t-vendor{color:#5b3fa8;border-color:#cfc0ee;background:#f2edfd}
+.t-na{color:var(--muted);border-color:#d7dde5;background:#f2f5f8}
+nav.toc{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:16px 20px;margin:6px 0 26px}
+nav.toc ol{columns:2;column-gap:30px;margin:0;padding-left:20px}
+@media(max-width:760px){nav.toc ol{columns:1}}
+nav.toc a{color:var(--ink2)}
+.tblwrap{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;background:#fff;min-width:640px}
+th,td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+th{background:#f2f6fb;font-weight:600;color:#12386e;white-space:nowrap}
+tbody tr:nth-child(even){background:#fafbfd}
+tbody tr:last-child td{border-bottom:none}
+.num{font-variant-numeric:tabular-nums}
+blockquote{margin:14px 0;padding:10px 16px;border-left:4px solid #c6dbf7;background:#f7fafd;color:var(--ink2);font-size:15px}
+#sources ol{font-size:14px;color:var(--ink2)}
+#sources li{margin:4px 0;word-break:break-all}
+.footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.topbtn{position:fixed;right:22px;bottom:22px;background:var(--accent);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;box-shadow:0 3px 10px rgba(16,24,40,.2);opacity:.85}
+.topbtn:hover{opacity:1}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  header.top{background:#12386e !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  main{border:none;box-shadow:none;padding:0}
+  nav.toc,.topbtn{display:none}
+  h2{page-break-after:avoid}
+  .tblwrap{overflow:visible}
+  table{min-width:0;font-size:10pt}
+  a{color:#12386e;text-decoration:none}
+}
+@media(max-width:700px){
+  main{padding:22px 16px 30px;border-radius:10px}
+  h1{font-size:23px}
+  h2{font-size:20px}
+  body{font-size:15.5px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>居家老人「定时送药」产品 · 立项调研报告</h1>
+    <p class="sub">为 Vibe Coding Camp 立项工作坊 <strong>Team 4</strong> 准备 —— 三天内要交付可演示的软件原型</p>
+    <p class="sub" style="margin-top:8px">配套 Demo：<a href="../index.html" style="color:#fff;text-decoration:underline">「先吃药」可交互原型</a>（老人端 / 家属端 / 演示模式）</p>
+    <div class="kv">
+      <span>目标用户：记性不好、有吃药需求且具备独立吃药能力的居家老人</span>
+      <span>主场景：中国居家养老</span>
+      <span>时间窗：2015–2026 文献 / 2020 年至今产品</span>
+      <span>引用来源：191 条</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+<main>
+
+<nav class="toc">
+  <strong>目录</strong>
+  <ol>
+    <li><a href="#summary">给 Team 4 的结论摘要</a></li>
+    <li><a href="#academic">学界研究：依从性证据与机器人原型</a></li>
+    <li><a href="#products">业界产品：移动式 / 固定式 / 纯软件</a></li>
+    <li><a href="#users">用户与人因</a></li>
+    <li><a href="#tech">技术路线与最小闭环</a></li>
+    <li><a href="#compliance">合规与准入</a></li>
+    <li><a href="#risk">风险、失败教训与伦理</a></li>
+    <li><a href="#mvp">三天行动建议与 60 秒陈述</a></li>
+    <li><a href="#coverage">覆盖度与未答问题</a></li>
+    <li><a href="#sources">参考来源（1–191）</a></li>
+  </ol>
+</nav>
+
+<div class="box warn">
+  <strong>怎么读这份报告。</strong>
+  第一到第七节的每一句事实都带编号引用（<code>[n]</code>），编号对应文末 191 条来源，可点击。
+  凡是调研明确标为<em>未确认、低置信、厂商自述或来源相互冲突</em>的地方，本报告原样保留这些限定语，没有把它们抬成结论。
+  <strong>第八节是这份报告自曝的短板</strong>：那 34 个问题本轮从未被查，请当成待办清单用，不要当成"已确认没有"。
+  本报告主要证据来自一轮固定流程的深度调研（规划 → 4 轮并行研究 → 综合 → 对抗性评审，共 12 个问题被研究、34 个问题未被回答）。
+</div>
+
+<!-- ============ 0 ============ -->
+<h2 id="summary">给 Team 4 的结论摘要</h2>
+
+<div class="box accent">
+  <p style="margin-top:0"><strong>一句话结论：你们选的方向（送药机器人）在"记性不好但有独立吃药能力的居家老人"这个用户上，最值得做的部分不是"机器人把药拿过去"这个动作，而是"到点必达的提醒 + 家属侧可见 + 漏服升级"这条闭环；而三天内唯一现实的做法，是把它做成一个纯软件的原型，把"送到"表现为交互动作而不是物理搬运。</strong></p>
+</div>
+
+<p>这个结论不是凭直觉，它压在三条证据上：</p>
+
+<ol>
+  <li><strong>"把药物理递到人身边"相对"纯提醒"的额外依从性增益，在权威文献里没有被证实，也没有被干净证伪。</strong>根本原因是<em>不存在一项头对头 RCT</em>：最接近的三项比较（Mehta 2019 电子药瓶 vs 短信、Goldstein 2014 药盒 vs App、Broadbent 2014 机器人提醒 vs 无机器人）全是零结果 <span class="tag t-high">高置信</span>[1][2][3][4]。唯一把"居家递送"与常规照护随机对比的 EMMA-RCT 只随机了 11 例就在 2013 年因招募失败终止 [37]。反过来，结核病领域"看着病人服下"（DOT）相对自服、短信、电话<em>都没有统计学优势</em> [17][40]，无线观察治疗在剔除周末后也变成非劣 [38]。</li>
+  <li><strong>装备类干预确实有统计显著效应，但绝对增益小，而且临床上打不出来。</strong>中国唯一一项本地 RCT（147 例中老年多重用药）显示智能药箱 12 个月药片计数依从性 95.3% vs 88.4%（P=0.001），但<strong>死亡与再住院复合终点无统计学差异</strong>（调整 OR 0.69，95%CI 0.31–1.08，P=0.092）[7][8]。而且那台设备<em>只做定时声光提醒、开箱记录、漏服告警和远程报告，不出药、不递送</em>。</li>
+  <li><strong>移动机器人这条路线在你们的目标场景里有三处硬伤，且都有定量证据。</strong>家庭杂物环境下的再定位是有文献记录的失败点（终身评测中大多数算法在第 2–5 段家庭序列上"完全无法再定位"）[51]；老人人脸识别的错误方向是"把错的人认成对的人"（70 多岁组假匹配率约 5/100）[53]；中国入户养老产品"凡是带有摄像头的，一律排除"[67]。三条里任意一条都足以让三天做不完，更不用说三天之后。</li>
+</ol>
+
+<div class="box ok">
+  <h3 style="margin-bottom:8px">所以，三天该做什么、不该做什么</h3>
+  <p style="margin:6px 0"><strong>做（这才是你们的"价值可见"）：</strong>一个网页原型，闭环是 <strong>到点提醒 → 老人一键确认（或语音确认）→ 记录 → 超时未确认则自动升级通知子女</strong>。子女端能加药、设时间、看到"今天吃了几次"，老人端是大字大按钮 + 语音播报。</p>
+  <p style="margin:6px 0"><strong>不做（已被你们文档排除，且证据也支持排除）：</strong>实体机器人、机械臂、真实到点后台推送（需要服务器与账号体系）、云端多端同步、任何"确认药物真的被吞下"的宣称。</p>
+  <p style="margin:6px 0"><strong>最大的风险不是技术，是"老人不会用"。</strong>这一条有权威数据支撑（见第三节），所以原型必须从一开始就把"子女代操作 + 电话式兜底"做进去。</p>
+  <p style="margin:6px 0"><strong>一句可以直接进 60 秒陈述的核心机制：</strong>「它不负责把药放进嘴里，它负责让"该吃药了"这件事在固定时间一定到达老人，并且让子女知道到底吃没吃。」</p>
+</div>
+
+<div class="box warn">
+  <strong>诚实标注：</strong>上面这个"三天做纯软件闭环"的具体形态，<strong>是本报告基于证据给出的推断与建议，不是任何一份来源里的现成结论</strong>——本轮调研没有专门研究"三天工作坊该做什么"。证据支持的是它的边界条件（哪些机制有依据、哪些宣称没有依据），而不是这个具体设计本身。
+</div>
+
+<!-- ============ 1 ============ -->
+<h2 id="academic">一、学界研究</h2>
+
+<h3>1.1 头对头证据不存在，最接近的三项比较全是阴性</h3>
+<p>未发现「物理出药／递送到人」相对「纯提醒」的头对头 RCT。最接近的三个比较都是零结果：</p>
+<ul>
+  <li><strong>Mehta 2019</strong>（3 臂 RCT，149 例高血压，电子药瓶 vs 双向短信 vs 常规照护）：收缩压变化 −4.3 / −4.6 / −4.7 mmHg；药瓶臂 vs 对照 p=0.94，短信臂 vs 对照 p=1.00，两干预臂之间 p=0.93。结论是「药瓶与短信均未改善血压控制」[1]。</li>
+  <li><strong>Goldstein 2014</strong>（2×2 RCT，60 名心衰老人，4 种药 28 天）：药盒组依从率 80% vs 手机 App 组 76%；摘要称"收到提醒者依从率 79%，只收到被动提醒装置者 78%"。<span class="tag t-mid">单源</span><em>该研究分组定义在摘要层面存在歧义</em>，精确引用需付费全文 [2]。</li>
+  <li><strong>Broadbent 2014</strong>（29 名退休社区老人，机器人 6 周 vs 无机器人 6 周随机交叉）：机器人功能就是提醒服药，结果<strong>对依从性、抑郁、生活质量均无显著影响</strong>，且参与者对机器人能动性的感知随时间下降；17 人每天至少用一次，6 人用得不多，1 人完全不用，3 人未完成 [3][4]。这是现有材料中唯一能直接检验「机器人提醒 → 依从性」因果链的对照实验，而它是阴性的。</li>
+</ul>
+
+<h3>1.2 装备类干预有显著效应，但增益小、临床上打不出来</h3>
+<ul>
+  <li><strong>Arain 2021</strong>（居家电子配药机，50 名 ≥50 岁、≥5 种口服药老人，6 个月）：记录依从率 98.35%±2.15% vs 91.17%±9.76%（p&lt;0.01），约 <strong>7.2 个百分点</strong>。但对照组是"继续用自己原有的用药管理方式"，不是纯提醒；全因脱落 33–35%；干预组基线显著更老（63.96 vs 59.52 岁，p=0.03）；排除中重度认知损害；91 名合格者中 28 人拒绝（理由含"害怕使用技术"与试验结束后设备费用）；<strong>两组依从性还不是同一把尺子</strong>——干预组＝取出药袋的比例（并假设"取出即服用"），对照组＝自填纸质药历 [5][6]。</li>
+  <li><strong>中国智能药箱 RCT</strong>（单中心三甲医院甲乳外科，147 例中老年多重用药，干预 73 / 对照 74，中位用药 6 种）：药片计数依从性 6 个月 94.6%（95%CI 92.8–96.7）vs 90.3%（88.5–92.3），P=0.002；12 个月 95.3%（93.9–97.0）vs 88.4%（87.2–90.8），P=0.001；自评依从性 12 个月 97.2 vs 95.6（P=0.019），6 个月不显著（P=0.105）。<strong>死亡与再住院复合终点无统计学差异</strong>（12 个月调整 OR 0.69，95%CI 0.31–1.08，P=0.092）。该设备<strong>不出药、不递送</strong>。作者自述样本量 147 少于计划的约 170，且两组测量工具不同 [7][8]。<span class="tag t-high">高置信</span></li>
+  <li><strong>Bosworth 2017</strong>（240 名退伍军人，日历式泡罩分装包装 vs 仅教育）：12 个月 MPR 达标率 54.2% vs 46.6%，差 7.6%（95%CI −5% ~ 20%，P≤0.24），不显著 [9]。</li>
+  <li><strong>Checchi 2014, JAMA</strong>（电子药物包装，37 项研究／32 项随机／4326 例）：平均依从性效应量跨研究从 −2.9% 到 +34.0%，"依从患者比例"从 −8.0% 到 +49.5%。关键在亚组：10 项"仅患者界面"研究<strong>多数未发现显著改善</strong>；29 项"整合入诊疗系统"研究才常见改善。作者结论是"支持其使用的数据有限"[10]。</li>
+</ul>
+
+<h3>1.3 系统综述层面的固定模式：二分指标有效、连续指标无效、临床结局无效</h3>
+<ul>
+  <li><strong>Cochrane 2020</strong>（50 项研究／14,269 名 ≥65 岁居家多重用药老人）：行为学单独干预 RR 1.22（95%CI 1.07–1.38，4 项）、教育+行为混合 RR 1.22（95%CI 1.08–1.37，12 项）可能提高"依从者比例"；但换成连续指标（已服药物百分比）时，教育单独 SMD 0.16（95%CI −0.12~0.43）、混合干预 SMD 0.47（95%CI −0.08~1.02），<strong>可能几乎无影响</strong>。混合干预可能减少急诊／住院（RR 0.67，95%CI 0.50–0.90，11 项），但另有 6 项未能纳入 meta 的研究提示效果更小甚至为零。<strong>总体证据质量低至极低</strong>[11]。</li>
+  <li><strong>Durán-Luque 2026</strong>（48 项研究，社区 ≥60 岁、≥2 种慢病或 ≥5 种药）：MMAS-4 测量时显著（OR 1.55，95%CI 1.08–2.28，I²=32.4%）；<strong>连续指标测量时无效</strong>（SMD 0.00，95%CI −0.08~0.09，I²=2%）；中期随访再入院下降（OR 0.41，95%CI 0.25–0.69）；生活质量与死亡率无效；证据确定性极低 [12]。</li>
+  <li><strong>Chan 2022 电子依从监测 meta</strong>（47 项研究、6194 例）：总体 SMD 0.93（95%CI 0.69–1.17，p&lt;0.0001），但异质性极高（I²=86%），且<strong>效应取决于干预复杂度（p=0.01）——只有在同时配提醒和／或医护支持时才有效</strong>；81% 的研究测了临床结局，作者判读是依从性改善没有稳定转化为临床获益 [15]。</li>
+  <li><strong>Nieuwlaat 2014 Cochrane</strong>（182 项 RCT）：仅 17 项处于最低偏倚风险，其中仅 5 项同时改善了依从性与临床结局；即使最有效的干预改善幅度也不大 [19]。</li>
+  <li><strong>Scotti 2026, JAGS</strong>（128 项研究／96 项 RCT，≥60 岁）：97/128（75.8%）报告依从性改善，但<strong>没有任何单一干预类型更优</strong>；技术类干预只在"非依从由方案复杂或记忆问题驱动"时有效，由信念驱动时很可能无效；62.9% 的 RCT 被评为偏倚风险"严重"，仅 1 项为低风险 [20]。</li>
+  <li><strong>Haile 2026</strong>（35 项研究／22 项 RCT，≥65 岁）：17 项报告改善，电子提醒 3/3 有前景、社交辅助机器人 1/1 有前景，但结论是需要进一步研究使用模式与效果差异的原因 [21]。</li>
+</ul>
+
+<h3>1.4 反向证据：物理"看着服下"并不优于自服</h3>
+<p>这一组最直接地反驳"递送到人／见证服下 = 有效成分"：</p>
+<ul>
+  <li><strong>Duan 2026 网络 meta</strong>（29 项 RCT、17,800 名结核患者）：数字健康干预总体上优于直接面视督导治疗（DOT）（RR 1.03，95%CI 1.00–1.07）；<strong>DOT 相对服药事件提醒器、单向或双向短信、电话均无统计学优势</strong>；视频督导治疗在治疗成功与依从性两个排名中都最高，且显著优于 DOT（RR 1.18，95%CI 1.02–1.37）[17]。</li>
+  <li><strong>Karumbi &amp; Garner 2015 Cochrane</strong>：DOT vs 自服，治愈 RR 1.08（95%CI 0.91–1.27；5 项试验、1645 例）、完成治疗 RR 1.07（95%CI 0.96–1.19；6 项、1839 例），均为中等质量证据；家庭观察 vs 机构观察无差异。作者认为既往观察到的小效应很可能来自<strong>接触频次的混杂</strong>而非"观察"本身，结论是"DOT 未能解决依从性问题"，并建议政策制定者重新考虑依赖直接观察的策略 [40]。</li>
+  <li><strong>Browne 2019 WOT</strong>（61/77 例随机，2:1 无线观察治疗 vs 最大强度面视 DOT）：ITT 确认服下 93% vs 63%（p&lt;0.001）；但剔除周末／节假日与暂停给药日后为 <strong>95.6% vs 92.7%（p=0.31，差 2.8%，95%CI −1.8~9.1）</strong>，即非劣。摄入检测正检准确率 99.3%（95%CI 98.1–100）[38]。</li>
+  <li><strong>Story 2019 VOT</strong>（226 例随机）：主要结局完成率 70% vs 31%（调整 OR 5.48，95%CI 3.10–9.68，p&lt;0.0001）；但初始参与率 90% vs 49%，限定在已参与人群后差距收窄到 77% vs 63%（调整 OR 2.52，95%CI 1.17–5.47）；进一步要求"视频中确实看见药物服下"的敏感性分析<strong>失去显著性</strong>（67% vs 63%，调整 OR 1.44，95%CI 0.75–2.75，p=0.273）[39]。</li>
+  <li><strong>Manyazewal 2022 SELFTB</strong>（埃塞俄比亚，114 例随机 57/57）：几何均值依从率 99.01%（GSD 1.02）vs 98.97%（GSD 1.04），均值比 1.00（95%CI 0.99–1.01），p=0.954。但对照组 57 人中有 29 人（52.6%）要求带药回家，把 3420 次应现场服用的剂量中的 1004 次（29.4%）带回家；若把这些一律计为未服用，对照组 GM 掉到 77.71%，均值比翻转为 1.27。作者自己说无法判断依从性来自"允许自服"还是来自设备的依从支持 [41]。</li>
+</ul>
+
+<h3>1.5 规模最大的两项结核整群 RCT：智能药盒零效果</h3>
+<ul>
+  <li><strong>Lancet 2025 四国研究</strong>（菲律宾、南非、坦桑尼亚、乌克兰；ITT 23,483 例、220 个整群）：主要复合不良结局在各臂之间无差异（菲律宾调整 OR 1.13，95%CI 0.72–1.78，p=0.59；南非 1.19，0.88–1.60，p=0.25；乌克兰调整 RR 1.15，0.83–1.59，p=0.38）。作者结论：「数字依从技术未减少所研究四国的不良治疗结局」。药盒臂还发生 2 起<strong>因无意泄露治疗状态造成的社会伤害</strong>事件 [26]。<span class="tag t-high">高置信</span></li>
+  <li><strong>Lancet Digital Health 2025 埃塞俄比亚</strong>（3858 例药物敏感结核、78 家机构、12 个月）：主要复合结局调整 OR 1.04（95%CI 0.74–1.45），调整风险差 0.96 个百分点（95%CI −1.19~3.11），对不良结局与失访均无效果 [27]。</li>
+</ul>
+
+<h3>1.6 唯一直接随机化了"送到家"的试验：因招募失败终止</h3>
+<p><strong>EMMA-RCT</strong>（匹兹堡大学，INRange Systems 电子用药管理助手）是唯一被找到的、把"居家药品递送"与常规照护随机对比的 RCT：<strong>仅随机 11 例（7 干预 / 4 对照）即于 2013-02-28 终止</strong>（理由"低入组"），结果 2016-08-26 首次公布。其入组条件本身就是路线可行性的清单：必须有非正式照护者、必须住在 UPMC Presbyterian 周边 6 县、排除痴呆／谵妄／法定失明、排除无法演示正确使用设备者、必须家中有 AT&amp;T 无线覆盖，配送仅限工作日、6 小时窗口内，且处方只能以特定尺寸和形状的固体药装入设备要求的泡罩卡 [37]。<strong>这是"递送 vs 基线"这个问题尚未被试验解决的最强证据，而不是递送无效的证据。</strong></p>
+
+<h3>1.7 测量学：装置记录 ≠ 服下，这是所有结论的天花板</h3>
+<ul>
+  <li>北京 30 社区整群 RCT（ChiCTR-ICR-2200060359，216 例精神分裂症或双相障碍）：数字药物监测器（声音提醒、实时记录、向家属和医护推告警）vs 在线服药日记，12 个月 84/108 vs 23/108 依从，调整风险差 52.34 个百分点（95%CI 34.65–70.03）；<strong>但主要结局是自评依从性，试验非盲</strong>。该文自述：「目前没有测量依从性的金标准，因为没有任何测量能直接确认药物摄入」[18]。</li>
+  <li>装置类试验普遍存在"干预组用装置日志、对照组用别的尺子"的问题（中国智能药箱 RCT、加拿大 MDS 试点均如此）[6][7]。</li>
+  <li>40 名 MCI／轻度痴呆老人电子监测 8 周：20% 依从性不佳（&lt;80% 监测日）<strong>而自评依从性很高</strong>，53% 对自己结果感到意外 [46]。32 对 MCI／痴呆患者-照护者质性研究中，中度痴呆者由照护者承担全部用药责任，但<strong>居住分离时照护者只设置药盒并打电话提醒，并不观察服药</strong>；角色交接"常常发生在照护者观察到老人用药出错之后"[47]。</li>
+  <li>独立证据：309 名社区心衰患者（平均 68.7 岁，无痴呆诊断）用电子药盒客观测量 21 天，校正人口学、临床与心理社会变量后，<strong>记忆仍是依从性的显著预测因子</strong>（β=0.51，P=0.008）[48]。<span class="tag t-high">高置信</span></li>
+</ul>
+
+<h3>1.8 非装置的低成本提醒也被证否</h3>
+<p><strong>REMIND</strong>（53,480 名 CVS Caremark 参保人，基线 MPR 30–80%，4 臂整群随机）：12 个月 MPR≥80% 达标率 15.5%（标准药盒）／15.1%（数字计时瓶盖）／16.3%（带拨片药瓶条）／15.1%（对照），<strong>均与对照无显著差异</strong>。作者结论：「低成本提醒装置未能改善非依从患者的依从性」[36]。</p>
+
+<h3>1.9 一个相反信号（样本太小，不能采信）</h3>
+<p>4 臂试点 RCT（Surbhi 2025，n=42，3 个月，美国低收入出院成人，平均 51.1 岁）：常规照护 69.5%、全额补贴 64.2%、<strong>床边+居家递送 59.3%</strong>、补贴+递送 87.5%，p=0.20。物理递送单独一项反而比常规照护低约 10 个百分点。<strong>这个方向性信号与"递送有益"的直觉相反，n 太小无法判读，报告在此保留冲突。</strong>[16]</p>
+
+<h3>1.10 送药／护理机器人的学术原型</h3>
+<p>这一类比产品宣传更有信息量——<strong>在能完整核实技术细节的原型中，没有任何一个用独立传感确认药物真的被吞下</strong>。</p>
+<ul>
+  <li><strong>RAMCIP</strong>（EU H2020，面向 MCI 患者）：用药用例是"提醒、bringing、监测"——自主导航移动、升高机构取高处物品、用灵巧手把药盒取给用户。人因评测在波兰卢布林医科大学神经内科进行（2016-12 至 2017-03），18 名老人（10 健康、8 MCI），每人至少两轮 7 个预设场景。结果：吸引力与社会影响评分为正，但<strong>"由于交互时间短，可用性被评为中性"</strong>，效率子分极低（UEQ 效率中位数 0.75 健康 / 1.0 MCI，量表 −3~+3）[54][55]。</li>
+  <li><strong>WPI Pepper 系统（2025）</strong>：2D SLAM + RealSense D435if 深度转虚拟激光 + AMCL + move_base + YOLOv11 + GPT-4o 与 Whisper，并<strong>额外加装 NVIDIA Jetson Orin NX，因为 Pepper 自带算力与深度感知不足</strong>。机器人<strong>不携带也不出药</strong>：走到预设感兴趣区域、检查药瓶在不在、注视并指向、口述引导（"打开瓶盖"→"服用处方数量"→"喝水"），每步要求用户明确确认。验证程度：大学实验室形成性可用性研究，<strong>N=12 名 18–64 岁健康成人（9 人 20–30 岁），无老年人、无痴呆患者</strong>。NASA-TLX 20.24/100（仅语音）vs 13.89/100（语音+手势+导航）；SUS/QUIS 复合 83.10（95%CI 70.39–95.82）。失效模式：ROI 脆弱（YOLO 没检出就"去下一个 ROI"，遍历完即止，无兜底）；唯一一致的可用性抱怨是平板 Start/Stop 按钮"需要重新设计以确保直觉操作，尤其对认知损害用户"[57]。</li>
+  <li><strong>MediTrack（2026）</strong>：Arduino + 红外循迹 + 超声波避障 + RTC 定时 + 舵机出药 + 蜂鸣器 + LCD。验证明确限定在"受控室内环境"，<strong>无老人被试、无家庭或机构部署</strong>[58]。</li>
+  <li><strong>Hobbit</strong>（EU FP7，TU Wien）是最接近"自由家庭服务机器人"的现场试验：3 周试验、三个欧洲国家的真实住宅、无预设任务清单，功能含导航、地面物品抓取、紧急处理、娱乐、健身、通讯——<strong>其功能不含携带或分发药物，最接近的只是提醒</strong>[63]。</li>
+  <li><strong>跨原型的共同结构性弱点</strong>：确认机制分别是（a）取出／收到已分发的药袋＋远程监护（芬兰配药机）、（b）用户对最后一步的口头／触屏确认（WPI Pepper）、（c）完全不确认（MediTrack）[56][57][58][59][60]。</li>
+</ul>
+<p>与"递送"最相关的服务过程证据来自<strong>芬兰居家配药机</strong>（Rantanen 2017 两阶段研究，分发单剂量药袋）：阶段一养老院 17 例、457 个装置日，97.7% 的提醒按时取到药袋、无漏服；阶段二 3 个站点居家照护患者 27 例、727 个装置日，99% 的提醒完成分发与取用；阶段二 78% 独居，基线 23% 自述记不住服药、18% 每周漏服 ≥2 次；全部患者与 96% 的护士评价易用。确认方式是"记录药袋被取用"+ 实时逐次监测 + 漏服时通知服务方——<strong>是取用代理，不是独立吞咽感知</strong>[56]。Kajander-Unkuri 2023（NCT05908604）报告上门访视总量下降 89.4% 与 92.4%，用药管理总工时从 54.2 分钟降到 34.9 分钟（约 19 分钟，p&lt;0.001）[59]。但 Turjamaa 2023 访谈 38 名老年居家照护客户明确写道，<strong>关于该机器人是否影响用药事故与依从性的研究尚未开展</strong>[60]；2025 年混合方法系统综述总共只找到 <strong>6 项合格研究</strong>（3 质性、2 定量、1 混合方法），全部来自瑞典、芬兰、美国 [61]。一项文献计量分析显示，以 tablet/medicine/pill dispenser 为关键词（1997–2023）的 79 条记录筛后只剩 40 条，篇均被引 5.35 次，<strong>中国总被引 3 次</strong>[62]。</p>
+
+<h3>1.11 唯一相关的人工智能／口音层面数据</h3>
+<p><strong>SeniorTalk</strong>（202 名 75–85 岁说话人，16 省，55.53 小时，60,029 条话语）：从零训练 Transformer 的 CER 48.99%、Conformer 34.61%、E-Branchformer 33.25%；按口音强度，无口音 22.58%、轻度 49.05%、中度 51.07%、<strong>重度 80.95%</strong>；预训练模型零样本 <strong>Whisper-large-v3 57.74%、Whisper-tiny 92.20%，Whisper 全系列零样本 CER 均 &gt;50%</strong>。该数据集论文批评既有语料年龄门槛过低（多数为 55 岁），而 WHO 将 75+ 归为晚期老年期 [157]。<span class="tag t-mid">单源</span></p>
+
+<!-- ============ 2 ============ -->
+<h2 id="products">二、业界产品</h2>
+
+<h3>2.1 移动式送药／护理机器人：都只做到"送到身边 + 语音提醒"</h3>
+<div class="box bad">
+  <strong>截至 2026 年 10 月，每一个"送药"移动机器人都只做到"按时把药送到人身边 + 语音提醒"，没有一个在公开可核查的官方材料里宣称或证明能确认老人把药吞下去。</strong>能做到"机器侧发放 + 记录"的全部是固定式设备。
+</div>
+<div class="tblwrap">
+<table>
+<thead><tr><th>产品</th><th>厂商 / 国别</th><th>状态与价格</th><th>绑定特定老人</th><th>能确认服药</th><th>需人工装药</th></tr></thead>
+<tbody>
+<tr><td><strong>小西</strong>（四足机器狗，背药箱版）</td><td>西湖机器人科技（杭州）／中国</td><td>2024-10 首个商业化产品；2025-02 杭州西湖区古荡街道古南社区金秋养老家园试点；<strong>无公开售价</strong>，企业称"市场售价目前还未确定"，商务经理称"目前只是针对 G 端和 B 端"，目标"再等三到五年正式进入家庭"</td><td>是（自主建模后"精确到老人的房间号"）</td><td><strong>否</strong>（仅"语音提醒对方取药、服药"）</td><td>是</td></tr>
+<tr><td><strong>傲天 U1</strong></td><td>西湖机器人／中国</td><td>2025 年广交会展示；目录收录 2026-01-29；未公开价</td><td>是（"记住每个老人的房间，响应'送药'等语音指令"）</td><td><strong>否</strong></td><td>是（无发药机构）</td></tr>
+<tr><td>AI 生活照护机器人</td><td>영현로보틱스／韩国</td><td>2025-06 光州展出、2025-09-30 首尔 Smart Life Week 演示；<strong>展会／演示阶段</strong>，无价格、无独立产品页、无第三方评测</td><td>未说明</td><td>未宣称</td><td>未说明</td></tr>
+<tr><td><strong>kachaka Pro</strong></td><td>Preferred Robotics（川崎）／日本</td><td><strong>在售</strong>，法人向，全部型号标"オープン価格"（需询价）。宽 24cm×深 38.7cm、本体 12.2kg、硬地板最大牵引 30kg、可通行最小 55cm 通道</td><td>否（按目的地／家具点位搬运）</td><td>否</td><td>是</td></tr>
+<tr><td><strong>Hyodol</strong>（효돌）</td><td>㈜효돌／韩国</td><td><strong>在售、已规模部署</strong>：截至 2025-11 向全国独居老人普及 <strong>1.2 万台以上</strong>（主要经公共福利项目，约 1000 台由家属自购），最新机型 <strong>130 万韩元/台</strong>。<span class="tag t-mid">价格口径冲突</span>另一媒体口径为 160 万韩元/台，无法判断是机型差异、涨价还是转述误差</td><td>是（一人一台，放老人家中）</td><td><strong>否</strong>（只鼓励服药、不递送药物）</td><td>不适用</td></tr>
+<tr><td>Luvozo SAM</td><td>Luvozo／美国</td><td>$15,000（第三方数据库），<span class="tag t-mid">中置信</span>厂商官网被拦截</td><td>是</td><td>否（<strong>且无送药功能</strong>）</td><td>不适用</td></tr>
+<tr><td>Catalia Health Mabu</td><td>Catalia Health／美国</td><td>"$8,000"（第三方数据库）；RobotsGuide 记"患者免费，机构按人头付费"，状态 <strong>Unknown</strong></td><td>是</td><td>否（只"提醒服药 + 上报依从性数据"）</td><td>不适用</td></tr>
+<tr><td>ElliQ 2.0</td><td>Intuition Robotics／以色列</td><td>在售；第三方数据库 $350；媒体口径月费 $40 订阅（原文在付费墙后）</td><td>是</td><td>否</td><td>不适用</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>中国采购侧的买方规格书写的是提醒而不是发药：</strong>一份 2026 年政府采购文件在「AI 巡房机器人」技术参数中把用药能力写为"包含定时巡逻、查房拍照、跌倒检测、紧急呼救、远程分身、自动回充、智能提醒（含用药提醒）"——即招标要求的是巡房与提醒。<span class="tag t-mid">仅经搜索索引读到该段，未打开原 PDF</span>[123]</p>
+<p><strong>范围澄清</strong>：Diligent Robotics（Moxi）主战场是院内药房到病区的最后一英里，不计入本表；医院院内物流机器人不在本报告范围 [138]。<strong>价格量级锚点（厂商口径，仅供参考）</strong>：一篇 2026-04-20 的供应商侧稿件称"配送机器人单台价格普遍在 2.89 万元至百万元以上"，工业级中高端多在 6 万–18 万元。这是内容营销，只能作量级参考 [137]。</p>
+
+<h3>2.2 固定式智能药盒与自动配药机：订阅制、买断制，与已经死掉的公司</h3>
+<div class="tblwrap">
+<table>
+<thead><tr><th>产品</th><th>厂商 / 国别</th><th>价格与模式</th><th>状态</th></tr></thead>
+<tbody>
+<tr><td><strong>Hero</strong></td><td>Hero Health（美）</td><td><strong>只租不卖</strong>：月付 $59.99；年付按月扣 $44.99/月；年付一次性 $359.88（合 $29.99/月）；含 30 天试用退款保证；FSA/HSA 可用。另有「Remote Care Program」经 Medicare 认可的远程照护项目供应，最低"$0"，但要求每月虚拟临床随访并使用 Hero 追踪依从</td><td>在售。<strong>取消订阅须退回设备；第三方或二手渠道购入的设备不予支持、无法激活或维修</strong></td></tr>
+<tr><td><strong>MedaCube 2.0</strong></td><td>PharmAdva, LLC（美）</td><td><strong>一次性买断</strong>：$2,499（1 年保修）／$2,899（2 年综合保修），划线价 $3,199／$3,699；带 USAT 的 SKU 为 $2,299／$2,699。宣称可存 16 种药、最多 90 天量，16 个标准药仓</td><td>在售</td></tr>
+<tr><td><strong>LiviPod</strong></td><td>FES International（泰）</td><td><strong>一次性买断、明确无订阅</strong>：3 个 pod 的 Starter Set $293；单个 Expansion Pod $89（<strong>一个 pod 只装一种药</strong>）；Base Station $149（不可售）；10 pod 基站套装 $1,299（不可售）。基站最多容纳 10 个 pod，需用户／照护者手动装药</td><td>部分 SKU 在售、部分标注不可售</td></tr>
+<tr><td><strong>Pillo / Pria</strong></td><td>Pillo Health（美）→ Stanley Black &amp; Decker</td><td>存档站横幅：「<strong>Pillo Health 已于 2020 年被 Stanley Black &amp; Decker 收购，Pillo Health 已不再是活跃公司</strong>」。设备能力：单用户 28 剂药柜、人脸识别或 PIN 门控、传感确认发药、检测药杯被取走、9×5 显示屏、语音优先</td><td><strong>已终止</strong>：okpria.com 2026 年已无法解析</td></tr>
+<tr><td>Philips/Lifeline 配药服务</td><td>Philips</td><td>无公开价格</td><td><strong>消费者入口已改道 B 端</strong>：消费者 URL 302 重定向至 /business/。是否正式停售未能确认</td></tr>
+<tr><td>MedMinder（Maya）</td><td>Medminder Systems（美）</td><td><strong>无公开价</strong>：/pricing/ 为 404</td><td>在售（机构／支付方导向）</td></tr>
+<tr><td>TabSafe / LiveFine</td><td>多国</td><td>第三方目录列价</td><td><strong>未能确认可购路径</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>产品形态上的一个真实分歧</strong>：MedaCube 营销称"最多 90 天量"，而一份第三方规格表似乎把竞品列为"药格数：29"。本报告不接受"90 天"作为与药仓数同口径的可比数字，因为"天数"取决于每日剂数与药片体积 [102]。</p>
+
+<h3>2.3 中国市场的价格带</h3>
+<ul>
+  <li><strong>「提醒药盒」是一个真实且体量不小的低端市场</strong>：京东分类页有数十个 SKU、评论数上万（绿迪 2 万+、folca 电子定时盒 1 万+、果实健康 2 万与 1 千+）。<strong>但在读过的京东分类页与商品详情页中，没有任何一个可核实的人民币价格</strong>——页面价格由客户端渲染，且页内"价格说明"明确"商品的具体售价以订单结算页价格为准"[113]。</li>
+  <li><strong>可核实的中国消费级价格点只有两处</strong>：① 果实健康／HiPee（天津果实科技）2019-03 小米平台众筹 ¥119，2019-06 小米有品开卖 ¥149；规格为大药仓"至少可装 80 粒普通胶囊"、分格 LED、三层提醒、漏服两次重复提醒——<strong>这是开盖式提醒盒，不是自动出药机</strong>[108][109]。② 2026-09 北京日报实地走访：银发门店货架上一款智能药盒标价 <strong>¥3,900</strong>，而同店"什么额外功能都没有的普通药盒通常只要几十元"。<strong>该 ¥3,900 药盒没有厂商名、型号或购买渠道。</strong>同报道引华东政法大学调查（沪苏浙 77 个点位、1,190 份问卷）：15.91% 的老年受访者曾因科技产品消费纠纷，放弃维权者中 52% 称时间精力成本、37% 称投诉流程复杂、29.56% 称"不懂流程／不会操作"[114]。</li>
+  <li>另一个可核价的中国在售固定式产品：深圳市人人壮科技「盒家安康」智能药盒，功能为定时服药提醒／实时语音通话／遇险紧急呼叫／服药记录统计，标价 <strong>¥698 起／¥798 起</strong>。这是提醒型药盒，<strong>但给出了中国居家养老药盒品类的在售价格带（数百元）</strong>[139]。</li>
+  <li>二手聚合信息（什么值得买，标注 AIGC 生成、列出 20 个来源）称"月销过万都是十元机"，并称具备开盖记录与蓝牙同步的基础款整机硬件成本可控制在"约 25 元"、STM32 方案 BOM 目标 ¥180 以内。<strong>这些数字来自二手 AIGC 聚合，不得用于成本模型。</strong>[115]</li>
+  <li><strong>院内（非家用）自动摆药／分包设备的中国成交价是公开可核的</strong>，可作价格量级参照：太仓市中医院 1 台蓝影 LY-FB04 全自动片剂摆药机 <strong>¥518,000</strong>（2026-01-06 中标）；天长市人民医院 1 台蓝影 LY-FB-300 药品分包机 <strong>¥550,000</strong>（2026-07-18 中标）；泰顺县中医院 1 批全自动片剂摆药机 <strong>¥751,450</strong>。即 2025–2026 年中国单台自动片剂摆药／分包设备的机构价格带约 <strong>¥50–75 万</strong>[110][111][112]。</li>
+</ul>
+
+<h3>2.4 纯软件用药管理产品（对照基线）</h3>
+<p>本轮对"纯软件"这一层的证据不如硬件层充分，这里只写能确证的边界：固定式与移动式产品在功能上被验证的"最小功能集"是<strong>定时提醒、用药计划、打卡／取药记录、漏服告警、家属或医护侧可见的报告</strong>——这恰好就是软件层能独立完成的部分 [7][8][56]。国外主流产品的收费模式以订阅为主（如 Hero 的月付／年付结构 [101]），中国市场的消费级均价落在数百元买断区间 [139]。</p>
+<div class="box warn"><strong>未答项：</strong>本轮没有专门研究 Medisafe／MyTherapy／Round Health 等纯软件 App 的用户量与下载量、也没有完成"如果只能做三条功能，哪三条是必备项"的证据核对。<strong>这是第八节列出的未答问题之一，请勿把上面的最小功能集当作该问题的答案。</strong></div>
+
+<!-- ============ 3 ============ -->
+<h2 id="users">三、用户与人因</h2>
+
+<h3>3.1 规模与能力边界</h3>
+<ul>
+  <li>《老年人多重用药评估与管理中国专家共识（2024）》：我国 60 岁及以上老年患者<strong>多重用药率 70.8%</strong>，每日平均服用药物 <strong>8.6 种</strong>，药物不良反应发生率 29%；北京市 80 岁及以上老年人多重用药比例 64.8%，安徽省 82.4%。共识明确依从性差的主要表现是"<strong>误服、忘服以及随意增减药物种类或剂量</strong>"。<span class="tag t-mid">原数字在共识中标注为参考文献[1]，本报告未能追溯到一手来源</span>[142]</li>
+  <li>中国老年患者多重用药（&gt;5 种）合并患病率 <strong>48%</strong>（95%CI 0.17–0.79；住院 73%、门诊 23%），不适当用药（PIM）合并患病率 39%（95%CI 0.25–0.54）。基于 8 篇文献、4,558,786 例 [143]。</li>
+  <li>泸州农村 100 名 ≥60 岁老人：多重用药（≥3 种）72%；<strong>47% 改变服药时间或漏服</strong>，37% 自行调整剂量，24% 未经诊断自行购药；仅 43% 就剂量与注意事项咨询过药师；教育 &lt;7 年者不安全用药行为更多（p=0.014）；100 份门诊病历中仅 2% 处方合理、12% 含 PIM [144]。</li>
+  <li>中国 12 省市 16 家三甲医院门诊 773 例 ≥65 岁共病+多重用药患者：<strong>自报用药不依从率 31.8%</strong>（VAS）[145]。</li>
+  <li><strong>漏服与重复服药由不同 MCI 亚型驱动</strong>（MMAA 模拟服药任务，n=266）：多域 MCI 组"遗漏错误"显著多于其他组，但各组"多吃药"错误无差异；单域遗忘型 MCI 比认知正常者更多出现 perseveration 错误（同一次剂量重复服 ≥2 次）[146]。<span class="tag t-high">高置信</span></li>
+  <li>卒中后 5 年随访（n=108）：认知损害患病率 35.6%，不依从率按药类 15.1%–30.2%；<strong>认知损害者接受他人协助服药的可能性显著更高（aOR 4.84，95%CI 1.17–20.07）</strong>[147]。</li>
+  <li>中国 MCI 总患病率 <strong>19.6%</strong>（95%CI 17.7–21.6%），基于 139 项研究、393,525 名 ≥40 岁人群；按场景分医院 61.7%、社区 25.3%、养老机构 16.1% [148]。中国 ≥60 岁人口约 2.8 亿，60 岁及以上总体痴呆患病率 6.0%，约 1,507 万痴呆患者，占全球约四分之一 [151]。</li>
+  <li><strong>感官与操作能力</strong>（CHARLS 2011–2018 自报）：在该研究视听共残（DSI）人群中，IADL「自行服药」有困难者在各波次占 <strong>10.52%–16.34%</strong>（2018 年 16.34%）[149]。2006 年全国第二次残疾人抽样调查（n=250,752）：75–&lt;85 岁老人视力残疾患病率 12.86%、听力残疾 21.37%、视听共残 3.79%。<span class="tag t-low">数据已近 20 年，仅可作量级参考</span>[150]</li>
+  <li><strong>语音交互在老人身上有量化失败率</strong>：见 1.11 节 [157]。</li>
+</ul>
+
+<h3>3.2 照护者负担</h3>
+<ul>
+  <li>浙江 11 家四星级养老院 541 名受雇照护者（2022 年 4–12 月）：ZBI 总分 40.42±10.18（中度负担）；<strong>97.0% 报告存在照护负担</strong>；1 名照护者平均照护约 4 名痴呆患者，96% 每日工作 ≥12 小时，<strong>53.6% 未接受痴呆照护培训</strong>[151]。</li>
+  <li>中国 122 例老年慢性病患者主要照顾者：ZBI 总分 35.60±15.67（轻度负担区间）。<span class="tag t-low">该研究未把"用药管理"单列为负担子维度</span>[152]</li>
+  <li><strong>一个明确的数据空白</strong>：本报告未能找到任何把"喂药／用药管理"作为独立负担维度计分的中文研究，也未能找到中国老人手部灵巧度与"开瓶、分药、取药"逐项能力测量的量化关联数据 [151][152]。</li>
+</ul>
+
+<h3>3.3 老人对机器人形态的接受度</h3>
+<ul>
+  <li><strong>上海 895 名 ≥60 岁社区老人</strong>（589 名无机器人使用经验者进入分析，平均 68.6±7.5 岁）：<strong>57.3% 愿意使用家用照护机器人，42.7% 不愿意</strong>。"对机器人的熟悉度"与"期望的功能"均与使用意愿<strong>无关</strong>；意愿更高者特征为：对机器人伦理使用持开放态度、看重便利/经济性、较不看重保密性与身边亲近之人的意见。教育水平与月收入越高意愿越高 [155]。</li>
+  <li><strong>任务分层偏好</strong>（12 名独立居住老人，68–79 岁，平均服药 5 种，Georgia Tech Aware Home，PR2 移动操作机器人递送药瓶，约 2.5 小时实验室体验）：偏好机器人（而非人）提醒服药（Z=2.33，p&lt;0.05）；"决定吃哪种药"显著偏好人协助（Z=2.33，p&lt;0.05）；"把药送过来"演示后不再偏好人类（Z=1.99，p&lt;0.05）但也不显著偏好机器人（Z=1.00，p&gt;0.05）；<strong>"喂药／协助服下"显著偏好人协助（Z=2.11，p&lt;0.05）</strong>。全部 12 人倾向机器人递送<strong>整瓶药</strong>而非单粒药。7/12 认为速度太慢，8/12 接受 10 cm/s 接近速度。<span class="tag t-low">局限：n=12、无认知损害老人、仅约 2.5 小时实验室体验、未与固定药盒做对照</span>[156]</li>
+  <li><strong>一个明确的空白</strong>：本报告<strong>未能找到任何针对中国大陆或东亚的"固定式智能药盒／自动配药机"接受度实证研究</strong>（问卷或 UAT），也<strong>不存在</strong>任何在同一研究内对"移动机器人 vs 固定药盒"做头对头偏好比较的公开文献 [156]。</li>
+  <li><strong>摄像头是一道独立于算法精度的障碍</strong>：2026-09 北京晚报、北京老龄产业协会与北京市科学技术研究院联合调查的报道记录，街道与社区在挑选入户产品时"凡是带有摄像头的，我们一律排除"，并称市面主流居家养老监测产品"基本不带摄像头，行业普遍优先采用无感监测技术"。安装阻力数据：某试点向 47 户高龄未监控家庭提供免费智能监测设备，5 户起初拒绝、1 户始终未接受；另一街道筛选 170 余合格家庭仅 140 户安装、30 余户拒绝，其中包括一位 80 多岁独居老人同意数日后反悔。机器人厂商森丽康（小丽机器人）刻意避免人形面孔与人声音色，其产品负责人称摄像头仅用于感知、不录像不存储 [67]。<span class="tag t-high">高置信（对"能不能装摄像头"这一决策）</span></li>
+</ul>
+<div class="box warn"><strong>对 Team 4 的直接含义：</strong>你们的用户定义里写了"<strong>具备独立吃药能力</strong>"，这是一个聪明的边界——它恰好避开了"协助服下"这个老人<em>显著偏好人类</em>的动作 [156]。三天原型的交互设计应当把"确认"做成老人自己的一步操作，而不是替老人做决定。</div>
+
+<!-- ============ 4 ============ -->
+<h2 id="tech">四、技术路线与最小闭环</h2>
+
+<h3>4.1 两条路线的同表对比</h3>
+<div class="tblwrap">
+<table>
+<thead><tr><th>维度</th><th>路线 A：移动递送机器人</th><th>路线 B：固定式配药机 / 智能药盒</th></tr></thead>
+<tbody>
+<tr><td>依从性增量证据</td><td><strong>无</strong>任何 RCT（唯一随机化"送到家"的 EMMA-RCT 因低入组在 n=11 终止）[37]；机器人提醒的对照实验为阴性 [3]</td><td>中国单中心 RCT 药片计数 12 个月 +6.9 个百分点（95.3% vs 88.4%，P=0.001），临床复合终点不显著 [7]；加拿大试点 +7.2 个百分点 [5]；两臂测量工具不同</td></tr>
+<tr><td>老年可用性</td><td>任务分层：递送不再偏好人类但不显著偏好机器人；<strong>"喂药/协助服下"显著偏好人</strong>（n=12）[156]</td><td>MedReady 自动配药机 SUS <strong>28.63</strong>，显著低于简单提醒器（78.67）；平均 12.7 步、15.19 分钟完成设置，<strong>仅 55.3% 能完全无协助完成</strong> [13]</td></tr>
+<tr><td>认知障碍目标人群</td><td>世界范围内无 MCI 递送机器人可用性试验（RAMCIP 有 8 名 MCI 的半受控评测，效率子分极低）[55]</td><td>厂商自己声明：<strong>无法自行校验每剂准确性的认知障碍者不得使用</strong>（除每次有可信人员校验）[68]</td></tr>
+<tr><td>现场失效数据</td><td>无家庭场景差错率数据；只有导航失败率的间接证据（家庭序列再定位"完全失败"）[51]</td><td>79 条 MAUDE 报告 + 3 条死亡报告（均未归因于器械）；滤网堵塞、NIB 倒折、双倍剂量为已记录机制 [68]；长期持续使用率 1 年 68.3%、2 年 51%（厂商雇员研究）[33]</td></tr>
+<tr><td>单机价格锚点</td><td>中国配送机器人厂商口径 2.89 万至百万元级 [137]；思岚 Apollo 底盘批量"2 万余元" vs 单台挂牌 ¥4.5 万 [161][162]</td><td>中国在售提醒药盒 ¥119／¥149／¥698 起 [108][109][139]；门店高端联网药盒货架价 ¥3,900（无厂商名）[114]；院内自动摆药机 ¥50–75 万 [110][111][112]</td></tr>
+<tr><td>合规归属</td><td>无器械品目；"移动机器人"本身不触发类别，取决于预期用途 [74][95]</td><td>07/14 子目录无对应品目；分类界定结果汇总中 0 例；药包材不按医疗器械管理 [76][77][81][82][83]</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>4.2 路线 A 的三处硬伤（都有定量证据）</h3>
+<ol>
+  <li><strong>家庭杂物环境的再定位是有文献记录的失败点。</strong>OpenLORIS-Scene 是最贴近中国室内服务机器人的定量基准：商用 Segway Deliverybot S1 + RealSense D435i + T265 + Hokuyo UTM-30LX，采集 5 个真实室内场景（含两居室家庭）。论文原文的关键句：在终身评测中<strong>"大多数算法在第 2–5 段家庭序列上完全无法再定位"</strong>，且家庭场景的可接受 ATE 阈值被设为 <strong>3 米</strong>（办公室为 1 米）[51]。受控因素再定位评分中，在隔离"视点变化""光照变化""低光"的序列上，ORB-SLAM2、DS-SLAM、VINS-Mono、InfiniTAMv2 <strong>全部为 0</strong>[51]。独立交叉验证（6 套开源 SLAM、约 20,000 次实验）：<strong>ORB-SLAM2/3 在所有平台上"超过 10% 的概率硬崩溃（segfault）"</strong>[52]。<span class="tag t-high">高置信</span></li>
+  <li><strong>老人人脸识别的错误方向正好是最危险的方向。</strong>现代深度人脸匹配器对老年人准确率更低，<strong>与早期文献结论相反</strong>：MORPH Album 2 上 VGGFace2 验证率 96.94%（年轻）／96.94%（中年）／<strong>90.51%（老年）</strong>；年龄均衡训练子集仍留 7.60 个百分点差距；对老年人额外图像做微调<strong>反而降低</strong>老年组准确率 [53]。该文引 NIST FRVT Ongoing：在整体假匹配率 1/10,000 的固定阈值下，20 多岁组 FMR 约 1/100，而 70 多岁组约 <strong>5/100</strong>（五倍）——<strong>即错法是"把错的人认成对的人"</strong>。<span class="tag t-mid">该条系转引 NIST，本轮未打开 NIST 报告本身</span>[53]</li>
+  <li><strong>递送机构的抓取可靠性有机制级证据。</strong>GRAB 基准（3 种夹爪、1750 次抓取、21 种物体、4 级杂乱度）：吸盘式抓取在可变形或多孔物体上系统性失败——塑料袋与网袋"平均成功分为零"，因为无法形成稳定密封。总体结论是"<strong>物体品质是杂乱环境中占主导的性能因素</strong>"。<span class="tag t-low">该基准属食品垃圾分类领域，本报告只迁移机制级失效模式，不迁移其绝对成功率</span>[64]</li>
+</ol>
+<p><strong>失效安全与标准。</strong>ISO 13482:2014（个人护理机器人安全要求）明确不适用于作为医疗器械使用的机器人；标准<strong>第 5.16 条专门设"与定位和导航错误相关的危害"</strong>——定位失效在标准里本身就是安全危害，而非性能 bug。标准点名必须设计的失效类别包括：机器人自主决策的不确定性与错误决策的危害、用户知识经验与身体状况的差异、移动机器人遭遇的非预期行走面与环境条件、所操作安全相关对象的不确定性。碰撞类危害在当时<strong>没有穷尽的、国际公认的数据（如疼痛或伤害限值）</strong>。<span class="tag t-mid">ISO 13482:2014 是否仍是现行版（或已被 2024 年修订稿取代）本轮未能确认</span>[65]</p>
+
+<h3>4.3 路线 B 的核心问题：出药机构对老人并不友好</h3>
+<p><strong>Patel 2020</strong>（前瞻性混合方法，39 名老人／照护者／医护 × 5 种产品 = 186 次测试）：产品平均需 <strong>12.7 个步骤</strong>（5–20），平均 <strong>15.19 分钟</strong>完成设置（1–56 分钟），完全无需协助完成全部步骤的<strong>仅 55.3%</strong>。<strong>MedReady 1700 自动配药机 SUS 得分 28.63</strong>，显著低于 TimerCap（78.67，P=.03）与 eNNOVEA 周计划器（78.13，P=.049）；MedReady（NASA-TLX 72.92）与 e-pill MedTime Station（71.77）的工作负荷也显著更高 [13]。<span class="tag t-high">高置信</span></p>
+<p>另一个信号来自需求侧：在中国那项 RCT 里，<strong>192 名筛查者中有 35 名因"认为无需药箱提醒"而退出（约占筛查池 18%）</strong>，另 6 名基线数据不全、4 名早期退出 [7]。</p>
+<p>院内自动摆药／分包设备的机械误差有中文一手记录（作为机构件失效模式的代理）：某住院药房 2020 年 8–12 月报告 <strong>134 次摆药差错</strong>，分类为药片破损/碎屑 84、数量错误 34、串包 14、人为因素 2；另一家报告差错率从 0.22% 降到 0.11%；第三家报告仅 2019 年 9 月就有 53 起差错事件 [69][70][71]。</p>
+
+<h3>4.4 把「最小闭环」五格填上（给立项简报卡第④格）</h3>
+<p>你们的简报卡里这一栏只写了"工作机制 input → output"，五格全空。下面这个填法<strong>是本报告基于上述证据给出的建议</strong>（第 3 节数据支持它的必要性，第 1 节的测量学限制支持它的谨慎表述）：</p>
+<div class="tblwrap">
+<table>
+<thead><tr><th>格子</th><th>建议填法</th><th>依据 / 要注意的边界</th></tr></thead>
+<tbody>
+<tr><td><strong>开始</strong><br>用户带着什么进入</td><td>一份已经由子女（或老人自己）录入的用药计划：药名、剂量、时间点；一个已绑定的老人账号与一个紧急联系人（子女）账号</td><td>用户群被定义为"具备独立吃药能力"，所以起点是"知道该吃什么"，不是"分不清药"。误服／忘服／随意增减是主要表现 [142]</td></tr>
+<tr><td><strong>输入</strong><br>用户提供什么信息</td><td>老人侧只需要一个动作：点"已吃药"（大按钮）或说一句"吃了"；不需要老人输入任何文字</td><td>中国老人"自行服药"有困难者占 10.52%–16.34% [149]；语音只是辅助通道，不能作为唯一通道——老人语音在重度口音下 CER 达 80.95%，Whisper 全系列零样本 CER 均 &gt;50% [157]</td></tr>
+<tr><td><strong>处理</strong><br>产品或 AI 做什么</td><td>到点触发提醒（页面内定时器 + 语音播报）→ 等待确认 → 记录时间戳 → <strong>超时未确认则升级：本地重复提醒 → 通知子女</strong>。AI 只做两件小事：把药品说明转成一句口语化的话、把老人的口语确认转成结构化记录</td><td>「提醒＋开箱记录＋漏服告警＋家属/护士介入」这一整套服务包正是中国那项 RCT 里被验证有效应的形式（而"自动出药"那个机构在该试验里根本不存在）[7][8]；双层/三层升级结构也复用了该 RCT 的告警设计 [7]</td></tr>
+<tr><td><strong>结果</strong><br>用户看到什么变化</td><td>老人侧：绿色"今天已完成"和下一次时间；子女侧：今天几次、几点几分确认的、哪一次是超时后补的</td><td><strong>必须写清"这只是取用代理，不是服下确认"</strong>——装置记录 ≠ 服下，这是所有依从性研究的天花板 [18][56]；该 RCT 的两臂正是因为测量工具不同而无法直接比较 [7]</td></tr>
+<tr><td><strong>继续</strong><br>用户下一步做什么</td><td>子女根据一周记录决定：是否需要调整时间点、是否需要加电话提醒、是否要换成别的方案（例如上门送药服务）</td><td>照护者是真正的第一用户：中度痴呆者由照护者承担全部用药责任，居住分离时照护者"只设置药盒并打电话提醒，并不观察服药"[47]；芬兰配药机的装药动作也是由照护者完成的 [56]</td></tr>
+</tbody>
+</table>
+</div>
+<div class="box bad"><strong>三天的原型里，明确不要写的一句话：</strong>任何形式的"确认老人已经服下"。没有任何一种确认模态有可引用的灵敏度／特异度数据，也没有任何一个学术原型用独立传感验证吞咽 [56][57][58]。你们行业里的头部厂商甚至在自己的标签里<strong>主动排除了</strong>这类用法（见 6.4 节）。</div>
+
+<!-- ============ 5 ============ -->
+<h2 id="compliance">五、合规与准入</h2>
+
+<h3>5.1 中国：分类归属尚无定论，这是最大的单点合规风险</h3>
+<ul>
+  <li><strong>上位规则</strong>：《医疗器械分类规则》（国家食品药品监督管理总局令第 15 号，2016-01-01 施行）按风险由低到高分第一、二、三类；以医疗器械作用为主的药械组合产品按第三类管理。<strong>是否属医疗器械取决于其预期目的（说明书、标签、宣传资料载明的作用）</strong>[74]。</li>
+  <li><strong>程序规则</strong>：《国家药监局关于规范医疗器械产品分类界定工作的公告（2024 年第 59 号）》（2024-09-01 实施）：未列入《分类目录》的新研制器械由申请人报国家药监局医疗器械标准管理中心界定。<strong>即"是否为医疗器械"与"属第几类"是两个可分离的判断</strong>[75]。</li>
+  <li><strong>目录检索结果</strong>：现行《医疗器械分类目录》共 22 个子目录、6609 个品名举例。子目录 07「医用诊察和监护器械」的二级类别与品名举例中<strong>没有任何居家药品存储、分装、发放类产品</strong>[76]；子目录 14 的「给药器」（14-07-03）界定为"用于对患者体表和自然腔道局部给药"的器具，<strong>不是按时分装/发药的药盒或分药机</strong>[77]。<span class="tag t-mid">已核实 07 与 14 两个最可能子目录无对应品目；"全目录均无"为推断（本轮未逐条读完 22 个子目录）</span></li>
+  <li><strong>分类界定结果汇总中此类产品为 0 个</strong>：2025 年第三次汇总（202 个产品）全部为体外诊断试剂；2026 年第一次汇总（206 个产品）中逐条核对后未发现任何智能药盒、自动分药机、摆药机或送药机器人条目。<strong>但界定结果只公布申请过的产品，未申请即无记录</strong>，因此不能据此断言此类产品在中国必然无需备案，只能说<strong>不存在公开先例</strong>[82][83]。</li>
+  <li><strong>两个相邻事实互相不构成结论</strong>：广东省药监局 2024-01-12 答复明确"<strong>药包材不按医疗器械管理</strong>"[81]；而院内「全自动锭剂摆药机」的归类口径是<strong>普通机电产品</strong>（2009 年归类决定，按包装机器归入 84.22 项下）[80]。这些都不能直接推出家用自动出药机的属性。</li>
+  <li>可自主移动的服务机器人（含送药机器人）在现行《分类目录》中<strong>没有对应品目</strong>，且"移动机器人"这一功能本身不触发任何器械类别。<strong>若其宣称的预期用途变为监护、给药或治疗，才回到相应品目判断</strong>[74][95]。</li>
+  <li><span class="tag t-low">待确认项</span>药品存储／分装／发药类品目在 2024、2025、2026 年度目录动态调整中是否新增，本轮未逐份读取（NMPA 官网对自动化抓取返回 HTTP 412）[76][82][83]。</li>
+</ul>
+
+<h3>5.2 美国：Class I 与 wellness 红线，以及一个 40 年没有新先例的产品代码</h3>
+<ul>
+  <li><strong>21 CFR 890.5050「Daily activity assist device」</strong>为 Class I（general controls），豁免上市前通知 [88]。</li>
+  <li><strong>产品代码 NXB「固体药物分发器」</strong>归 21 CFR 890.5050，Class I，豁免 510(k)。但该代码下的器械清关记录<strong>仅 3 条</strong>：K944481（1995-04-10）、K882731（1988-12-14）、K833311（1984-02-04）——<strong>近 40 年没有新的固体药物分发器 510(k) 先例</strong>[84]。<span class="tag t-mid">"豁免"与"无新先例"同时成立，实务中是否仍需申报本轮无法判定</span></li>
+  <li><strong>产品代码 NXQ「用药提醒器」</strong>归同一 CFR 条款，Class I，豁免 510(k) 且 GMP Exempt；该代码下共 2 条清关记录 [85]。</li>
+  <li><strong>K103009 SentiCare PillStation</strong> 是最有信息量的一例：家用电子药盒，内置扫描系统把药盘照片经互联网上传至管理器，由远程呼叫中心顾问核对已装药品与处方。<strong>FDA 认定"将药盘内容成像并经互联网上传至中央服务器"这一能力引入了不同的基础技术，因而要求提交 510(k)</strong>[86]。</li>
+  <li><strong>K980109 CycloTech</strong>：预期用途同时具备定量分发、下一次给药时间显示、剩余剂量显示、给药记录存储与声光报警。这表明"<strong>定量分发＋提醒＋记录</strong>"在 FDA 体系内可停留在 Class I 而非自动升为 II/III 类 [87]。</li>
+  <li><strong>一般健康（general wellness）红线</strong>：FDA 该指南于 <strong>2026-01-06 发布修订版最终指南</strong>。2026 年版划出的关键红线：被归为 wellness 的产品<strong>不得自称是已清关/获批器械的替代品</strong>；<strong>不得包含"提示或引导特定临床行动或患者医疗管理"的宣称，包括通过告警或报警实现</strong>；不得引用特定疾病、临床状况或诊断阈值 [89][90][91]。<span class="tag t-high">高置信（对"宣传口径怎么定"这一决策）</span></li>
+  <li><span class="tag t-low">未核实</span>HIPAA 侧本轮无已核实结论（hhs.gov 指引页返回 403）。</li>
+</ul>
+
+<h3>5.3 数据合规（中国）</h3>
+<ul>
+  <li><strong>《个人信息保护法》第二十八条</strong>把"医疗健康"明确列为敏感个人信息；<strong>第二十九条</strong>处理敏感个人信息应当取得个人的<strong>单独同意</strong>；<strong>第三十条</strong>还应告知处理敏感个人信息的必要性及对个人权益的影响 [92]。</li>
+  <li>其它直接约束：第十七条要求告知处理目的、方式、种类与<strong>保存期限</strong>；第十九条"个人信息的保存期限应当为实现处理目的所必要的最短时间"；第五十五条要求处理敏感个人信息、自动化决策、委托处理／对外提供、出境等情形事前做个人信息保护影响评估（PIPIA），第五十六条要求评估报告与处理情况记录至少保存三年；第六十六条罚则——情节严重可处五千万元以下或上一年度营业额百分之五以下罚款 [92]。</li>
+  <li><strong>《数据安全法》</strong>（2021-09-01 施行）建立数据分类分级保护制度，卫生健康等主管部门承担本行业数据安全监管职责 [93]。</li>
+  <li><strong>《网络数据安全管理条例》</strong>（国务院令第 790 号，2025-01-01 施行）：第二十二条处理医疗健康等敏感个人信息"应当取得个人的单独同意"，且不得超出同意的目的、方式、种类、保存期限；第十二条要求委托处理时记录至少保存 3 年 [94]。</li>
+</ul>
+<div class="box ok"><strong>对三天原型的含义：</strong>如果 Demo 只用假数据、不做真实用户录入、不上传云端，则<strong>不触发上述大部分义务</strong>。这也是"不做云端同步"在三天内的另一个理由。一旦要真实老人用、要存健康数据，就需要单独同意与 PIPIA 流程 [92][94]。</div>
+
+<!-- ============ 6 ============ -->
+<h2 id="risk">六、风险、失败教训与伦理</h2>
+
+<h3>6.1 商业失败：这不是一个"没人试过"的品类</h3>
+<ul>
+  <li><strong>Pillo Health 已被收购、不再活跃</strong>：存档站横幅原文为「Pillo Health 已于 2020 年被 Stanley Black &amp; Decker 收购，Pillo Health 已不再是活跃公司」；其消费版 Pria by BLACK+DECKER 于 2019 年 9 月上市，而 okpria.com 在 2026 年已无法解析 [105]。</li>
+  <li><strong>Philips/Lifeline 配药服务把消费者入口关掉、改道 B 端</strong>（消费者 URL 302 重定向至 /business/），是否正式停售未能确认 [106][107]。</li>
+  <li>相邻品类的公开失败：日本 Clarion 的「見守り機能型服薬管理支援機器」被日本 AMED 资助的介护技术门户列为「<strong>開発中止</strong>」，且该公司已退出护理机器人业务。<span class="tag t-low">它是监测/用药管理设备而非递送机器人，不是我方路线的直接证据</span>[50]</li>
+  <li><strong>长期脱落是可量化的</strong>：美国与加拿大 4,138 名多重慢病患者的 Spencer 配药器队列，<strong>1 年持续使用率 68.3%</strong>（95%CI 66.8–69.8），<strong>2 年 51%</strong>（95%CI 49–53）。<span class="tag t-vendor">该文作者是设备开发方 Spencer Health Solutions 的雇员</span>[33]</li>
+</ul>
+
+<h3>6.2 安全事件：MAUDE 数据里的具体机制</h3>
+<ul>
+  <li><strong>美国 MAUDE（openFDA device/event 接口，数据更新至 2026-09-22）对 Hero Health 自动配药机（型号 H100）返回 79 条事件报告</strong>，产品问题聚合为：治疗或诊断输出失效 19、输出问题 15、未发现器械或使用问题的临床不良事件 8、计算机操作系统问题 2、机械问题 2、完全断电 1、显示或视觉反馈问题 1。<strong>这些是被动、自愿/厂商提交的报告，不能换算成发生率。</strong>[68]</li>
+  <li><strong>同一接口中型号 H100 且 event_type=Death 返回 3 条报告。</strong>其中 1 条（报告号 3014660737-2023-63658，2023-08-25 收到，药物列为羟考酮 5 mg）中照护者称使用者"因过量服药去世"，使用者"用取药钥匙手动从设备中取出药物"，厂商叙述为"未发现与该临床结果相关的器械故障"。第二条称退回设备未发现问题、根本原因无法确认；第三条称工程师审查日志后未发现任何器械故障。<strong>即三条死亡报告均未被厂商归因于器械，本报告不主张它们是器械致因，也无法排除。</strong>[68]</li>
+  <li><strong>厂商自己的 MAUDE 叙述给出了可复现的失效机制</strong>：（a）<strong>滤网堵塞，由累积的药粉造成</strong>；（b）<strong>NIB 倒折</strong>——一例在自动出药失败后使用者转为手动取药，"因手工用药不当住院三天"；（c）<strong>计算机操作系统问题</strong>——一例双倍剂量，设备日志确认"用户主动提前取出未来剂量，设备又把同一剂量再次提供给用户"。同一叙述反复写明"<strong>本设备按设计不是锁药箱</strong>"，且"<strong>由于人为差错和／或机械与软件限制或故障的可能性，无法保证每一次出药周期的准确性</strong>"[68]</li>
+</ul>
+
+<h3>6.3 一个中国厂商口径的"成功案例"，不可采信为证据</h3>
+<p>香港文汇报报道 Leapflash Technology 的移动机器人配药系统「小磚護」在江门（广东）社区试点，"累计使用超过 3 万次"并实现"六个月零用药差错记录"。</p>
+<div class="box warn"><strong>这是公司主张</strong>：报道未给出方法、分母、"差错"的定义或独立评估。<span class="tag t-vendor">厂商自述</span>[73] 同理，芬兰 Evondos 配药机器人在巴塞罗那的试点（7 名患者，分发 2,460 个药袋、依从率 99.7%）<strong>来源是厂商自己的网站、由参与试点的药师撰写，未经同行评议</strong>[72]。</div>
+
+<h3>6.4 最值得你们警惕的一条：厂商自己声明排除了这类用户</h3>
+<div class="box bad">
+<p style="margin-top:0">Hero Health 在 MAUDE 中的标签文本逐字写道：</p>
+<blockquote style="margin:0 0 10px">「THE HERO DEVICE SHOULD NOT BE USED BY A RECIPIENT OF MEDICATION WHO IS INCAPABLE OF VERIFYING THE ACCURACY OF EACH DISPENSED DOSE (SUCH AS THOSE SUFFERING FROM DEMENTIA OR OTHER COGNITIVE OR PHYSICAL IMPAIRMENTS) UNLESS PILL DISPENSE ACCURACY IS BEING VERIFIED, IN EACH INSTANCE, BY QUALIFIED PERSON(S) TRUSTED BY THE MEDICATION RECIPIENT.」</blockquote>
+<p style="margin:0">同一叙述还警告设备「SHOULD NOT BE USED TO DISPENSE MEDICINES THAT HAVE HIGH DOSAGE SENSITIVITY, THAT HAVE A NARROW THERAPEUTIC WINDOW」[68]。</p>
+<p style="margin:10px 0 0"><strong>这条厂商自述与"面向记性差、可能轻度认知障碍老人"的产品定位直接冲突：在认知障碍者身上不校验每剂准确性的自主使用，是厂商自己声明禁止的用法。</strong>——你们把目标用户收敛为"有独立吃药能力"，正是对这个风险的正确回避，60 秒陈述里值得明说这一点。</p>
+</div>
+
+<h3>6.5 伦理争议与责任划分</h3>
+<ul>
+  <li><strong>可穿戴/入户设备的社会伤害是真实的</strong>：Lancet 2025 四国研究中，药盒臂发生了 <strong>2 起因无意泄露治疗状态造成的社会伤害</strong>事件 [26]。结核领域的质性研究也把"盒子不便携带""盒子故障""断电"和"无法解决的技术故障"列为真实障碍 [35]。</li>
+  <li><strong>隐私抵触在入户环节是硬约束</strong>：街道与社区选品时"凡是带有摄像头的，我们一律排除"[67]。</li>
+  <li><strong>责任划分</strong>：中国《医疗器械监督管理条例》禁止出借/买卖许可证件（第八十三条），对生产、经营未取得注册证的第二类、第三类医疗器械处以没收＋货值 15–30 倍罚款；合法路径只有注册人制度下的委托生产，且标签必须标明注册人与受托生产企业，注册证<strong>不能直接变更注册人</strong>[97][98][99][100]。<span class="tag t-mid">院内自动摆药机的差错记录见 4.3 节</span>[69][70][71]</li>
+  <li><span class="tag t-low">明确的数据空白</span><strong>中国居家自动配药机在 2020–2026 年的公开召回、投诉或责任案例，以及中国居家/社区送药机器人试点的终止记录或判决书，本轮均未找到</strong>——这是第八节列出的未答问题。</li>
+</ul>
+
+<!-- ============ 7 ============ -->
+<h2 id="mvp">七、三天行动建议与 60 秒陈述</h2>
+
+<div class="box warn"><strong>先声明：本节是基于第一到第六节证据给出的<em>建议与推断</em>，不是来源里的现成结论。</strong>本轮调研没有专门研究"三天工作坊该做什么"。</div>
+
+<h3>7.1 三天范围内的形态建议</h3>
+<p>同类的软件形态先例是存在的，而且它们的共同特征非常一致——<strong>单文件网页、无后端、浏览器本地存储、用 Web Speech 做语音播报、老人端只做"看 + 点"</strong>（例如两个提交给 AI 创造力大赛的单文件 HTML 项目：一个 18.0 KB，含家庭绑定、大图药卡、两步语音确认、子女端看记录；一个 202.0 KB，用 SVG 假装机器人角色，含用药计划、到点播报、超时未服通知子女、4 档字号与高对比度无障碍）。<span class="tag t-mid">来源是项目作者自述帖，非独立评测</span></p>
+
+<div class="tblwrap">
+<table>
+<thead><tr><th>D1 白天</th><th>D2</th><th>D3</th></tr></thead>
+<tbody>
+<tr>
+<td>定死一句话产品定义与目标用户（沿用你们简报卡）；做老人端页面骨架：<strong>大字、大按钮、只有"该吃药了 / 我吃了"</strong>；把药品数据结构化（药名、剂量、时间点、说明）</td>
+<td>做子女端：加药、设时间、看今天记录；接上<strong>超时未确认 → 升级通知</strong>这一环（Demo 内用本地标记模拟，不要假装是真推送）；接语音播报（Web Speech）作为辅助通道</td>
+<td>补适老化细节（字号切换、高对比度、焦点管理、两步确认防误触）；写 60 秒陈述；准备一条<strong>真实演示路径</strong>（一个具体老人的一天）而不是功能罗列</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<h4>刻意不做（每条都有证据理由）</h4>
+<ul>
+  <li><strong>任何"确认服下"的宣称</strong>——没有一种确认模态有可引用的灵敏度／特异度数据，也没有任何原型用独立传感验证吞咽，而且头部厂商在自己的标签里主动禁用了这类用法 [56][57][58][68]。</li>
+  <li><strong>摄像头与录音</strong>——中国入户的硬约束（"凡是带有摄像头的，我们一律排除"），也是缩短 PIPL 义务链最有效的手段 [67][92]。</li>
+  <li><strong>真实到点后台推送与云端账号</strong>——依赖服务器与平台规则，三天内不可控；也用假数据回避了数据合规负担 [92][94]。</li>
+  <li><strong>实体机器人（含机械臂、动画以外的任何硬件）</strong>——你们文档已排除，证据也是支持排除的：家庭环境再定位的失败率、吸盘对可变形物体的系统性失败 [51][64]。</li>
+  <li><strong>把语音设为唯一交互通道</strong>——老人语音在重度口音下 CER 80.95%，Whisper 全系列零样本 CER 均 &gt;50% [157]。</li>
+</ul>
+
+<h4>人因指标请当成一等验收标准</h4>
+<p>已验证的同类产品平均需要 <strong>12.7 步、15.19 分钟</strong>才能完成设置，<strong>仅 55.3% 的老人能完全无协助完成</strong>；自动配药机的 SUS 只有 28.63 [13]。所以请把"<strong>一个没见过它的老人，在不被提示的情况下能不能独立完成一次确认</strong>"写成你们自己的验收条件，而不是"功能都跑通了"。</p>
+
+<h3>7.2 60 秒陈述（按你们文档给的四段结构）</h3>
+<div class="tblwrap">
+<table>
+<thead><tr><th>时长</th><th>要点</th><th>建议说法</th></tr></thead>
+<tbody>
+<tr><td>15 秒<br>谁 / 什么场景 / 什么困难</td><td>人群边界要具体，"有独立吃药能力"必须说出口</td><td>"中国 60 岁以上老人多重用药率 70.8%，平均每天吃 8.6 种药 [142]。其中一大类人分得清吃什么、也能自己吃，但<strong>会在固定时间忘掉</strong>——这就是我们服务的人。"</td></tr>
+<tr><td>20 秒<br>做什么产品 / 核心闭环</td><td>闭环要一句话说完，并主动否掉"确认服下"</td><td>"它不是替老人吃药的机器，它是<strong>到点必达的提醒 + 家属可见的记录 + 漏服升级</strong>：到点提醒 → 老人一键或一句'吃了' → 记录 → 超时没人应就通知子女。我们<strong>不宣称确认药物被吞下</strong>，因为学术界至今没有能确认药物摄入的方法。"</td></tr>
+<tr><td>15 秒<br>三天结束演示什么</td><td>演示一条具体路径，不要罗列功能</td><td>"演示一位 78 岁、吃 5 种药的老人完整的一天：早上 7 点提醒、7 点 02 分确认；中午那一次没确认，8 分钟后系统升级通知了女儿；女儿在手机上看到这一周哪几次是补的。"</td></tr>
+<tr><td>10 秒<br>最大风险 / 需要什么帮助</td><td>风险要真，不要虚</td><td>"最大风险不是技术，是<strong>老人不用</strong>——上海 895 名社区老人里 42.7% 明确不愿意用家用照护机器人 [155]，而同类产品的设置流程平均要 15 分钟、只有一半老人能独立完成 [13]。所以我们把子女代操作和电话兜底做进主流程，也请评委帮我们压测一下：这套东西给你们的爷爷奶奶，他们会点吗？"</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>7.3 针对你们文档里那几格空白的直接建议</h3>
+<ul>
+  <li><strong>「三天范围 · 必须完成」建议写</strong>：老人端到点提醒与一键确认、子女端加药与记录查看、超时升级通知（Demo 内模拟）、适老化字号与两步确认防误触。</li>
+  <li><strong>「三天范围 · 暂不完成」建议补上</strong>：除已有的"实体机器人模型与投产"外，再加"真实推送通道与账号体系""任何服下确认""多端云同步"。</li>
+  <li><strong>「最大风险」建议写</strong>：老人不会用（依据见 7.1 的人因指标与 3.3 的使用意愿数据）。</li>
+  <li><strong>「成员分工」</strong>：建议按"老人端交互 / 子女端与数据 / 演示脚本与陈述"切三块，与你们矩阵里"三个人各自打分"的做法一致——一人一屏，谁也不等谁。</li>
+</ul>
+
+<!-- ============ 8 ============ -->
+<h2 id="coverage">八、覆盖度与未答问题</h2>
+
+<div class="box bad">
+<h3 style="margin-top:0">覆盖度实情（不要读成"已经查过、确认没有"）</h3>
+<p>主证据轮共研究 <strong>12 个问题</strong>，历时 <strong>4 轮</strong>；计划问题 10 个、过程中浮现后续问题 38 个；<strong>34 个问题始终未被回答</strong>；另有 <strong>77 条线索被提出但未追</strong>。以下未答题<strong>多数是"从未开始查"，不是"查过没有"</strong>。报告正文中凡涉及这些点的地方，均已标注为空白或推断。</p>
+</div>
+
+<h4>从未被回答的问题（34 项）</h4>
+<ol id="unanswered">
+<li>家用送药移动机器人（移动底盘 + 激光雷达/RealSense + 机械臂或出药机构 + 算力）与固定式多剂量配药机在中国供应链价格下的零部件与 BOM 成本分别是多少？各自每户每年增加多少服务/维护负担？</li>
+<li>中国哪条监管路径管辖家用送药/配药设备（自动配药的 NMPA 医疗器械分类 vs 消费电子 vs 养老辅助器具标准）？实际搬运并交付药品是否会触发药事服务或药品经营许可规则？</li>
+<li>居家老人有哪些独立的摄入验证模态（称重药格、摄像头吞咽检测、可穿戴吞咽/EMG 传感），它们区分"真的服下"与"只是取出"的灵敏度/特异度是多少？</li>
+<li>中国境内销售的家用自动配药机（2020–2026）有哪些有记录的公开失败、召回、投诉或责任案例（卡药、错剂、漏服告警）？如何处置？</li>
+<li>轮式服务机器人在真实杂乱的中国住宅（窄门、地面杂物、门槛、反光地板、单间/一居室）中<strong>单次运行的定位/再定位失败率</strong>是多少？需要给出一个可辩护的单一数字来测算"机器人到不了"这一失效模式。</li>
+<li>四种服药确认模态（药格电容/霍尔传感、光学/LED 托盘检测、RFID、摄像头视觉确认）各自经核实的假阳性与假阴性率、确认耗时与失效模式是多少（需一手来源报出数字）？</li>
+<li>中国消费市场在售的固定式智能药盒与自动配药机，经核实的出药差错/卡药率、MTBF 与现场服务负担（补药、清洁、碎药、掉药）是多少？</li>
+<li>在中国 2025–2026 供应链价格、10k 台量产条件下，（A）移动导航+递送机器人与（B）带联网与告警的固定式配药机，总系统 BOM 与单机成本分别是多少？</li>
+<li>中国是否已有『居家智能药盒／自动分药机／送药机器人』取得国家药监局医疗器械注册证或办理第一类备案的实例？需在 NMPA 注册证数据库中按品名与分类编码检索并给出注册证编号、品名、管理类别与批准日期；<strong>若无，明确报告为 0 例</strong>。</li>
+<li>《医疗器械分类目录》自 2024 年第 59 号公告之后（2024、2025、2026 各年度）的动态调整公告是否新增了药品存储、分装、发药类品目？</li>
+<li>中国（a）电动单仓转盘式配药机与（b）多仓（16 仓级）固定式配药机的实际单机 BOM 与制造成本是多少？（需供应商报价或拆解，不能采用二手聚合数据）</li>
+<li>中国养老机构与社区养老中固定式自动配药机的装机量与实测可靠性如何（在役台数、卡药/错药率、运营方对补药人工的反馈）？</li>
+<li>中国有哪些厂商真正在卖<strong>家用自动出药</strong>（而非仅提醒）的智能药盒，且有公开售价与京东/天猫店铺？价格带是多少？</li>
+<li>家用自动配药机在中国按什么监管（一类/二类医疗器械、药品包装管理，还是消费电子）？外国配药机在合法卖入中国家庭前需要什么注册（进口或国产）？</li>
+<li>中国对『向老人递送药品的移动机器人』的监管归属与准入：算服务机器人、医疗器械，还是需要药品经营/配送资质？生产企业与运营方各自承担什么责任？（这直接决定 MVP 能否合法地用真药试点）</li>
+<li>2015—2026 年中国居家/社区场景下移动送药机器人的公开失败与责任案例：有没有试点被终止、项目被撤、老人误服/漏服后被追责的公开记录或判决书？</li>
+<li>『物理递送到人身边』相对纯提醒的可测量依从性增益：除 2014 年新西兰那项阴性交叉实验外，还有哪些带对照的机器人递送/配药干预研究？结论是否一致？</li>
+<li>中国社区居家老人对固定式智能药盒/自动配药机的接受度实证研究（问卷或实机 UAT）应如何设计并已有何结论？包括器械抵触、弃用率，以及「被监控感」在药盒形态上是否比机器人形态更弱？</li>
+<li>在中国居家老人中，「物理递送到人」相对「纯提醒（App/短信/语音）」的依从性增量有多大？需要能被产品直接引用的 RCT 或前后对照数字，且要区分「提醒」与「递送+确认服下」两段效应。</li>
+<li>国家药监局医疗器械分类界定结果汇总中，是否已出现「智能药盒/自动出药装置/家用配药机」的界定结论？具体定为几类，或明确不属于医疗器械？</li>
+<li>注册平台（ChiCTR、ClinicalTrials.gov、ANZCTR、ISRCTN）上是否有正在进行或已中止的试验，在老年人用药依从性中同时设有「物理递送到患者」臂与「仅提醒」臂？</li>
+<li>在中国居家高血压或糖尿病老人中，"有观察的给药"（护士或照护者把剂量递到手上并看着服下）相对电子提醒的可测量依从性与临床效应是什么？</li>
+<li>中国居家老人中，装置记录的出药（药格打开、泡罩戳破、药片计数）与实际摄入之间的测量误差有多大？三臂试验的主要结局该用哪种工具？</li>
+<li>家用自动配药机在真实部署中的实测可靠性（每 1000 次出药周期或每装置年的故障次数，需有明确分母），至少覆盖两家厂商、两个部署国家，且来源独立于厂商——是多少？</li>
+<li>在两项目标结局为零的大型结核整群随机试验（Lancet 2025 四国；Lancet Digital Health 2025 埃塞俄比亚）中，各臂之间的<strong>剂量级</strong>依从性差异实测是多少？装置故障、未归还或未使用能否解释这个零结果？</li>
+<li>UP-TECH 试验的辅助技术臂（NCT01700556，438 对中度阿尔茨海默患者-照护者）结局如何（照护者负担、在家天数、机构化）？该干预包里用的是哪一台用药设备？</li>
+<li>中国居家场景中的老人与家庭照护者实际怎么使用与弃用消费级智能药盒（失效模式、退货率、弃用原因）？中国消费者保护、电商评论与 12315 投诉数据能说明什么？</li>
+<li>是否有来自任何人群（含医院直接观察治疗或护士给药的居家照护）的证据表明"把剂量递到患者手上"（相对发到托盘或提示药盒）会改变依从性、摄入确认或结局，且可外推到居家老年照护？</li>
+<li>以中国卫生体系或长护险基金为视角，针对『居家自动配药/送药到人装置』（区分于纯提醒）的正式成本效果或成本效用分析（含 ICER/QALY 与敏感性分析）是否存在？</li>
+<li>中国官方或权威学术机构成文推荐的药物经济学支付意愿阈值（每 QALY 或每 DALY 的人民币金额及其年份依据）是多少？</li>
+<li>中国长护险 47 个以上试点城市中，哪些已在辅具租赁或服务项目目录中纳入服药、配药或用药监测类设备/服务？实际支付标准与自付比例如何？</li>
+<li>依从性增益究竟发生在链条的哪一环——提供药品、物理运送到人、见证服下，还是照护者/社会接触？这需要一个因子设计或拆解式 RCT，保持接触频次恒定、只随机化递送/确认这一步，且两臂都用剂量级（电子）终点。任何场景下都似乎不存在这样的试验。</li>
+<li>是否有中文的对照研究（CNKI/万方/维普，含学位论文与医院质量改进研究）研究护士、社区工作者、药师或配送员送药到家，并以剂量级或 PDC/MPR 为终点？（英文数据库未检索到，而这正是本产品的市场）</li>
+<li>对中国已经在规模运行的市政居家送药服务（如家庭医生签约、社区卫生服务中心、药房到家/送药上门项目，或养老平台运营商），实测的补药失败率、配送失败率、单次配送成本与单位经济性是多少？</li>
+</ol>
+
+<h4>证据中记录的实质性不确定与冲突（不得被读成共识）</h4>
+<ul>
+  <li><strong>「物理递送到人」缺少独立的证据类别定义</strong>：现有文献中几乎不存在"按医嘱时间自动把药递到老人身边 vs 同一装置只提醒不递送"的分离设计，因此<strong>设备效应与递送效应完全混淆（device–delivery confound），无法拆解</strong>。这是本报告全部结论的天花板。</li>
+  <li>Goldstein 2014 的分组定义存在歧义（摘要无法确证哪一组收到主动提醒）[2]。</li>
+  <li>中国肺结核现场研究"电子药盒组 vs 手机微信 App 组"的具体依从率与统计检验未能读到（原站反复抓取失败）<span class="tag t-low">仅标题与摘要级线索</span>。</li>
+  <li>MedaCube 营销"最多 90 天量"与第三方规格"药格数 29"之间的冲突未解决 [102]。</li>
+  <li>Hyodol 单价两套口径（130 万 vs 160 万韩元/台）未解决 [128][129]。</li>
+  <li>小西与傲天 U1 的实际成交价格：企业方明确说"市场售价目前还未确定"，未找到任何采购公告、挂牌价或经销商报价 [122]。</li>
+  <li>是否有任何西方固定式配药机（Hero、MedaCube、MedMinder、Lifeline）具备合法的中国销售渠道、进口商或售后实体：<strong>没有任何读到的事实显示存在</strong>；但也没有任何厂商页面明确声明"不向中国发货"，因此"无中国渠道"<strong>是本报告作者的推断而非文件证据</strong>。</li>
+  <li>Hero 装置的 MAUDE 叙述反映的是设计类别问题还是单一厂商的工程短板：在 NXB 编码的 MAUDE 数据中只找到 1 条 MedReady 记录、没有 e-pill 或 Philips MD.2 记录；<strong>被动报告系统中的"有/无"不能读作比较性安全信号</strong>[68]。</li>
+  <li>家用自动配药机<strong>没有公开的每装置年、每 1000 次出药周期或每患者年的不良事件/差错率</strong>。MAUDE 计数是无分母的被动报告 [68]。</li>
+  <li>ISO 13482:2014 是否仍为现行版本（或已被 2024 年修订稿取代）未能确认；本报告确认的失效安全要求仅对该 2014 版文本成立 [65]。</li>
+  <li>OpenLORIS-Scene 家庭场景的干净定量数字（各场景平均 CR、CR-T 百分比）嵌在图片中无法提取，因此<strong>无法给出家庭场景跟踪失败的单一可辩护百分比</strong>[51]。</li>
+  <li>SeniorTalk 数据集中老年语音在具体<strong>药品名、剂量词</strong>上的识别率：论文未做该领域的专门评测，该级别数据在产品实测前不存在 [157]。</li>
+  <li>本轮<strong>未能研究</strong>纯软件用药管理 App（Medisafe、MyTherapy、Round Health 等）的用户量、下载量与"三条必备功能"的证据，因此第二节 2.4 只给出了硬件产品验证过的最小功能集，<strong>不构成那个问题的答案</strong>。</li>
+</ul>
+
+<!-- ============ 9 ============ -->
+<h2 id="sources">九、参考来源（1–191）</h2>
+<p style="font-size:14px;color:var(--muted)">正文中的 <code>[n]</code> 对应下列编号。列表中的网址会自动变成可点击链接。</p>
+<div id="sources">
+<ol>
+<li>Mehta SJ et al., *Electronic Pill Bottles or Bidirectional Text Messaging to Improve Hypertension Medication Adherence (MedISAFE-BP)*, J Gen Intern Med 2019;34(11):2397-2404 — https://europepmc.org/article/MED/31396815</li>
+<li>Goldstein CM et al., J Telemed Telecare 2014;20(6):293-299, PMID 24958355, doi 10.1177/1357633X14541039</li>
+<li>Broadbent E, Peri K, Kerse N, Jayawardena C, Kuo I, Datta C, MacDonald B., *Robots in Older People's Homes to Improve Medication Adherence*, ICSR 2014, LNCS 8755:64-73 — https://rda.sliit.lk/entities/publication/d7f515db-8bd2-482c-b1d6-49533894de9f/full</li>
+<li>University of Auckland CARES, *Healthbots* 项目页 — https://cares.blogs.auckland.ac.nz/research/healthcare-assistive-technologies/healthbots/</li>
+<li>Arain MA, Ahmad A, Chiu V, Kembel L., BMC Geriatrics 2021;21:56, doi 10.1186/s12877-020-01979-w — https://europepmc.org/article/MED/33446126</li>
+<li>同 5 全文（ClinicalTrials.gov NCT04339296） — https://pmc.ncbi.nlm.nih.gov/articles/PMC7807760/</li>
+<li>于飞, 张红军, 刘照元. 智能药箱改善中老年多重用药患者服药依从性的随机对照研究. 药学实践与服务, doi 10.12206/j.issn.2097-2024.202604008 — https://yxsj.smmu.edu.cn/cn/article/doi/10.12206/j.issn.2097-2024.202604008</li>
+<li>同 7 英文版 — https://yxsj.smmu.edu.cn/en/article/doi/10.12206/j.issn.2097-2024.202604008</li>
+<li>Bosworth HB et al., Am J Manag Care 2017;23(9):e280-e286, PMID 29087166</li>
+<li>Checchi KD, Huybrechts KF, Avorn J, Kesselheim AS., JAMA 2014;312(12):1237-1247, doi 10.1001/jama.2014.10059 — https://pmc.ncbi.nlm.nih.gov/articles/PMC4209732/</li>
+<li>Cross AJ, Elliott RA, Petrie K, Kuruvilla L, George J., Cochrane Database Syst Rev 2020;5:CD012419, doi 10.1002/14651858.CD012419.pub2 — https://pmc.ncbi.nlm.nih.gov/articles/PMC7207012/</li>
+<li>Durán-Luque M et al., Front Public Health 2025;13:1701622, doi 10.3389/fpubh.2025.1701622（电子出版 2026-01-28） — https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:41684359&amp;resultType=core&amp;format=json</li>
+<li>Patel T, Ivo J, Faisal S, McDougall A, Carducci J, Pritchard S, Chang F., J Med Internet Res 2020;22(6):e18073, doi 10.2196/18073, PMID 32348292</li>
+<li>Wainwright JE, Bennett A, Randhawa G, Pappas Y, Singh H, Cook EJ., BMJ Open 2026;16(1):e104359（ADHERE, ISRCTN18849739） — https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:41592825&amp;resultType=core&amp;format=json</li>
+<li>Chan AHY, Foot H, Pearce CJ, Horne R, Foster JM, Harrison J., PLoS One 2022;17(3):e0265715 — https://pmc.ncbi.nlm.nih.gov/articles/PMC8936478/</li>
+<li>Surbhi S et al., J Natl Med Assoc 2025;117(6):470-478, doi 10.1016/j.jnma.2025.08.003</li>
+<li>Duan Y et al., Front Med 2026;13:1840258, doi 10.3389/fmed.2026.1840258</li>
+<li>Zhou J et al., npj Digit Med 2025;8:333, doi 10.1038/s41746-025-01748-2 — https://pmc.ncbi.nlm.nih.gov/articles/PMC12137551/</li>
+<li>Nieuwlaat R, Wilczynski N, Navarro T, et al., Cochrane Database Syst Rev 2014;11:CD000011, doi 10.1002/14651858.CD000011.pub4</li>
+<li>Scotti S et al., J Am Geriatr Soc 2026;74(2):479-487, doi 10.1111/jgs.70257 — https://pmc.ncbi.nlm.nih.gov/articles/PMC12911538/</li>
+<li>Haile KT et al., Australas J Ageing 2026;45(3):e70206, doi 10.1111/ajag.70206 — https://pmc.ncbi.nlm.nih.gov/articles/PMC13379504/</li>
+<li>Martini A, Fantin F, Cavedon M, Zamboni M, Urbani S, Giani A, Brandimarte P, Rossi AP., Aging Clin Exp Res 2023;35(11):2847-2849, doi 10.1007/s40520-023-02562-0</li>
+<li>Eldridge SM, Chan CL, Campbell MJ, Bond CM, Hopewell S, Thabane L, Lancaster GA., BMJ 2016;355:i5239, doi 10.1136/bmj.i5239（CONSORT 2010 随机试点/可行性试验扩展）</li>
+<li>Mellor K, Albury C, Dutton SJ, Eldridge S, Hopewell S., Pilot Feasibility Stud 2023;9:59, doi 10.1186/s40814-023-01291-5 — https://pmc.ncbi.nlm.nih.gov/articles/PMC10105402/</li>
+<li>Stip E et al., Front Pharmacol 2013;4:100 — https://europepmc.org/articles/PMC3738856</li>
+<li>Jerene D et al., Lancet 2025;405(10485):1155-1166, doi 10.1016/S0140-6736(24)02847-2 — https://pubmed.ncbi.nlm.nih.gov/40086457/</li>
+<li>Tadesse et al., Lancet Digit Health 2025:100895, doi 10.1016/j.landig.2025.100895 — https://pubmed.ncbi.nlm.nih.gov/41027822/</li>
+<li>Paterson et al., Int J Pharm Pract 2017;25(3):185-194 — https://api.crossref.org/works/10.1111/ijpp.12242</li>
+<li>Faisal et al., J Pharm Pract 2022;35(3):455-468 — https://api.crossref.org/works/10.1177/0897190020977756</li>
+<li>Gargioni et al., J Healthc Inform Res 2024;8(2):244-285 — https://api.crossref.org/works/10.1007/s41666-024-00161-w</li>
+<li>Hannink K et al., BMC Geriatr 2019;19:273, doi 10.1186/s12877-019-1292-y（NTR3917） — https://pubmed.ncbi.nlm.nih.gov/31619184/</li>
+<li>Kamimura T., Clin Gerontol 2019;42(1):127-133, doi 10.1080/07317115.2017.1347594 — https://pubmed.ncbi.nlm.nih.gov/29028462/</li>
+<li>Ogorek, Rhoads, Smith., JMIR Hum Factors 2025;12:e60438, doi 10.2196/60438 — https://pubmed.ncbi.nlm.nih.gov/39899755/</li>
+<li>Patel et al., JMIR Form Res 2022;6(5):e34906, doi 10.2196/34906 — https://pmc.ncbi.nlm.nih.gov/articles/PMC9164090/</li>
+<li>Dube et al., PLoS One 2025;20(9):e0332103, doi 10.1371/journal.pone.0332103 — https://pmc.ncbi.nlm.nih.gov/articles/PMC12459780/</li>
+<li>Choudhry NK et al., JAMA Intern Med 2017;177(5):624-631, doi 10.1001/jamainternmed.2016.9627, PMID 28241271（REMIND）</li>
+<li>ClinicalTrials.gov NCT01600677（EMMA-RCT, INRange Systems） — https://clinicaltrials.gov/api/v2/studies/NCT01600677?format=json</li>
+<li>Browne SH et al., PLOS Medicine 2019, doi 10.1371/journal.pmed.1002891 — https://journals.plos.org/plosmedicine/article?id=10.1371%2Fjournal.pmed.1002891</li>
+<li>Story A et al., Lancet 2019;393(10177):1216-1224 — https://pmc.ncbi.nlm.nih.gov/articles/PMC6429626/</li>
+<li>Karumbi J, Garner P., Cochrane Database Syst Rev 2015;2015(5):CD003343, doi 10.1002/14651858.CD003343.pub4 — https://pmc.ncbi.nlm.nih.gov/articles/PMC4460720/</li>
+<li>Manyazewal T et al., BMC Med 2022;20:310, doi 10.1186/s12916-022-02521-y（SELFTB） — https://pmc.ncbi.nlm.nih.gov/articles/PMC9514884/</li>
+<li>He J et al., Medicine (Baltimore) 2022;101(45):e31662, doi 10.1097/MD.0000000000031662, PMID 36397443</li>
+<li>Morales Suárez-Varela MT, GEMECOR., Aten Primaria 2009;41(4):185-191, doi 10.1016/j.aprim.2008.07.003, PMID 19328598</li>
+<li>Lee Y et al., Digit Health 2026;12:20552076261437181, doi 10.1177/20552076261437181</li>
+<li>Hung L et al., Front Dement 2026;5:1843555, doi 10.3389/frdem.2026.1843555</li>
+<li>Sullivan et al., Clin Neuropsychol 2025;39(7):1865-1885, doi 10.1080/13854046.2024.2447094 — https://pubmed.ncbi.nlm.nih.gov/39789862/</li>
+<li>O'Conor et al., J Am Geriatr Soc 2024;72(10):3011-3021, doi 10.1111/jgs.19065 — https://pubmed.ncbi.nlm.nih.gov/39007450/</li>
+<li>Dolansky et al., Circ Heart Fail 2016;9(12):e002475, doi 10.1161/CIRCHEARTFAILURE.116.002475 — https://pubmed.ncbi.nlm.nih.gov/27895069/</li>
+<li>ClinicalTrials.gov NCT07175545（Mobili） — https://www.clinicaltrials.gov/api/v2/studies/NCT07175545 （NCT03511027 为 WITHDRAWN）</li>
+<li>介護テクノロジーポータルサイト（AMED），【開発中止】見守り機能型服薬管理支援（クラリオン株式会社） — https://robotcare.jp/development/device-specs/</li>
+<li>Shi X et al., *Are We Ready for Service Robots? The OpenLORIS-Scene Datasets for Lifelong SLAM*, arXiv:1911.05603v1 — https://arxiv.org/html/1911.05603v1</li>
+<li>Bujanca M, Shi X, Spear S, Zhao L, Lennox B, Luján M., *Robust SLAM Systems: Are We There Yet?*, arXiv:2109.13160 — https://ar5iv.labs.arxiv.org/html/2109.13160</li>
+<li>Albiero V, Bowyer KW, Vangara K, King MC., *Does Face Recognition Accuracy Get Better With Age? Deep Face Matchers Say No*, arXiv:1911.06396 — https://ar5iv.labs.arxiv.org/html/1911.06396</li>
+<li>Kostavelis I et al., *RAMCIP Robot: A Personal Robotic Assistant; Demonstration of a Complete Framework*, ECCV 2018 Workshops — https://www.openaccess.thecvf.com/content_eccv_2018_workshops/w31/html/Kostavelis_RAMCIP_Robot_A_Personal_Robotic_Assistant_Demonstration_of_a_Complete_ECCVW_2018_paper.html</li>
+<li>Gerłowska J et al., Front Neurol 2018;9:392, doi 10.3389/fneur.2018.00392 — https://pmc.ncbi.nlm.nih.gov/articles/PMC5992288/</li>
+<li>Rantanen P, Parkkari T, Leikola S, Airaksinen M, Lyles A., Clin Ther 2017;39(5):1054-1061, doi 10.1016/j.clinthera.2017.03.020, PMID 28433400 — https://pubmed.ncbi.nlm.nih.gov/28433400/</li>
+<li>Gangaraju, Inaparthy, Yang, Zheng, Yuan., *Assist-As-Needed: Adaptive Multimodal Robotic Assistance for Medication Management in Dementia Care*, arXiv:2510.06633v1 — https://arxiv.org/html/2510.06633v1</li>
+<li>Hameed, Al-Zakwani, Aljabri, Al-Qassabi, Al Kendi., *MediTrack*, Int J Recent Technol Eng 15(1), doi 10.35940/ijrte.A8362.15010526 — https://zenodo.org/records/20408358</li>
+<li>Kajander-Unkuri S, Vaismoradi M, Katajisto J, Kangasniemi M, Turjamaa R., BMC Health Serv Res 2023;23:1344, doi 10.1186/s12913-023-10367-0（NCT05908604） — https://pmc.ncbi.nlm.nih.gov/articles/PMC10693699/</li>
+<li>Turjamaa R, Vaismoradi M, Kangasniemi M., Scand J Caring Sci 2023;37(2):561-570, doi 10.1111/scs.13141</li>
+<li>Maleki, Mardani, Kakemam, Huertas-Zurriaga, Vaismoradi., Expert Rev Pharmacoecon Outcomes Res 2025;25(8):1167-1182, doi 10.1080/14737167.2025.2537190（PROSPERO CRD42024611310）</li>
+<li>Olaleye, Olubunmi, Atsbeha, Wodaje., Explor Res Clin Soc Pharm 2024;17:100545, doi 10.1016/j.rcsop.2024.100545 — https://pmc.ncbi.nlm.nih.gov/articles/PMC11648254/</li>
+<li>Vincze M, Bajones M, Suchi M, Wolf D, Lammer L, Weiss A, Fischinger D., *User Experience Results of Setting Free a Service Robot for Older Adults at Home*, IntechOpen 2018, doi 10.5772/intechopen.70453（Hobbit, EU FP7 288146） — https://repositum.tuwien.at/handle/20.500.12708/29612?mode=full</li>
+<li>Thilakarathna, Wang, Wang, Hinwood, Liu, Herath., *GRAB: A Systematic Real-World Grasping Benchmark for Robotic Food Waste Sorting*, arXiv:2602.18835 — https://ar5iv.labs.arxiv.org/html/2602.18835</li>
+<li>ISO 13482:2014《Robots and robotic devices — Safety requirements for personal care robots》（ГОСТ Р 60.2.2.1-2016/ИСО 13482:2014 IDT 全文） — https://meganorm.ru/mega_doc/norm/gost-r_gosudarstvennyj-standart/14/gost_r_60_2_2_1-2016_iso_13482_2014_natsionalnyy_standart.html</li>
+<li>Alahmari et al., Cureus 2022;14(8):e28642, doi 10.7759/cureus.28642 — https://europepmc.org/articles/PMC9525046</li>
+<li>中国青年报客户端（经新湖南转载），〈「养老机器人」卡在哪儿？隐私之外，还暗藏另一重隐忧……〉2026-09-24（含北京晚报／北京老龄产业协会／北京市科学技术研究院联合调查的入户产品选择与安装阻力数据，及森丽康小丽机器人产品负责人的表述） — https://www.hunantoday.cn/news/xhn/202609/33844854.html</li>
+<li>openFDA device/event API，品牌/型号 H100（Hero Health）聚合与报告原文 — https://api.fda.gov/device/event.json?search=device.model_number:H100&amp;limit=100&amp;count=product_problems.exact</li>
+<li>庄丽萍等，《住院药房全自动片剂摆药机差错分析与措施改进》，海峡药学 2022;34(6) — https://www.sinomed.ac.cn/article.do?ui=2022381035</li>
+<li>刘竹丽等，《单剂量全自动摆药机调配住院长期口服医嘱的工作效率和差错分析》，北方药学 2020;17(2) — https://www.sinomed.ac.cn/article.do?ui=2020472326</li>
+<li>孙国祥等，《SHEL联合PDCA模式在本院全自动片剂摆药机差错管理中的应用》，新疆医学 2025;55(4) — https://www.sinomed.ac.cn/article.do?ui=2025298686</li>
+<li>Evondos UK, *Pilot in Barcelona, Spain*（2025-07-01，厂商发布、由参与药师撰写） — https://www.evondos.co.uk/news/pilot-in-barcelona-spain</li>
+<li>香港文匯報，〈科企研機器人分藥配藥系統 提升用藥安全〉2025-12-24 — https://www.wenweipo.com/a/202512/24/AP694aff69e4b05ffe86ea6421.html</li>
+<li>《医疗器械分类规则》（国家食品药品监督管理总局令第 15 号，2015-07-14 公布，2016-01-01 施行），国务院公报 2015 年第 31 号 — https://www.gov.cn/gongbao/content/2015/content_2961719.htm</li>
+<li>《国家药监局关于规范医疗器械产品分类界定工作的公告（2024 年第 59 号）》 — https://mpa.gd.gov.cn/gkmlpt/content/4/4421/mpost_4421942.html</li>
+<li>《07 医用诊察和监护器械》子目录说明 — http://m.yaopinnet.com/qixie/mulu20171.asp?id=070199</li>
+<li>《14 注输、护理和防护器械》子目录说明 — http://m.yaopinnet.com/qixie/mulu20171.asp?id=140199</li>
+<li>3618 医疗器械网，2017 年版分类目录 07 子目录逐条表 — https://m.3618med.com/seo/med-catalog/index_kind_07.html</li>
+<li>3618 医疗器械网，2017 年版分类目录 14 子目录 — https://m.3618med.com/seo/med-catalog/index_kind_14.html</li>
+<li>商品归类：全自动锭剂摆药机（归类决定 Z2007-0050，税号 8422.3030） — https://www.51test.net/show/897131.html</li>
+<li>广东省药品监督管理局互动交流答复「装药品的盒子能不能按医疗器械的类别去生产」（2024-01-12） — https://mpa.gd.gov.cn/hdjlpt/detail?pid=2817506</li>
+<li>国家药监局器械标管中心，2025 年第三次医疗器械分类界定结果汇总（2025-12-11，202 个产品） — https://www.ylzbzz.org.cn/index.php?m=content&amp;c=index&amp;a=show&amp;catid=28&amp;id=2871</li>
+<li>国家药监局器械标管中心，2026 年第一次医疗器械分类界定结果汇总（2026-06-22，206 个产品） — https://www.ylzbzz.org.cn/index.php?m=content&amp;c=index&amp;a=show&amp;catid=28&amp;id=3090</li>
+<li>Innolitics FDA Browser，产品代码 NXB（21 CFR 890.5050，Class I，3 条清关记录） — https://fda.innolitics.com/submissions/PM/subpart-f%E2%80%94physical-medicine-therapeutic-devices/890.5050</li>
+<li>Innolitics FDA Browser，产品代码 NXQ — https://fda.innolitics.com/productcode/NXQ</li>
+<li>Innolitics FDA Browser，K103009 SentiCare PillStation（Senticare, Inc.，2011-01-28） — https://fda.innolitics.com/device/K103009</li>
+<li>Innolitics FDA Browser，K980109 CycloTech Cyclosporine Oral Solution Dispenser（SangStat Medical，1998-08-18） — https://fda.innolitics.com/device/K980109</li>
+<li>21 CFR § 890.5050 Daily activity assist device，Cornell LII e-CFR — https://www.law.cornell.edu/cfr/text/21/890.5050</li>
+<li>FDA, *General Wellness: Policy for Low Risk Devices*（修订版最终指南，2026-01-06） — https://www.fda.gov/regulatory-information/search-fda-guidance-documents/general-wellness-policy-low-risk-devices</li>
+<li>Covington &amp; Burling, *FDA Issues Revised Guidance on General Wellness Products*（2026-01） — https://www.cov.com/news-and-insights/insights/2026/01/fda-issues-revised-guidance-on-general-wellness-products</li>
+<li>Medmarc, *New 2026 FDA Wellness Guidance Provides Broader Exemptions*（2026-01-23） — https://medmarc.com/life-sciences-news-and-resources/blog/new-2026-fda-wellness-guidance-provides-broader-exemptions</li>
+<li>《中华人民共和国个人信息保护法》全文，中国人大网 — http://www.npc.gov.cn/npc/c2/c30834/202108/t20210820_313088.html</li>
+<li>《中华人民共和国数据安全法》全文，中央网信办 — https://www.cac.gov.cn/2021-06/11/c_1624994566919140.htm</li>
+<li>《网络数据安全管理条例》（国务院令第 790 号）全文，中国政府网 — https://www.gov.cn/zhengce/zhengceku/202409/content_6977767.htm</li>
+<li>APACMed, *SaMD classification policy recommendation*（援引《人工智能应用软件产品分类界定指导原则》） — http://apacmed.org/wp-content/uploads/2022/12/SaMD-classification-policy-recommendationAPACMed-China.pdf</li>
+<li>国家药监局 2021 年第 158 号公告（《第一类医疗器械产品目录》，2022-01-01 施行），上海市药监局转载 — https://yjj.sh.gov.cn/qtgzwj/20220104/91a45dbf212b4181bb0605fac3e2d038.html</li>
+<li>《医疗器械监督管理条例》（2024-12-06 第二次修订）全文，中国食品药品国际交流中心转载 — https://www.ccfdie.org/zryyxxw/zxdt/webinfo/2025/01/1732615316140786.htm</li>
+<li>新疆维吾尔自治区药品监督管理局，《医疗器械生产监督管理办法》解读 — http://mpa.xinjiang.gov.cn/xjyjj/c115624/202503/4de7b98a99084ab1b67f74670c8363cf.shtml</li>
+<li>北京市药品监督管理局，《医疗器械生产监督检查指南总则（2022 版）》 — https://yjj.beijing.gov.cn/yjj/ztzl48/ylqxjgfwzn/jdjczn61/326010268/</li>
+<li>安徽省药品监督管理局局长信箱回复选登：「不同持证主体的注册证注册人变更」（回复时间 2026-03-09） — https://mpa.ah.gov.cn/content/article/123298941</li>
+<li>Hero Health Help Center, *Hero Subscription Options* — https://support.herohealth.com/en/articles/8020001-hero-subscription-options</li>
+<li>MedaCube（PharmAdva, LLC）官方 Shopify 产品目录 JSON — https://www.medacube.com/products.json</li>
+<li>LiviPod 官方 Shopify 产品目录 JSON — https://livipods.com/products.json</li>
+<li>LiviPod 官网 — https://livipods.com/</li>
+<li>Pillo Health 存档网站（含「Pillo Health 已不再是活跃公司」横幅） — https://pillohealth.ermit.it/devices</li>
+<li>Philips/Lifeline Medication Dispenser（消费者 URL 重定向至 /business/） — https://www.lifeline.com/medical-alert-systems/medication-dispenser/</li>
+<li>toolsinfo, *Philips Lifeline Automated Medication Dispensing Service*（AI 聚合第三方目录，非一手） — https://healthcare.toolsinfo.com/tool/philips-lifeline-automated-medication-dispensing-service</li>
+<li>中华网转快科技，HiPee（果实健康）智能药盒众筹 ¥119（2019-03-27） — https://economy.china.com/tech/13001906/20190327/35521391_all.html</li>
+<li>快科技，HiPee 小米有品开卖 ¥149（2019-06-14） — https://news.mydrivers.com/1/631/631465.htm</li>
+<li>中国政府采购网中标公告：太仓市中医院 蓝影 LY-FB04 全自动片剂摆药机 ¥518,000（2026-01-06） — https://www.ccgp.gov.cn/cggg/dfgg/zbgg/202601/t20260106_26041461.htm</li>
+<li>中国政府采购网中标公告：天长市人民医院 蓝影 LY-FB-300 药品分包机 ¥550,000（2026-07-18） — http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260718_26962099.htm</li>
+<li>中国政府采购网中标公告：泰顺县中医院 全自动片剂摆药机 ¥751,450 武汉库柏特科技（2025-11-27） — https://www.ccgp.gov.cn/cggg/dfgg/zbgg/202511/t20251127_25777191.htm</li>
+<li>京东「提醒药盒」分类页与商品详情页（价格客户端渲染，页内「价格说明」以结算页为准） — https://so.m.jd.com/chanpin/24980.html?sort=2</li>
+<li>北京日报客户端，〈养老大调研｜一个智能药盒卖 3900 元！〉2026-09-18 — https://news.bjd.com.cn/2026/09/18/11963611.shtml</li>
+<li>什么值得买，〈月销过万都是十元机 智能药盒高价围城何时破局〉2026-09-18（标注 AIGC 生成、列出 20 个来源的二手聚合） — https://post.smzdm.com/p/a82x36l6/</li>
+<li>MedMinder /pricing/（HTTP 404） — https://medminder.com/pricing/</li>
+<li>MedMinder 商店 — https://shop.medminder.com/</li>
+<li>每日商报，〈西湖机器人：让机器人走进寻常百姓家〉2025-05-08 — https://mdaily.hangzhou.com.cn/mrsb/2025/05/08/article_detail_3_20250508A168.html</li>
+<li>杭州市政府网站（来源：杭州日报），〈西湖：机器狗在社区养老家园「上岗」了〉2025-02-25 — https://www.hangzhou.gov.cn/art/2025/2/25/art_812264_59109833.html</li>
+<li>潮新闻，〈送药陪散步是第一步，情绪价值也拉满，机器狗成了杭州社区老人的团宠〉2025-02-24 — https://tidenews.com.cn/news.html?id=3053823</li>
+<li>中国新闻网，〈杭州：机器狗「上岗」养老院成新宠〉2025-02-21 — https://www.chinanews.com.cn/sh/2025/02-21/10372431.shtml</li>
+<li>每日商报 2025-02-28（企业方称售价未定、目前仅针对 G 端与 B 端） — https://mdaily.hangzhou.com.cn/mrsb/2025/02/28/article_detail_3_20250228A031.html</li>
+<li>贵州省政府采购文件，AI 巡房机器人技术参数（PDF，仅经搜索索引读到该段规格文本） — https://zcy-gov-open-doc.oss-cn-north-2-gov-1.aliyuncs.com/1024FPA/20264/04942906-609c-4ad4-9c7d-e645c6c642ba.pdf</li>
+<li>AI 星踪岛，傲天 U1 产品页（收录 2026-01-29） — https://aixzd.com/robot/u1</li>
+<li>ZDNet Korea，〈영현로보틱스, SLW서 'AI 라이프케어 로봇' 공개〉2025-10-02 — https://zdnet.co.kr/view/?no=20251002002258</li>
+<li>etnews，〈[2025 광주미래산업엑스포] 영현로보틱스…〉2025-06-17 — https://www.etnews.com/20250617000331</li>
+<li>etnews，〈영현로보틱스, 'FIX 2025'에서 양팔형 AMR·AI헬스케어로봇 등 전시〉2025-10-20 — https://www.etnews.com/20251020000391</li>
+<li>首尔新闻，〈"우리 효돌이 똑똑해져서 서울대 가자"… AI 돌봄로봇에 외신도 주목〉2025-12-04 — https://m.seoul.co.kr/news/society/2025/12/04/20251204500145</li>
+<li>GIGAZINE，*AI-powered robot dolls help care for the elderly in South Korea*（2025-09-01，转述 Rest of World） — https://gigazine.net/gsc_news/en/20250901-korea-ai-robot-hyodol</li>
+<li>大塚商会，kachaka Pro 产品页 — https://www.otsuka-shokai.co.jp/products/robot/kachaka-pro/</li>
+<li>アールティ（RT），自律移動ロボット カチャカプロ — https://rt-net.jp/service/kachakapro/</li>
+<li>Robotomated, *Luvozo SAM Review &amp; ROI Calculator (2026)* — https://robotomated.com/explore/eldercare/luvozo-sam</li>
+<li>AgeClub 转载，〈Luvozo SAM 自主巡房 $1.5 万，养老设施跌倒检测+远程探视〉2026-08-25 — https://m.ageclub.net/article-detail/10380</li>
+<li>IEEE Spectrum / RobotsGuide, *Mabu* — https://robotsguide.com/robots/mabu/</li>
+<li>Robotomated, *Catalia Health Mabu* — https://robotomated.com/explore/eldercare/catalia-health-mabu</li>
+<li>AgeClub（转载 Fortune），〈桌面机器人 ElliQ 进入美国老年家庭…〉2026-08-13 — https://ageclub.net/article-detail/10245</li>
+<li>搜狐号「晨曙科技」，〈单台智能 ai 配送机器人多少钱一台？〉2026-04-20（厂商内容营销） — https://www.sohu.com/a/1011878174_121696190</li>
+<li>Diligent Robotics 官方博客（标题级，正文未读到） — https://www.diligentrobots.com/blog/diligent-robotics-selected-for-agetech-collaborative-from-aarp-accelerator-program-signaling-expansion-into-senior-living</li>
+<li>深圳市人人壮科技有限公司，「盒家安康」智能药盒产品页（¥698 起／¥798 起） — https://www.rrztech.com/box.html</li>
+<li>环球医疗器械网，分包机厂商自述（商业招商内容，非官方来源） — https://ylqx.qgyyzs.net/user/web6751/news.asp?id=34200</li>
+<li>中国政府采购网，摆药机维保项目招标公告（2024-04） — http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202404/t20240425_21919361.htm</li>
+<li>沈杰, 高宁舟, 郑松柏. 老年人多重用药评估与管理中国专家共识(2024). 中华老年医学杂志 2024;43(3):269-278 — https://m.sohu.com/a/831083620_264916/</li>
+<li>Tian F, Chen Z, Wu J., Front Pharmacol 2022;13:862561, doi 10.3389/fphar.2022.862561</li>
+<li>Xu S, Gong P, Huang P, et al., Front Public Health 2025;13:1656427, doi 10.3389/fpubh.2025.1656427</li>
+<li>Liu J, Yu Y, Yan S, et al., BMC Geriatrics 2023;23:75, PMID 36740694, PMCID PMC9900971</li>
+<li>De Vito AN, Emrani S, Hallowell E, et al., Clin Neuropsychol 2024;38(8):1931-1946, doi 10.1080/13854046.2024.2339560</li>
+<li>Rohde D, Gaynor E, Large M, et al., PLoS One 2019;14(10):e0223997 — https://pmc.ncbi.nlm.nih.gov/articles/PMC6797135/</li>
+<li>Wu W, Chen G, Ren X, et al., Neuroepidemiology 2025;59(3):259-276, doi 10.1159/000539802, PMID 38870921</li>
+<li>Zhang Z, Cai Z, Li C, et al., BMC Public Health 2025;25:3752, doi 10.1186/s12889-025-25086-w — https://pmc.ncbi.nlm.nih.gov/articles/PMC12581477/</li>
+<li>刘运铎, 王一然, 邢婉丽, 冯磊, 郭帅, 戴朴, 郑晓瑛. 我国老年人口视力、听力残疾与视听共残的现患率及其关联因素. 中华医学杂志 2023;103(6) — https://www.sinomed.ac.cn/article.do?ui=2023282159</li>
+<li>Liu C, Zheng H, Li B, et al., Int J Nurs Sci 2024;11(4):457-464, PMCID PMC11740308, PMID 39830912 — https://pmc.ncbi.nlm.nih.gov/articles/PMC11740308/</li>
+<li>李茹, 陈玲玲, 段晓侠, 李艳. 老年慢性病照顾者负担与社会支持的关系. 中国老年学杂志 2019;39(7):1753-1755, doi 10.3969/j.issn.1005-9202.2019.07.074</li>
+<li>Shi Y, Cheung MC, Ruan YX, et al., Innovation in Aging 2026;10(5):igag014, doi 10.1093/geroni/igag014 — https://pmc.ncbi.nlm.nih.gov/articles/PMC13070475/</li>
+<li>Wang Y, Chen H, Cheng H, et al., Innovation in Aging 2025;9(9):igaf097, doi 10.1093/geroni/igaf097 — https://pmc.ncbi.nlm.nih.gov/articles/PMC12553357/</li>
+<li>He Q, He Y, Liu Q, Ma C., Geriatr Nurs 2023;52:191-198, doi 10.1016/j.gerinurse.2023.06.006, PMID 37392564</li>
+<li>Prakash A, Beer JM, Deyle T, et al., *Older Adults' Medication Management in the Home: How can Robots Help?*, ACM/IEEE HRI 2013:283-290, doi 10.1109/HRI.2013.6483600 — https://pmc.ncbi.nlm.nih.gov/articles/PMC6592029/</li>
+<li>Chen Y, Wang H, Wang S, et al., *SeniorTalk: A Chinese Conversation Dataset with Rich Annotations for Super-Aged Seniors*, arXiv:2503.16578（NeurIPS 2025 Datasets and Benchmarks Track） — https://ar5iv.labs.arxiv.org/html/2503.16578</li>
+<li>Yu-ting Y, et al., BMC Geriatr 2023;23:256, doi 10.1186/s12877-023-03966-3（仅见题录，未读全文）</li>
+<li>欢创科技招股书数据（三角测距/dTOF 激光雷达与线激光传感器出货量与平均售价），格隆汇/腾讯转载 — https://www.lexotech.com/news/news-content?did=f312d411497d6abf4826750ded941613</li>
+<li>淘江湖好物爆料帖，思岚 RPLIDAR A1/C1/S2L 报价 ¥375（2026-03-06，论坛贴文） — https://jianghu.taobao.com/detail/47750_68194539?order=1</li>
+<li>思岚科技（SLAMTEC）官网新闻页（Apollo 移动机器人底盘「批量售价仅在 2 万余元」） — https://www.slamtec.com/cn/news/detail/586</li>
+<li>供应商网 上海思岚科技店铺，Apollo 底盘挂牌价 ¥4.5 万／≥1 台起批 — https://m.gys.cn/xiezuojiqiren/4399628604.html</li>
+<li>思岚科技购买渠道页 — https://www.slamtec.com/cn/home/buy</li>
+<li>澎湃新闻，RobStride EduLite A3 六自由度开源桌面机械臂（千元级，2026-02 发布） — https://m.thepaper.cn/newsDetail_forward_32671444</li>
+<li>立德智库 leaderobot，EduLite A3 报道 — https://www.leaderobot.com/news/7229</li>
+<li>北京市科学技术委员会／北京经开区，EduLite A3 报道（2026-02-28） — https://www.ncsti.gov.cn/kjdt/scyq/bjjjjskfq/jkdt/202602/t20260228_239312.html</li>
+<li>智能制造网，遨博 AUBO iS7 协作机器人代理参考价 ¥60,000–¥300,000/件（更新 2025-08-25） — https://www.gkzhan.com/st160478/product_13737051.html</li>
+<li>智能制造网，深圳市沛城智能控制技术 48V20Ah 磷酸铁锂服务机器人电池包 ¥2,340/台（更新 2023-04-20） — https://www.gkzhan.com/st221959/product_12664300.html</li>
+<li>东莞双宇塑胶模具报价区间 — https://www.zhusukaimo.com/news-detail-569.html</li>
+<li>深圳市一九四三科技有限公司 PCBA 报价口径（ISO9001/ISO13485） — https://1943pcba.com/show-80-1758-1.html</li>
+<li>米思米中国，经济型闭环步进电机产品页 — https://www.misumi.com.cn/pr/im/2023/01/bhbjdj/</li>
+<li>雷赛商城，步进驱动器与闭环步进电机驱动器目录 — https://www.leisaishop.com/Product/productlist.aspx?page=2</li>
+<li>1688，42/57 行星减速步进电机控制驱动一体商品页（跨域跳转，未取到正文） — https://detail.1688.com/offer/1036143623378.html</li>
+<li>深圳勇艺达机器人有限公司（YYD ROBO）官网「关于我们」 — http://www.yydrobot.com/about.html</li>
+<li>智能制造网，杭州蓝芯机器人全向移动机器人底盘参考价 ¥300,000–¥500,000（更新 2025-06-05） — https://www.gkzhan.com/chanpin/13641890.html</li>
+<li>西安市民政局，《西安市智慧健康养老产品补贴清单（2026 版）》公告（2026-04-07；398 款申报、133 款入选） — https://mzj.xa.gov.cn/mzzx/tzgg/2041345348120092673.html</li>
+<li>Ahmed A, Dujaili JA, Chuah LH, et al., Appl Health Econ Health Policy 2023;21(5):731-750（Table 1 列示 Goldie 2003） — https://pmc.ncbi.nlm.nih.gov/articles/PMC10403422/</li>
+<li>Huo D, Hinde S, Smith H, Linden D, Jones L., NIHR Open Res 2025;5:8, doi 10.3310/nihropenres.13775.1 — https://pmc.ncbi.nlm.nih.gov/articles/PMC12627936.1/</li>
+<li>Wei J, Gao L, Jing Z, et al., BMC Health Serv Res 2025;26(1):9, doi 10.1186/s12913-025-13785-4, PMID 41299414</li>
+<li>国家医疗保障局，《关于印发〈国家长期护理保险服务项目目录（试行）〉的通知》医保发〔2025〕24 号（成文 2025-09-18） — https://www.gov.cn/zhengce/zhengceku/202509/content_7042325.htm</li>
+<li>同 180 附件原文（36 项目录正文） — https://www.gov.cn/zhengce/zhengceku/202509/P020250925764519054108.txt</li>
+<li>国家医保局，《国家医保局印发长护服务项目目录 这些服务项目可由长护险报销了！》2025-09-30 — https://www.nhsa.gov.cn/art/2025/9/30/art_14_18090.html</li>
+<li>国家医疗保障局，《关于做好长期护理保险支付管理工作的指导意见》（2026-08-21） — https://www.xifeng.gov.cn/zwgk/zdlygk/ylbz_5741548/202608/t20260831_90798786.html</li>
+<li>新华社《经济参考报》，《长期护理保险支付管理将统一规范》2026-08-26 — http://jjckb.xinhuanet.com/20260826/1dd734064a314ff9aa555167c5088777/c.html</li>
+<li>鲁北晚报，〈我市长护险支持性辅具租赁目录扩展至 36 类〉2026-01-19 第 03 版 — http://lbwb.binzhouw.com/lbwb/20260119/mhtml/page_02_content_20260119003002.htm</li>
+<li>闪电新闻，滨州长护险辅具租赁报道（2026-01-14） — https://sdxw.iqilu.com/w/article/YS0yMS0xNjk4MjY1NQ.html</li>
+<li>苏州本地宝，〈苏州长期护理保险辅具租赁费用多少？〉2026-03-19（原政策 PDF 未打开） — https://m.suzhou.bendibao.com/live/135654.shtm</li>
+<li>台州晚报／台州市政府网，〈台州长护险，你了解多少？〉2025-05-26 — https://www.zjtz.gov.cn/art/2025/5/26/art_1229049733_59112937.html</li>
+<li>深港在线，〈一个智能药盒卖 3900 元 智能药盒比普通款贵了一百倍！〉2026-09-18（媒体整理，非官方统计） — http://hk.szhk.com/2026/09/18/31808461467558768.html</li>
+<li>国家统计局，《中华人民共和国 2025 年国民经济和社会发展统计公报》2026-02-28，新华网 — http://www.news.cn/20260228/9fee17b966184ed79cf1b9cabab3e4a9/c.html</li>
+<li>国家卫生健康委，《2024 年我国卫生健康事业发展统计公报》（2025 年 12 月发布），经 CDSreport 转载读到费用段落（原公报 PDF 本环境无法解析） — https://www.sohu.com/a/960723272_100147901</li>
+</ol>
+</div>
+
+<div class="box accent" style="margin-top:30px">
+  <h3 style="margin-top:0">关于长护险与支付渠道（对"以后能不能卖"的判断）</h3>
+  <p><strong>《国家长期护理保险服务项目目录（试行）》</strong>（医保发〔2025〕24 号，成文 2025-09-18）共 36 项：生活照护类 20 项＋医疗护理类 16 项。凡例「管理原则」明确「<strong>实行准入法管理……未列入目录的服务项目基金不予支付</strong>」。目录正文与随附解读只表述"国家层面根据人口形势变化和制度发展，<strong>研究探索</strong>将长期护理相关智能化服务和支持性辅助器具等纳入支付范围"。<strong>即截至该文件发布，国家层面没有任何智能药盒或配送机器人的支付条目，器具纳入仅为方向性表述，且没有制度化时间表。</strong>[180][181][182][183]</p>
+  <p><strong>辅具租赁报销只在少数试点城市落地，实际目录中不含任何服药/配药类设备。</strong>滨州（2025 年 4 月将目录由 24 类扩至 36 类，含"智能服务"类，但公布的举例器具仅智能防褥疮垫、电动爬楼机；截至 2025 年底累计 1,590 名失能人员租赁 3,327 件）[185][186]；苏州（长护险基金承担 85%、个人 15%，年度限额 5,000 元/人·年）<span class="tag t-mid">原始 PDF 未能打开，仅本地宝转载</span>[187]；台州（基本生活照料六大类 42 项中含「用药指导类」——<strong>这是现有制度中最接近"管理服药"的条目，但属人对人指导而非器具</strong>）[188]。</p>
+  <p><strong>政府采购/补贴通道是真实存在的</strong>：西安市民政局 2026-04-07 公告《西安市智慧健康养老产品补贴清单（2026 版）》，第一批次收到申报产品 398 款，经审核与专家评审后 <strong>133 款入选</strong>，面向养老服务机构采购。[176]</p>
+</div>
+
+<div class="footer">
+  <p><strong>本页如何生成：</strong>正文事实来自一轮固定流程的深度调研（规划 → 4 轮 × 3 路并行研究 → 综合 → 对抗性评审，共 16 个 agent，12 个问题被研究），加上工作区内若干定向分课题调研文件。所有引用编号对应文末 191 条来源，来源清单与编号原样取自该轮调研报告。</p>
+  <p><strong>本页的已知局限：</strong>第五节 5.1 的"全目录无对应品目"为推断而非逐条核实；2.4 节的纯软件产品层证据不足；第八节列出的 34 个问题本轮从未被研究。<strong>不要把这些空白读成"已确认不存在"。</strong></p>
+  <p>生成日期：2026-10-02 ｜ 单一自包含 HTML，无外部依赖 ｜ 可直接用浏览器打印为 PDF</p>
+</div>
+
+</main>
+</div>
+
+<button class="topbtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部" aria-label="回到顶部">↑</button>
+
+<script>
+// 把来源列表里的纯文本 URL 自动变成可点击链接（纯本地正则，无外部依赖）
+(function(){
+  var re = /(https?:\/\/[^\s，。；、）)"'<>]+)/g;
+  var lis = document.querySelectorAll('#sources li');
+  for (var i = 0; i < lis.length; i++) {
+    var li = lis[i];
+    var t = li.innerHTML;
+    if (t.indexOf('<a ') !== -1) continue;
+    li.innerHTML = t.replace(re, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+})();
+</script>
+</body>
+</html>
