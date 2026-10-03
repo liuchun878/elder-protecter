@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>导出 GLB · 老奶奶 / 机器人 / 客厅</title>
+<style>
+  body{margin:0;background:#14181f;color:#e8ecf1;font-family:"Microsoft YaHei",system-ui,sans-serif}
+  #bar{padding:10px 14px;font-size:14px;background:#1d232c;position:sticky;top:0}
+  #bar b{color:#ffd79a}
+  #log{font:12px/1.7 Consolas,monospace;padding:10px 14px;white-space:pre-wrap;color:#9fb3c8}
+  canvas{display:block;width:420px;height:260px;margin:8px 14px;border-radius:8px;background:#0b0e13}
+</style>
+</head>
+<body>
+<div id="bar">导出页：加载 <b>src/grandma.js / robot.js / environment.js</b>，把程序化模型烘焙成标准 glTF 2.0（GLB）。<br />
+外部脚本用 CDP 调 <b>window.exportGLB(root, …)</b> 取 base64 后写盘。</div>
+<div id="log">准备中…</div>
+<canvas id="cv"></canvas>
+
+<script src="vendor/three.min.js"></script>
+<script src="src/grandma.js"></script>
+<script src="src/robot.js"></script>
+<script src="src/environment.js"></script>
+<script src="src/glb.js"></script>
+<script>
+(function () {
+  var logEl = document.getElementById('log');
+  function log(s) { logEl.textContent += '\n' + s; }
+
+  // 一个干净的场景：只放要导出的东西，不带灯光/相机/辅助物
+  var scene = new THREE.Scene();
+
+  // 老奶奶：摆成自然站姿，导出的是"网格 + 材质"，姿态即为当时的骨骼姿态
+  var grandma = window.createGrandma();
+  scene.add(grandma.root);
+  for (var i = 0; i < 30; i++) grandma.update(1 / 60, { speed: 0 });
+
+  // 机器人
+  var robot = window.createRobot();
+  robot.root.position.set(1.2, 0, 0);
+  scene.add(robot.root);
+
+  // 房间（家具与墙；不含角色）
+  var env = window.createEnvironment(scene);
+  env.setLighting('dusk');
+
+  // 排除纯视觉辅助物：角色脚下的假阴影贴片、窗外那块城市背景板
+  grandma.root.traverse(function (o) {
+    if (o.isMesh && o.material && o.material.map && o.material.depthWrite === false) o.userData.skipExport = true;
+  });
+  var cityCount = 0;
+  env.root.traverse(function (o) {
+    if (o.isMesh && o.material && o.material.isMeshBasicMaterial && o.material.map) {
+      o.userData.skipExport = true;
+      cityCount++;
+    }
+  });
+
+  // 客厅导出时把角色和机器人摘出去，避免重复
+  scene.remove(grandma.root);
+  scene.remove(robot.root);
+
+  window.grandmaRoot = grandma.root;
+  window.robotRoot = robot.root;
+  window.roomRoot = env.root;
+  window.exportScene = scene;
+
+  // 给导出器一个可见的渲染目标（无头环境下也确保 WebGL 上下文可用）
+  var r = new THREE.WebGLRenderer({ canvas: document.getElementById('cv'), antialias: false });
+  r.setSize(420, 260, false);
+  var cam = new THREE.PerspectiveCamera(45, 420 / 260, 0.1, 60);
+  cam.position.set(2.4, 1.6, 2.8);
+  cam.lookAt(0.9, 0.8, 1.5);
+  r.render(scene, cam);
+
+  log('老奶奶网格数：' + (function () { var n = 0; grandma.root.traverse(function (o) { if (o.isMesh) n++; }); return n; })());
+  log('机器人网格数：' + (function () { var n = 0; robot.root.traverse(function (o) { if (o.isMesh) n++; }); return n; })());
+  log('场景网格数：' + (function () { var n = 0; env.root.traverse(function (o) { if (o.isMesh) n++; }); return n; })());
+  log('已排除辅助物：' + cityCount + ' 个（窗外背景板等）');
+  window.GRANDMA_STATS = { meshes: (function () { var n = 0; grandma.root.traverse(function (o) { if (o.isMesh) n++; }); return n; })() };
+  log('就绪：可以调用 window.exportGLB(...)');
+})();
+</script>
+</body>
+</html>
