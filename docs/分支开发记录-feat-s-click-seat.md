@@ -266,13 +266,15 @@ node .preview/netcheck.mjs        # 零外部请求
 
 ---
 
-## 保存进度 / 隐私处理（2026-10-03 收尾）
+## 保存进度 / 隐私处理（2026-10-03 收尾 · 最终状态）
 
 | 项 | 状态 |
 |---|---|
-| 提交 | 本分支在 `ed919cc` 之上**一个提交**（v1.9 → v1.12 全部内容），**不 merge** |
-| 推送 | 本机**无 GitHub 凭据**（`~/.netrc`、`~/.git-credentials`、`~/.config/gh`、`.tools/github-token`、keychain 都没有）→ 需 `GITHUB_TOKEN=<PAT> git push origin feat/s-click-seat`，或把 PAT 放进 `.tools/github-token`（已 gitignore） |
-| 分支安全 | **没有删除任何分支**；`recordings/promo-15s.mp4`（别人工作树里被删过的演示片）已**恢复** |
-| 隐私 | 已从本分支**要推的内容**里清掉：文档中的**本机绝对路径**（`/Users/<用户名>/…`，3 处）与**个人邮箱**（2 处）。三段童声 mp3 **无 ID3 标签**、示意图 PNG **无 EXIF/文本块** |
-| ⚠️ 已在远端老历史里 | 邮箱与本机路径**存在于更早的提交**（`1def142` / `4211309` 等，且已推送到公开仓库）—— 要彻底抹掉需要**重写远端历史并 force-push**，本分支**没有**擅自做 |
+| 本地提交 | 本分支在 `ed919cc` 之上**两个提交**，**工作树干净**（`git status` 无输出）：<br>① `feat: 可点击 3D 场景三轮收口 —— 看得见/走得对 + 换 PR #2 机器人 + 夜晚与童声 + 借 robot-3d 细节`<br>② `feat(s): 交互场景页更名为「保卫老人.html」（保留 suite.html 一跳别名）` |
+| 推送 | ❌ **未推送**。两个原因都测实了：① 本机**连不上 github.com**（`curl` 超时/HTTP 000，`api.github.com` 偶尔能通）② 本机**没有 GitHub 凭据**（`gh` 未安装、无 `~/.config/gh`、keychain 无条目、无 `~/.netrc`/`~/.git-credentials`、**无 `~/.ssh` 密钥**、无 `GH_TOKEN`/`GITHUB_TOKEN`、无 `.tools/github-token`） |
+| 恢复推送（在能连 GitHub 且有凭据的机器上） | ① 联网后在副本里：`git push origin feat/s-click-seat`；② 或**离线搬运**：把 `.tools/*.patch` 拷过去 → `git am <那些 patch>` → push（下面已验证过能原样打上） |
+| 补丁兜底 | `.tools/0001-*.patch`、`.tools/0002-*.patch`（`git format-patch --binary`，含二进制资产）。`.tools/` 已 gitignore，不会被提交 |
+| 分支安全 | **一个分支都没删**（本地 `feat/p1-skeleton` / `feat/s-click-seat` / `main` / `pr2` 原样）；`recordings/promo-15s.mp4`（别人工作树里被删过的演示片）已**恢复**并保持提交状态 |
+| 隐私 | 已从**要推的内容**里清掉：文档中的**本机绝对路径**（`/Users/<用户名>/…`，3 处）与**个人邮箱**（2 处）。三段童声 mp3 **无 ID3 标签**、示意图 PNG **无 EXIF/文本块**；提交里没有 `.preview/`、`.tools/`、`.DS_Store`、token |
+| ⚠️ 已在远端老历史里 | 邮箱与本机路径**存在于更早的、已推送的提交**（`1def142` / `4211309` 等）——要彻底抹除需重写远端历史并 force-push，本分支**没有**擅自做 |
 | 别人的东西 | `grandma-web/`（另一位的同类可点击 3D 网页）与 `suite-3d/**`、`robot-3d/**`、`family-app/**`（用户自己的产物）**本分支一行未改** |

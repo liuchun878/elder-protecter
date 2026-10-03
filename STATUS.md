@@ -7,6 +7,10 @@
 
 ---
 
+> 📦 **本分支本地状态（2026-10-03 收尾）**：`feat/s-click-seat` 在 `ed919cc` 之上**两个提交**（`feat: 可点击 3D 场景三轮收口…`
+> 与 `feat(s): 交互场景页更名为「保卫老人.html」…`），工作树干净。**未推送**：本机连不上 `github.com` 且没有 GitHub 凭据
+> （`gh` 未装 / keychain 无条目 / 无 SSH 密钥 / 无 token）。离线搬运方案：`.tools/*.patch` → 在能连的机器上 `git am` → push。
+>
 > 📄 **本分支（`feat/s-click-seat`）这三轮做了什么、每轮的证据与红线口径**，
 > 汇总在 **[docs/分支开发记录-feat-s-click-seat.md](docs/分支开发记录-feat-s-click-seat.md)**（v1.9 → v1.10 → v1.11）。
 > 本分支**只推分支、不 merge**（用户口径）；`main` 仍只接受里程碑合并。
