@@ -892,6 +892,219 @@
 
   // 窗帘（北侧卧室、南侧起居与卧室C、东侧起居）
   curtain(0.92, 0.32, 0, 1.05); curtain(3.38, 0.32, 0, 1.05);
+
+  /* ------------------------------------------------ 人物：70 岁左右女性 -------- */
+  // 体态要点：身高约 1.58 m、含胸微前倾、肩线偏圆、四肢偏细、发色花白并盘起、戴老花镜、持拐杖。
+  const peopleG = new T.Group(); scene.add(peopleG);
+  function elderlyWoman(x, z, rot) {
+    const g = new T.Group();
+    g.position.set(x + OX, 0, z + OZ);
+    g.rotation.y = rot || 0;
+    peopleG.add(g);
+    const skin = new T.MeshStandardMaterial({ color: 0xe8c6a8, roughness: .78 });
+    const hair = new T.MeshStandardMaterial({ color: 0xd9d5cf, roughness: .85 });
+    const knit = new T.MeshStandardMaterial({ color: 0xb98d8d, roughness: .95 });   // 藕荷色开衫
+    const skirt = new T.MeshStandardMaterial({ color: 0x55606a, roughness: .92 });  // 青灰长裙
+    const blouse = new T.MeshStandardMaterial({ color: 0xf2ece2, roughness: .9 });
+    const shoe = new T.MeshStandardMaterial({ color: 0x3b3a38, roughness: .7 });
+    const woodM = new T.MeshStandardMaterial({ color: 0x8a6a45, roughness: .55 });
+    const frame = new T.MeshStandardMaterial({ color: 0x4a4640, roughness: .5, metalness: .3 });
+    const add = (geo, mat, px, py, pz, rx, ry, rz) => {
+      const m = new T.Mesh(geo, mat);
+      m.position.set(px, py, pz);
+      if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0);
+      m.castShadow = true; m.receiveShadow = true;
+      g.add(m);
+      return m;
+    };
+    // 鞋
+    add(new T.BoxGeometry(.085, .055, .21), shoe, -.075, .028, .025);
+    add(new T.BoxGeometry(.085, .055, .21), shoe, .075, .028, .025);
+    add(new T.CylinderGeometry(.045, .05, .16, 12), skin, -.075, .13, 0);      // 脚踝
+    add(new T.CylinderGeometry(.045, .05, .16, 12), skin, .075, .13, 0);
+    // 长裙（下摆略外张）
+    add(new T.CylinderGeometry(.135, .195, .70, 20), skirt, 0, .55, 0);
+    // 上身：略前倾的一组（含胸驼背）
+    const torso = new T.Group();
+    torso.position.set(0, .95, 0);
+    torso.rotation.x = .085;                                                  // 前倾约 5°
+    g.add(torso);
+    const tadd = (geo, mat, px, py, pz) => {
+      const m = new T.Mesh(geo, mat);
+      m.position.set(px, py, pz);
+      m.castShadow = true; m.receiveShadow = true;
+      torso.add(m);
+      return m;
+    };
+    tadd(new T.CylinderGeometry(.145, .155, .18, 18), skirt, 0, .05, 0);       // 腰胯
+    tadd(new T.CylinderGeometry(.145, .16, .34, 18), blouse, 0, .28, 0);       // 躯干（内搭）
+    const card = tadd(new T.CylinderGeometry(.155, .17, .34, 18, 1, true), knit, 0, .28, .004); // 开衫
+    card.material.side = T.DoubleSide;
+    tadd(new T.SphereGeometry(.175, 18, 12), knit, 0, .455, 0);                // 圆肩
+    tadd(new T.CylinderGeometry(.042, .045, .075, 12), skin, 0, .50, .01);     // 颈
+    // 手臂：细、微外张，袖子露出手腕
+    [-1, 1].forEach(s => {
+      const arm = new T.Group();
+      arm.position.set(s * .175, .43, 0);
+      arm.rotation.z = -s * .13;
+      arm.rotation.x = -.06;
+      torso.add(arm);
+      const mk = (geo, mat, py) => { const m = new T.Mesh(geo, mat); m.position.set(0, py, 0); m.castShadow = true; arm.add(m); return m; };
+      mk(new T.CylinderGeometry(.05, .055, .26, 12), knit, -.13);              // 上臂
+      mk(new T.CylinderGeometry(.04, .046, .22, 12), knit, -.36);              // 小臂（袖子）
+      mk(new T.SphereGeometry(.042, 12, 10), skin, -.49);                      // 手
+    });
+    // 头 + 花白盘发 + 老花镜
+    const head = new T.Group();
+    head.position.set(0, .545, .012);
+    head.rotation.x = .06;                                                     // 头微前探
+    torso.add(head);
+    const hadd = (geo, mat, py, pz) => { const m = new T.Mesh(geo, mat); m.position.set(0, py, pz || 0); m.scale.set(1, 1.1, 1.03); m.castShadow = true; head.add(m); return m; };
+    hadd(new T.SphereGeometry(.098, 20, 16), skin, .01);
+    const hb = new T.Mesh(new T.SphereGeometry(.104, 20, 14), hair);           // 发
+    hb.position.set(0, .028, -.014); hb.scale.set(1.02, .98, 1.0); hb.castShadow = true; head.add(hb);
+    const bun = new T.Mesh(new T.SphereGeometry(.048, 14, 12), hair);          // 盘发
+    bun.position.set(0, .022, -.10); bun.castShadow = true; head.add(bun);
+    [-1, 1].forEach(s => {                                                     // 老花镜
+      const lens = new T.Mesh(new T.TorusGeometry(.031, .0045, 8, 18), frame);
+      lens.position.set(s * .041, .012, .088); lens.castShadow = true; head.add(lens);
+    });
+    const bridge = new T.Mesh(new T.BoxGeometry(.022, .005, .006), frame);
+    bridge.position.set(0, .018, .092); head.add(bridge);
+    // 拐杖（右手侧，微微前撑）
+    const cane = new T.Group();
+    cane.position.set(.235, 0, .03);
+    cane.rotation.z = -.06; cane.rotation.x = -.08;
+    peopleG.add(cane);
+    const cadd = (geo, mat, py) => { const m = new T.Mesh(geo, mat); m.position.set(0, py, 0); m.castShadow = true; cane.add(m); return m; };
+    cadd(new T.CylinderGeometry(.011, .013, .86, 10), woodM, .43);
+    const handle = new T.Mesh(new T.TorusGeometry(.045, .011, 8, 14, Math.PI), woodM);
+    handle.position.set(0, .86, 0); handle.rotation.set(Math.PI / 2, 0, 0); handle.castShadow = true; cane.add(handle);
+    g.userData.height = 1.58;
+    return g;
+  }
+  // 站在起居区南向大窗前（面向窗外，符合"老人在家等药/看窗外"的场景）
+  const grandma = elderlyWoman(10.85, 9.55, 0);
+
+  /* ------------------------------------------- 送药机器人（AGV 底盘） ----------
+     参考仓库 unnc-sophicar 的零件构成：2020 铝型材底盘 + 万向轮 + 轮毂电机
+     MD36LP27 + P761S 磷酸铁锂电池 + 外壳/TOP/Middle 面板。
+     尺寸集中在 RB 里，拿到 STEP 真数据后只改这一处即可。 */
+  const RB = {
+    baseL: 0.55, baseW: 0.45, baseH: 0.13,      // 底盘（含型材框）
+    wheelR: 0.062, wheelW: 0.048,               // 驱动轮（轮毂电机）
+    casterR: 0.032,                             // 万向轮
+    bodyL: 0.50, bodyW: 0.42, bodyH: 0.42,      // 外壳（小车外壳-V1）
+    trayY: 0.66, colH: 0.34,                    // 托盘与立柱
+    total: 1.05                                 // 总高（参考常用送药机器人）
+  };
+  const robotG = new T.Group(); scene.add(robotG);
+  function deliveryRobot(x, z, rot) {
+    const g = new T.Group();
+    g.position.set(x + OX, 0, z + OZ);
+    g.rotation.y = rot || 0;
+    robotG.add(g);
+    const alu = new T.MeshStandardMaterial({ color: 0x9aa1a8, roughness: .42, metalness: .72, envMapIntensity: .9 });
+    const tire = new T.MeshStandardMaterial({ color: 0x2a2c2e, roughness: .85 });
+    const shell = new T.MeshStandardMaterial({ color: 0xf3f5f7, roughness: .38, metalness: .05, envMapIntensity: .8 });
+    const dark = new T.MeshStandardMaterial({ color: 0x14171c, roughness: .2, metalness: .35, envMapIntensity: 1.1 });
+    const ledM = new T.MeshStandardMaterial({ color: 0x7fd4ff, emissive: 0x4fc3ff, emissiveIntensity: 1.4, roughness: .4 });
+    const batt = new T.MeshStandardMaterial({ color: 0x3d4a57, roughness: .6, metalness: .2 });
+    const tray = new T.MeshStandardMaterial({ color: 0xdfe3e6, roughness: .5 });
+    const pill = new T.MeshStandardMaterial({ color: 0xe9e3d6, roughness: .7 });
+    const cup = new T.MeshStandardMaterial({ color: 0xd8e6ec, roughness: .15, metalness: .05, transparent: true, opacity: .5 });
+    const add = (geo, mat, px, py, pz, rx, ry, rz, parent) => {
+      const m = new T.Mesh(geo, mat);
+      m.position.set(px, py, pz);
+      if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0);
+      m.castShadow = true; m.receiveShadow = true;
+      (parent || g).add(m);
+      return m;
+    };
+    const y0 = RB.casterR;                                    // 底盘离地
+    // 底盘：型材框 + 底板
+    add(new T.BoxGeometry(RB.baseW, RB.baseH, RB.baseL), alu, 0, y0 + RB.baseH / 2, 0);
+    add(new T.BoxGeometry(RB.baseW - .06, .02, RB.baseL - .06), dark, 0, y0 + RB.baseH + .01, 0);
+    // 驱动轮（左右各一，轮毂电机）
+    [-1, 1].forEach(s => {
+      add(new T.CylinderGeometry(RB.wheelR, RB.wheelR, RB.wheelW, 22), tire, s * (RB.baseW / 2 + .01), y0 + RB.wheelR - .01, -.06, 0, 0, Math.PI / 2);
+      add(new T.CylinderGeometry(RB.wheelR * .5, RB.wheelR * .5, RB.wheelW + .012, 18), alu, s * (RB.baseW / 2 + .01), y0 + RB.wheelR - .01, -.06, 0, 0, Math.PI / 2);
+    });
+    // 万向轮（前后各一）
+    [.18, -.20].forEach(pz => {
+      add(new T.CylinderGeometry(RB.casterR, RB.casterR, .026, 16), tire, 0, y0 + RB.casterR, pz, 0, 0, Math.PI / 2);
+      add(new T.BoxGeometry(.05, .05, .03), alu, 0, y0 + RB.casterR + .03, pz);
+    });
+    // 电池（P761S 磷酸铁锂）
+    add(new T.BoxGeometry(.19, .10, .13), batt, 0, y0 + RB.baseH + .06, .12);
+    // 外壳（圆润白壳 + 正面黑玻璃面板 + 蓝色呼吸灯环）
+    add(new T.CylinderGeometry(RB.bodyW / 2, RB.bodyW / 2 + .01, RB.bodyH, 34), shell, 0, y0 + RB.baseH + RB.bodyH / 2 + .02, 0);
+    const panel = add(new T.BoxGeometry(RB.bodyW * .62, RB.bodyH * .5, .02), dark, 0, y0 + RB.baseH + RB.bodyH * .62, RB.bodyW / 2 - .01);
+    const ring = add(new T.TorusGeometry(RB.bodyW * .2, .012, 10, 40), ledM, 0, y0 + RB.baseH + RB.bodyH * .62, RB.bodyW / 2 + .004, Math.PI / 2);
+    // 立柱 + 托盘（托盘上放七日药盒与温水）
+    add(new T.CylinderGeometry(.055, .07, RB.colH, 20), alu, 0, y0 + RB.baseH + RB.bodyH + RB.colH / 2 + .02, 0);
+    add(new T.BoxGeometry(.34, .028, .26), tray, 0, RB.trayY, .01);
+    add(new T.BoxGeometry(.26, .04, .12), pill, 0, RB.trayY + .034, .01);
+    for (let i = 0; i < 4; i++) add(new T.BoxGeometry(.055, .032, .1), pill, -.09 + i * .06, RB.trayY + .07, .01);
+    add(new T.CylinderGeometry(.036, .03, .075, 18), cup, .12, RB.trayY + .05, -.06);
+    // 顶部触屏（微俯）
+    const scr = add(new T.BoxGeometry(.30, .20, .015), dark, 0, RB.trayY + .21, -.02, -.42);
+    add(new T.BoxGeometry(.27, .17, .004), ledM, 0, RB.trayY + .215, -.013, -.42);
+    g.userData.height = RB.total;
+    return g;
+  }
+  // —— 你给的参考图那台：蛋形（旋转体）机身 + 横置圆柱头 + 黑色屏带 ——
+  const RB2 = {
+    H: 0.66,            // 总高（m）：想放到 1 m 级就整体乘 1.5，只改这一个数
+    bodyR: 0.190,       // 机身最宽处半径
+    headR: 0.078,       // 头部胶囊半径
+    headL: 0.135        // 头部胶囊中段长度
+  };
+  function mascotRobot(x, z, rot) {
+    const g = new T.Group();
+    g.position.set(x + OX, 0, z + OZ);
+    g.rotation.y = rot || 0;
+    robotG.add(g);
+    const k = RB2.H / 0.66;
+    const shell = new T.MeshStandardMaterial({ color: 0xf7f8f9, roughness: .22, metalness: .04, envMapIntensity: 1.0 });
+    const dark = new T.MeshStandardMaterial({ color: 0x101216, roughness: .12, metalness: .45, envMapIntensity: 1.3 });
+    const seam = new T.MeshStandardMaterial({ color: 0xc9ced3, roughness: .45, metalness: .3 });
+    const ledM = new T.MeshStandardMaterial({ color: 0x8ad8ff, emissive: 0x54c8ff, emissiveIntensity: 1.6, roughness: .3 });
+    // 机身轮廓（x=半径, y=高度），按参考图的水滴形
+    const prof = [[0.000, 0.040], [0.015, 0.085], [0.050, 0.130], [0.110, 0.170], [0.180, 0.190],
+                  [0.260, 0.188], [0.330, 0.170], [0.390, 0.140], [0.435, 0.105], [0.465, 0.072],
+                  [0.480, 0.055], [0.492, 0.048]];
+    const pts = prof.map(p => new T.Vector2(p[1] * (RB2.bodyR / 0.190) * k, p[0] * k));
+    const body = new T.Mesh(new T.LatheGeometry(pts, 56), shell);
+    body.castShadow = true; body.receiveShadow = true;
+    g.add(body);
+    // 底面圆盘 + 颈部分缝
+    const base = new T.Mesh(new T.CylinderGeometry(0.042 * k, 0.042 * k, 0.012 * k, 32), seam);
+    base.position.y = 0.006 * k; base.castShadow = true; g.add(base);
+    const collar = new T.Mesh(new T.TorusGeometry(0.05 * k, 0.007 * k, 10, 40), seam);
+    collar.position.y = 0.492 * k; collar.rotation.x = Math.PI / 2; collar.castShadow = true; g.add(collar);
+    const neck = new T.Mesh(new T.CylinderGeometry(0.040 * k, 0.048 * k, 0.052 * k, 28), shell);
+    neck.position.y = 0.518 * k; neck.castShadow = true; g.add(neck);
+    // 横置圆柱头（微后仰）+ 黑色屏带
+    const head = new T.Group();
+    head.position.set(0, 0.578 * k, -0.006 * k);
+    head.rotation.z = Math.PI / 2;          // 胶囊轴向 → 水平
+    head.rotation.y = -0.20;                // 朝前，屏幕略上扬
+    g.add(head);
+    const cap = new T.Mesh(new T.CapsuleGeometry(RB2.headR * k, RB2.headL * k, 10, 30), shell);
+    cap.castShadow = cap.receiveShadow = true; head.add(cap);
+    const screen = new T.Mesh(new T.CapsuleGeometry(RB2.headR * 0.74 * k, RB2.headL * 0.92 * k, 8, 28), dark);
+    screen.position.set(0, RB2.headR * 0.42 * k, 0);      // 局部 y 即屏幕法向
+    screen.castShadow = true; head.add(screen);
+    // 机身正面的状态灯
+    const dot = new T.Mesh(new T.SphereGeometry(0.012 * k, 14, 12), ledM);
+    dot.position.set(0, 0.30 * k, RB2.bodyR * 0.99 * k); g.add(dot);
+    g.userData.height = RB2.H;
+    return g;
+  }
+  // 正朝老人所在的窗边驶来（画面关系：机器人送药给她）
+  const careRobot = mascotRobot(9.85, 8.30, 0.74);
+  // 想换回上一版 AGV 底盘造型，把上面这行改成：deliveryRobot(9.85, 8.30, 0.74)
   curtain(10.12, 0.32, 0, 1.05); curtain(12.68, 0.32, 0, 1.05);
   curtain(0.92, D - 0.32, Math.PI, 1.05); curtain(3.68, D - 0.32, Math.PI, 1.05);
   curtain(8.50, D - 0.32, Math.PI, 1.30); curtain(12.78, D - 0.32, Math.PI, 1.30);
@@ -1559,6 +1772,38 @@
     if (window.SUITE) {
       window.SUITE.spinSofa = function (deg, dur) { return spinTo(livingSofa, deg, dur); };
       window.SUITE.sofa = livingSofa;
+      window.SUITE.person = grandma;
+    }
+    // 「人物」开关
+    const rows2 = document.querySelector('.panel .rows');
+    if (rows2 && window.SUITE) {
+      const r2 = document.createElement('div'); r2.className = 'row';
+      const l2 = document.createElement('span'); l2.textContent = '人物（70 岁女性）';
+      const b2 = document.createElement('button'); b2.className = 'sw on';
+      b2.onclick = function () {
+        peopleG.visible = !peopleG.visible;
+        b2.classList.toggle('on', peopleG.visible);
+      };
+      r2.appendChild(l2); r2.appendChild(b2); rows2.appendChild(r2);
+      window.SUITE.togglePerson = function (v) {
+        peopleG.visible = (v === undefined) ? !peopleG.visible : !!v;
+        b2.classList.toggle('on', peopleG.visible);
+        return peopleG.visible;
+      };
+      const r3 = document.createElement('div'); r3.className = 'row';
+      const l3 = document.createElement('span'); l3.textContent = '送药机器人';
+      const b3 = document.createElement('button'); b3.className = 'sw on';
+      b3.onclick = function () {
+        robotG.visible = !robotG.visible;
+        b3.classList.toggle('on', robotG.visible);
+      };
+      r3.appendChild(l3); r3.appendChild(b3); rows2.appendChild(r3);
+      window.SUITE.robot = careRobot;
+      window.SUITE.toggleRobot = function (v) {
+        robotG.visible = (v === undefined) ? !robotG.visible : !!v;
+        b3.classList.toggle('on', robotG.visible);
+        return robotG.visible;
+      };
     }
   })();
 
