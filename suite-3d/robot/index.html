@@ -27,6 +27,14 @@
   .eye b{width:11px;height:11px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);transition:.5s}
   .eye.g b{background:var(--green);box-shadow:0 0 10px var(--green)}
   .hint{margin-top:11px;padding-top:10px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink2);line-height:1.6}
+  #cc{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);max-width:74vw;padding:12px 22px;
+    border-radius:999px;background:rgba(20,22,25,.86);color:#f7f6f4;font-size:15px;line-height:1.5;
+    opacity:0;transition:opacity .4s;pointer-events:none;text-align:center;box-shadow:0 12px 30px -16px rgba(0,0,0,.6)}
+  #cc.on{opacity:1}
+  #toast{position:fixed;right:26px;top:26px;padding:11px 18px;border-radius:12px;background:#2fae74;color:#fff;
+    font-size:13px;box-shadow:0 14px 30px -18px rgba(0,0,0,.5);opacity:0;transform:translateY(-8px);transition:.45s;pointer-events:none}
+  #toast.on{opacity:1;transform:translateY(0)}
+  #voice{grid-column:span 2}
 </style></head>
 <body>
 <div id="app"></div>
@@ -38,9 +46,11 @@
   <div class="eye" id="eyeRow"><b></b><span id="eyeTxt">眼睛：红灯（待服药）</span></div>
   <div class="cap">交互 / 视角</div>
   <div class="btns"><button id="take">模拟取药</button><button id="rot">自动旋转</button>
-    <button id="l1" class="on">棚拍白</button><button id="l2">暖光</button></div>
+    <button id="l1" class="on">棚拍白</button><button id="l2">暖光</button>
+    <button id="voice" class="on">🔊 语音 开</button></div>
   <div class="hint"><b>左键</b> 旋转 · <b>滚轮</b> 缩放 · <b>右键</b> 平移</div>
 </div>
+<div id="cc"></div><div id="toast">✓ 喝药记录已上传至子女手机</div>
 <script src="vendor/three.min.js"></script>
 <script>
 (function(){
@@ -224,15 +234,132 @@
     for(let i=0;i<4;i++){const f=put(new T.CapsuleGeometry(0.008,0.042,6,10),M.skin,-0.028+i*0.019,0.002,-0.058,handG);f.rotation.x=Math.PI/2;}
     const th=put(new T.CapsuleGeometry(0.010,0.036,6,10),M.skin,-0.046,-0.004,-0.016,handG);th.rotation.z=Math.PI/2.4;
     const w=put(new T.CylinderGeometry(0.034,0.040,0.16,16),M.sleeve,0,-0.004,0.108,handG);w.rotation.x=Math.PI/2;})();
+  // —— 底部四个轮子：左右两个驱动轮 + 前方两个万向轮，各带支架（都连在机身上）
+  const wheelMat = new T.MeshStandardMaterial({ color: 0x24262a, roughness: .85 });
+  const wheels = []; let lastRoll = 0;
+  function addWheel(x, z, r, w, caster){
+    const g = new T.Group(); g.position.set(x, r, z); robot.add(g);
+    const spin = new T.Group(); g.add(spin);
+    const tire = new T.Mesh(new T.CylinderGeometry(r, r, w, 24), wheelMat);
+    tire.rotation.z = Math.PI/2; tire.castShadow = true; tire.receiveShadow = true; spin.add(tire);
+    const hub = new T.Mesh(new T.CylinderGeometry(r*0.42, r*0.42, w+0.006, 16), M.alu);
+    hub.rotation.z = Math.PI/2; spin.add(hub);
+    for (const sgn of [-1,1]) {
+      const disc = new T.Mesh(new T.CylinderGeometry(r*0.40, r*0.40, 0.004, 14), M.shell2);
+      disc.rotation.z = Math.PI/2; disc.position.x = sgn*(w/2+0.004); spin.add(disc);
+    }
+    const fork = new T.Mesh(new T.BoxGeometry(0.018, r+0.030, 0.022), M.alu);
+    fork.position.set(0, r*0.5+0.015, 0); fork.castShadow = true; g.add(fork);
+    if (caster) {
+      const cp = new T.Mesh(new T.CylinderGeometry(0.009,0.009,0.030,12), M.alu);
+      cp.position.set(0, r*0.5+0.008, 0); cp.castShadow = true; g.add(cp);
+    }
+    g.userData.spin = spin; wheels.push(g); return g;
+  }
+  addWheel(-0.126, -0.016, 0.032, 0.028, false);   // 左驱动轮
+  addWheel( 0.126, -0.016, 0.032, 0.028, false);   // 右驱动轮
+  addWheel(-0.090,  0.100, 0.024, 0.022, true);    // 左前万向轮
+  addWheel( 0.090,  0.100, 0.024, 0.022, true);    // 右前万向轮
+
   // —— 时序
   const STEPS=[
-    {n:'① 对开门开启',a:0.00,b:0.10},
-    {n:'② 托盘推出（空杯）',a:0.10,b:0.24},
-    {n:'③ 给空杯注水',a:0.24,b:0.48},
-    {n:'④ 递给老人',a:0.48,b:0.60},
-    {n:'⑤ 老人取药',a:0.60,b:0.76},
-    {n:'⑥ 先收托盘·再关门',a:0.88,b:1.00}];
-  const DUR=17.5;let t=17.5*0.24,playing=true,taken=false,forceTake=false;
+    {n:'① 对开门开启',a:0.00,b:0.11},
+    {n:'② 托盘推出（空杯）',a:0.11,b:0.26},
+    {n:'③ 给空杯注水',a:0.26,b:0.42},
+    {n:'④ 递给老人',a:0.42,b:0.58},
+    {n:'⑤ 老人取药',a:0.58,b:0.76},
+    {n:'⑥ 先收托盘·再关门',a:0.90,b:1.00}];
+
+  /* ---------------- 语音播报 + 字幕 + 提示音 ---------------- */
+  const ccEl = document.getElementById('cc'), toastEl = document.getElementById('toast');
+  let ccTimer = null, voiceOn = true, said = {}, takenAt = 0, chimeDone = false, speaking = false;
+  let zhVoice = null;
+  const VOICE_PRIORITY = [
+    /yaoyao|瑶瑶|童|child|kid/i,                                // 系统里的童声
+    /kangkang|康康|yunxi|云希|yunyang|云扬|male|男/i,            // 男声 → 抬高音调即男童（孙子）
+    /xiaoxiao|xiaoyi|晓晓|晓伊|female|女/i,
+    /zh[-_]CN|Chinese|普通话|中文/i
+  ];
+  function pickVoice(){
+    if(!('speechSynthesis' in window)) return;
+    const vs = (speechSynthesis.getVoices() || []).filter(v => /zh|Chinese/i.test(v.lang + ' ' + v.name));
+    if(!vs.length) return;
+    for(const re of VOICE_PRIORITY){
+      const hit = vs.find(v => re.test(v.name));
+      if(hit){ zhVoice = hit; break; }
+    }
+    zhVoice = zhVoice || vs[0];
+    const el = document.querySelector('.hint');
+    if(el && zhVoice && !el.dataset.v){ el.dataset.v = '1'; el.insertAdjacentHTML('beforeend', '<br>音色：' + zhVoice.name); }
+  }
+  if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function cc(text, ms){
+    ccEl.textContent = text; ccEl.classList.add('on');
+    clearTimeout(ccTimer); ccTimer = setTimeout(() => ccEl.classList.remove('on'), ms || 5200);
+  }
+  let curAudio = null;
+  function speak(key, text){
+    cc(text);
+    if(!voiceOn) return;
+    speaking = true;
+    const done = () => { speaking = false; };
+    try{
+      if(curAudio) { curAudio.pause(); curAudio = null; }
+      const a = new Audio('voice/' + key + '.mp3');
+      curAudio = a;
+      a.onended = done; a.onerror = () => { curAudio = null; tts(text, done); };
+      const guard = setTimeout(done, 15000);
+      a.onended = () => { clearTimeout(guard); done(); };
+      a.play().catch(() => { curAudio = null; tts(text, done); });
+    }catch(e){ speaking = false; tts(text, done); }
+  }
+  function tts(text, done){
+    if(!('speechSynthesis' in window)) return done && done();
+    try{
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang='zh-CN'; u.rate=1.0; u.pitch=1.70; u.volume=1; if(zhVoice) u.voice=zhVoice;
+      u.onend = () => done && done(); u.onerror = () => done && done();
+      speechSynthesis.speak(u);
+    }catch(e){ done && done(); }
+  }
+  function say(key, text){ if(said[key]) return; said[key] = true; speak(key, text); }
+  let AC = null;
+  function chime(){
+    try{
+      AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = AC.currentTime;
+      [[880, 0], [1174.7, 0.16], [1568, 0.32]].forEach(([f, d]) => {
+        const o = AC.createOscillator(), g = AC.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t0 + d);
+        g.gain.linearRampToValueAtTime(0.18, t0 + d + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + d + 0.5);
+        o.connect(g); g.connect(AC.destination); o.start(t0 + d); o.stop(t0 + d + 0.55);
+      });
+    }catch(e){}
+  }
+  function showToast(){ toastEl.classList.add('on'); setTimeout(() => toastEl.classList.remove('on'), 5200); }
+  function resetSpeech(){
+    said = {}; takenAt = 0; chimeDone = false; speaking = false;
+    clearTimeout(ccTimer); ccEl.classList.remove('on'); toastEl.classList.remove('on');
+    if(curAudio){ try{ curAudio.pause(); }catch(e){} curAudio = null; }
+    if('speechSynthesis' in window) try{ speechSynthesis.cancel(); }catch(e){}
+  }
+  document.addEventListener('pointerdown', function once(){
+    document.removeEventListener('pointerdown', once);
+    if('speechSynthesis' in window) try{ speechSynthesis.resume(); }catch(e){}
+    if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){} }
+  }, { once: true });
+  const voiceBtn = document.getElementById('voice');
+  voiceBtn.onclick = () => {
+    voiceOn = !voiceOn;
+    voiceBtn.classList.toggle('on', voiceOn);
+    voiceBtn.textContent = voiceOn ? '🔊 语音 开' : '🔇 语音 关';
+    if(!voiceOn && 'speechSynthesis' in window) try{ speechSynthesis.cancel(); }catch(e){}
+  };
+
+  const DUR=18.0;let t=17.5*0.24,playing=true,taken=false,forceTake=false;
   const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
   const seg=(x,a,b)=>Math.max(0,Math.min(1,(x-a)/(b-a)));
   const lerp=(a,b,k)=>a+(b-a)*k;
@@ -248,6 +375,11 @@
     const out=ease(seg(k,STEPS[1].a,STEPS[1].b)), give=ease(seg(k,STEPS[3].a,STEPS[3].b)), back=ease(seg(k,STEPS[5].a,0.995));
     const reach=(out*0.190+give*0.050)*(1-trayBack);
     trayG.position.set(0,trayY,0.030+reach);
+    // 行驶：出托盘时向前挪一点，收尾退回；轮子按位移同步转动
+    const roll = (out*0.100 + give*0.030) * (1-trayBack);
+    robot.position.z = roll;
+    const dRoll = roll - lastRoll; lastRoll = roll;
+    wheels.forEach(w => { w.userData.spin.rotation.x -= dRoll / 0.030; });
     const fill=ease(seg(k,STEPS[2].a,STEPS[2].b));
     const pouring=fill>0.02&&fill<0.99&&give<0.05;
     stream.visible=pouring;
@@ -262,6 +394,16 @@
     taken=green>0.5;
     if(typeof drawScreen==='function') drawScreen(green);
     eyeRow.classList.toggle('g',taken);
+    // 语音：④ 递出托盘时提醒服药；⑤ 服完后鼓励并播报记录已上传
+    if (k >= STEPS[3].a - 0.03) say('p1', '奶奶，该吃药啦。我先给您倒好温水，您把这三粒药吃下去，好不好？');
+    if (taken) {
+      if (!takenAt) takenAt = performance.now();
+      say('p2', '奶奶真棒，药都吃完啦！');
+      if (performance.now() - takenAt > 2800){
+        say('p3', '吃药的记录，我已经发到您家人的手机上啦。他们随时都能看到，您放心。');
+        if (!chimeDone){ chimeDone = true; chime(); showToast(); }
+      }
+    }
     eyeTxt.textContent=taken?'眼睛：绿灯（已服下药）':'眼睛：红灯（待服药）';
     inner.intensity=open*(1-close)*1.7+(taken?.25:0);
     const act=STEPS.findIndex(s=>k>=s.a&&k<s.b);
@@ -280,7 +422,7 @@
   dom.addEventListener('wheel',e=>{e.preventDefault();cam.dr=Math.max(.5,Math.min(6,cam.dr*(1+Math.sign(e.deltaY)*.09)));},{passive:false});
   const playBtn=document.getElementById('play');
   playBtn.onclick=()=>{playing=!playing;playBtn.textContent=playing?'暂停':'播放';playBtn.classList.toggle('on',playing);};
-  document.getElementById('replay').onclick=()=>{t=0;forceTake=false;playing=true;playBtn.textContent='暂停';playBtn.classList.add('on');update(0);};
+  document.getElementById('replay').onclick=()=>{t=0;forceTake=false;resetSpeech();playing=true;playBtn.textContent='暂停';playBtn.classList.add('on');update(0);};
   const takeBtn=document.getElementById('take');
   takeBtn.onclick=()=>{forceTake=!forceTake;takeBtn.classList.toggle('on',forceTake);update(t/DUR);};
   function lights(w){document.getElementById('l1').classList.toggle('on',w);document.getElementById('l2').classList.toggle('on',!w);
@@ -290,7 +432,7 @@
   const rotBtn=document.getElementById('rot');rotBtn.onclick=()=>{cam.auto=!cam.auto;rotBtn.classList.toggle('on',cam.auto);};
   const clock=new T.Clock();
   function tick(){const dt=Math.min(clock.getDelta(),.05);
-    if(playing){t+=dt;if(t>DUR){t-=DUR;forceTake=false;}update(t/DUR);}
+    if(playing&&!speaking){t+=dt;if(t>DUR&&!speaking){t-=DUR;forceTake=false;resetSpeech();}update(t/DUR);}else if(speaking){update(t/DUR);}
     if(cam.auto)cam.dth+=dt*.25;
     cam.th+=(cam.dth-cam.th)*Math.min(1,dt*6);cam.ph+=(cam.dph-cam.ph)*Math.min(1,dt*6);cam.r+=(cam.dr-cam.r)*Math.min(1,dt*6);
     const sp=Math.sin(cam.ph);
