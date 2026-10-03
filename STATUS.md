@@ -53,13 +53,13 @@
 | H | `prototype/js/log.js` | 102 | 追加式记录 + **双时间戳** + 时间线 + JSON 导出 |
 | H | `prototype/js/escalate.js` | 144 | T+60s 换通道换措辞 → T+180s 通知家属（level 2）→ 冷却去重 → 三选项 → `skipped_known` |
 | H | `prototype/js/family.js` | 245 | 家属端：计划录入/停用恢复、待处置通知三选项、时间线（只记事实）、导出 |
-| H | `prototype/js/person.js` | 225 | 王阿姨：髋膝两段腿的坐/躺/站三态 + 位置跟随 state |
+| H | `prototype/js/person.js` | 774 | 王阿姨（**已重建**）：7.2 头身分节骨骼；颅骨/开衫用回转体一次成型；五官 + 圆眼镜 + 银发；坐/躺/走姿态由座面高度与臂长反解，姿态过渡为角度插值 |
 | S | `prototype/vendor/three/**` | 2.12 MB | three@0.186.1（`three.module.js` + `three.core.js` + LICENSE）；哈希见 [THIRD-PARTY.md](THIRD-PARTY.md) |
 | S | `scripts/record-promo.mjs` | 388 | 录屏管线：`?film=1` 逐帧驱动 + 截帧 + ffmpeg 编码 + 合成音轨（只用 Node 内置模块） |
 | S | `recordings/promo-15s.mp4` | — | 15.0s · 1600×900 · 24fps · 1.9 MB：待机→出发→送达→取走确认→返航→**家属端**→收尾卡 |
 | 公共 | `LICENSE` / `THIRD-PARTY.md` | — | MIT 与第三方许可核查（P1 加入，与计划附录 A/C 一致） |
 
-**合计**：20 个源文件 · 3,952 行（不含 vendored 依赖与 mp4）。
+**合计**：20 个源文件 · 4,501 行（不含 vendored 依赖与 mp4）。
 
 ## 自测记录（跑了什么、看到什么）
 
@@ -86,6 +86,9 @@
 | 17 | `plan/tasks.yaml` 可解析（27 任务 / 8 里程碑） | ✅ |
 | 18 | **录屏可复跑**：`node scripts/record-promo.mjs` 逐帧渲染 360 帧 → 1.9 MB mp4，渲染期零控制台异常 | ✅ |
 | 19 | 成片校验：15.00s / 1600×900 / 24fps / `yuv420p(tv)` / 音轨 −19.9 dB 均值、−5.7 dB 峰值 | ✅ |
+| 20 | **人形重建后重渲染**：`node scripts/record-promo.mjs` 360 帧 → 1.93 MB mp4，渲染期零控制台异常 | ✅ 2026-10-03 |
+| 21 | 人形姿态核对（无头 Chrome 多机位截图）：客厅坐 / 卧室躺（头落在枕头上）/ 餐椅坐 / 行走中 | ✅ 四态均无悬空与穿模 |
+| 22 | 人形不破坏 0 级降级：`scene2d.js` 下仍只读 `object3D.position/visible`，2D 里人形照常显示 | ✅ |
 
 **关于"断网刷新"的口径**：本项目用 `localhost` 静态服务器，DevTools 的 Offline 会连本地请求一并掐断，因此
 "刷新仍可用"在**这台服务器的语义下**不成立；成立的是更实质的两条：**运行期零外部请求** + **加载完成后断网仍可交互与落库**。

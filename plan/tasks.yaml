@@ -172,7 +172,10 @@ tasks:
     priority: P1
     files: [prototype/js/person.js]
     depends_on: [H2]
-    acceptance: "人形出现在 presence.location；坐/躺/出门三态可见"
+    acceptance: "人形出现在 presence.location；坐/躺/出门三态可见；坐姿屁股落在座面、双脚踩地、双手落在自己大腿上；行走时不会提前摆成坐/躺"
+    note: "v2 重建：7.2 头身分节骨骼（pelvis/spine/neck/head + 肩肘腕 + 胯膝踝），
+           颅骨与开衫用回转体一次成型（避免球体拼接缝），五官/眼镜按曲面深度贴合，
+           坐姿与坐姿手臂分别按座面高度和臂长反解（cos 定理解肘角），姿态过渡为角度插值。"
     cut_first: "姿态动画 → 只留位置跟随"
     status: done
   - id: H5
