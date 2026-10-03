@@ -7,13 +7,21 @@
 
 ---
 
-> 📦 **本分支本地状态（2026-10-03 收尾）**：`feat/s-click-seat` 在 `ed919cc` 之上**两个提交**（`feat: 可点击 3D 场景三轮收口…`
-> 与 `feat(s): 交互场景页更名为「保卫老人.html」…`），工作树干净。**未推送**：本机连不上 `github.com` 且没有 GitHub 凭据
-> （`gh` 未装 / keychain 无条目 / 无 SSH 密钥 / 无 token）。离线搬运方案：`.tools/*.patch` → 在能连的机器上 `git am` → push。
+> 📦 **本分支本地状态（2026-10-03 收尾 · 明早可直接推）**
+> 分支 `feat/s-click-seat` 在 `ed919cc` 之上**三个提交**，**工作树干净**：
+> ① `feat: 可点击 3D 场景三轮收口 —— 看得见/走得对 + 换 PR #2 机器人 + 夜晚与童声 + 借 robot-3d 细节`
+> ② `feat(s): 交互场景页更名为「保卫老人.html」（保留 suite.html 一跳别名）`
+> ③ `docs: 记录本分支最终本地状态（… · 补丁搬运方案 · 隐私处理）`
 >
-> 📄 **本分支（`feat/s-click-seat`）这三轮做了什么、每轮的证据与红线口径**，
-> 汇总在 **[docs/分支开发记录-feat-s-click-seat.md](docs/分支开发记录-feat-s-click-seat.md)**（v1.9 → v1.10 → v1.11）。
-> 本分支**只推分支、不 merge**（用户口径）；`main` 仍只接受里程碑合并。
+> **明早怎么推（二选一）**：
+> 1. **联网 + 有凭据**（最省事）：`cd <仓库> && git push origin feat/s-click-seat`
+>    （Username 填 `liuchun878`，Password 填 PAT：经典令牌勾 `repo`，或细粒度令牌给本仓库 **Contents: Read and write**）
+> 2. **这台机器连不上 GitHub**：把 `.tools/0001/0002/0003-*.patch` 拷到能连的机器 → `git am` 那三个补丁 → `git push`
+>    （补丁已实测：在干净分支上打完，文件树与本地**逐字节一致**）
+>
+> ⚠️ **作者邮箱已改成 GitHub noreply**（`liuchun878@users.noreply.github.com`，并写进本仓库的本地 git 配置）——
+> 这样明早推上去的 3 个提交不带个人邮箱。注意：**更早的、已推送的提交里仍有个人邮箱与本机路径**，
+> 要彻底抹掉需重写远端历史并 force-push，本分支**没有**擅自做（要不要做由你定）。
 
 ## 当前里程碑
 
