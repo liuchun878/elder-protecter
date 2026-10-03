@@ -1,0 +1,5 @@
+2026/10/03-17:37:49.970 4358 Creating DB D:\桌面\机器人\robot-3d\shots\edge-profile\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/10/03-17:37:50.003 4358 Reusing MANIFEST D:\桌面\机器人\robot-3d\shots\edge-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/10/03-17:37:51.522 623c Level-0 table #5: started
+2026/10/03-17:37:51.527 623c Level-0 table #5: 683284 bytes OK
+2026/10/03-17:37:51.530 623c Delete type=0 #3
