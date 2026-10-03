@@ -45,6 +45,7 @@ const SPEED = 1.2; // m/s（预置路径动画，不宣称导航能力）
 const OPEN_TIME = 0.9; // 开舱全程（门先开、托盘后出），秒
 const DOOR_ANGLE = 2.24; // 舱门开合角（rad ≈ 128°）：开到底贴到机身两侧，不挡托盘上的东西
 const SHELF_OUT = 0.19; // 托盘前伸距离（m）
+const DOCK_FACING = Math.PI; // 回桩后**车尾对着充电桩**、正面朝向房间（桩在 DOCK 的 +z 侧）
 
 /* 关键高度（米）：底盘沿用真机实测，机身按参考片 */
 const Y = {
@@ -418,6 +419,9 @@ export function createRobot(sceneApi) {
       if (person) {
         view.facing = Math.atan2(person.x - group.position.x, person.z - group.position.z);
       }
+    } else if (arrived) {
+      // 回到充电桩：车尾朝向桩、正面朝房间（充电触点对着桩身）
+      view.facing = DOCK_FACING;
     }
 
     // 平滑转向（视觉缓冲，避免瞬间转头）

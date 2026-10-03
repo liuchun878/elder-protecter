@@ -17,6 +17,7 @@
         #hud     —— R 的 hud.js 构建长者端大字叠层（3D 里不渲染任何文字）
         #family  —— H 的 family.js 构建家属端（副屏：?view=family）
         #debug   —— S 的 main.js 构建调试抽屉（默认隐藏，` 或 Ctrl/Cmd+Shift+D 唤出）
+        #console —— S 的 controls.js 构建交互控制台（默认可见，拍摄模式下不挂载）
         #banner  —— 离线 / 存储不可用 / 3D 降级提示
     -->
   </head>
@@ -31,6 +32,7 @@
     </div>
 
     <div id="family" class="family-view" hidden></div>
+    <aside id="console" class="console" aria-label="演示交互控制台" hidden></aside>
     <aside id="debug" class="debug" hidden aria-label="演示调试抽屉"></aside>
 
     <!-- 离线红线：只加载本地 vendored 的 Three.js，无 CDN、无外部字体、无模型下载 -->

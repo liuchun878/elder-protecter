@@ -22,6 +22,7 @@
 import * as THREE from 'three';
 import {
   woodFloor, wallPaint, fabric, rug, wood, stone, cityView, leaf,
+  normalFromTexture, contactShadow,
 } from './textures.js';
 
 /* ── 契约：路径点（一字不改） ─────────────────────────────────────── */
@@ -43,7 +44,7 @@ export const APPROACH_POINTS = {
 };
 
 /** 机器人充电座（空闲时的家）——放在前景中央，保证固定机位下始终可见（不被 HUD 挡住） */
-export const DOCK = { x: -0.45, y: 0, z: 2.42 };
+export const DOCK = { x: 0.92, y: 0, z: 2.36 }; // 客厅里、地毯前缘（充电桩柱在它 +z 侧）
 
 /* ── 几何 / 材质：全部实例复用 ────────────────────────────────────── */
 
@@ -155,19 +156,30 @@ const TEX = {
  */
 const U = { floor: 0.70, wall: 0.30, wood: 5.0, fabric: 3.0, rug: 1.55, stone: 0.95 };
 
+const NM = {
+  floor: normalFromTexture(TEX.floor, 2.6),
+  wall: normalFromTexture(TEX.wall, 1.1),
+  oak: normalFromTexture(TEX.oak, 1.6),
+  walnut: normalFromTexture(TEX.walnut, 1.6),
+  stone: normalFromTexture(TEX.stone, 1.2),
+  sofa: normalFromTexture(TEX.sofa, 2.2),
+  linen: normalFromTexture(TEX.linen, 2.0),
+  rug: normalFromTexture(TEX.rug, 2.4),
+};
+
 const M = {
-  floor: new THREE.MeshStandardMaterial({ map: TEX.floor, roughness: 0.55, metalness: 0.02 }),
-  wall: new THREE.MeshStandardMaterial({ map: TEX.wall, roughness: 0.95, metalness: 0.0 }),
+  floor: new THREE.MeshStandardMaterial({ map: TEX.floor, normalMap: NM.floor, normalScale: new THREE.Vector2(0.45, 0.45), roughness: 0.55, metalness: 0.02 }),
+  wall: new THREE.MeshStandardMaterial({ map: TEX.wall, normalMap: NM.wall, normalScale: new THREE.Vector2(0.22, 0.22), roughness: 0.95, metalness: 0.0 }),
   ceiling: new THREE.MeshStandardMaterial({ color: 0xf7f3ec, roughness: 1.0, metalness: 0.0 }),
   trim: new THREE.MeshStandardMaterial({ color: 0xded6c7, roughness: 0.62, metalness: 0.02 }),
-  oak: new THREE.MeshStandardMaterial({ map: TEX.oak, roughness: 0.62, metalness: 0.02 }),
-  walnut: new THREE.MeshStandardMaterial({ map: TEX.walnut, roughness: 0.58, metalness: 0.02 }),
-  stone: new THREE.MeshStandardMaterial({ map: TEX.stone, roughness: 0.26, metalness: 0.03 }),
-  sofa: new THREE.MeshStandardMaterial({ map: TEX.sofa, roughness: 0.96, metalness: 0.0 }),
+  oak: new THREE.MeshStandardMaterial({ map: TEX.oak, normalMap: NM.oak, roughness: 0.62, metalness: 0.02 }),
+  walnut: new THREE.MeshStandardMaterial({ map: TEX.walnut, normalMap: NM.walnut, roughness: 0.58, metalness: 0.02 }),
+  stone: new THREE.MeshStandardMaterial({ map: TEX.stone, normalMap: NM.stone, roughness: 0.26, metalness: 0.03 }),
+  sofa: new THREE.MeshStandardMaterial({ map: TEX.sofa, normalMap: NM.sofa, normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.96, metalness: 0.0 }),
   sofaLit: new THREE.MeshStandardMaterial({ map: TEX.sofaLit, roughness: 0.96, metalness: 0.0 }),
-  linen: new THREE.MeshStandardMaterial({ map: TEX.linen, roughness: 0.97, metalness: 0.0 }),
+  linen: new THREE.MeshStandardMaterial({ map: TEX.linen, normalMap: NM.linen, normalScale: new THREE.Vector2(0.45, 0.45), roughness: 0.97, metalness: 0.0 }),
   cotton: new THREE.MeshStandardMaterial({ map: TEX.cotton, roughness: 0.97, metalness: 0.0 }),
-  rug: new THREE.MeshStandardMaterial({ map: TEX.rug, roughness: 1.0, metalness: 0.0 }),
+  rug: new THREE.MeshStandardMaterial({ map: TEX.rug, normalMap: NM.rug, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 1.0, metalness: 0.0 }),
   steel: new THREE.MeshStandardMaterial({ color: 0x8d959b, roughness: 0.26, metalness: 0.85 }),
   chrome: new THREE.MeshStandardMaterial({ color: 0xa8b0b6, roughness: 0.18, metalness: 0.95 }),
   frame: new THREE.MeshStandardMaterial({ color: 0x93a8b6, roughness: 0.48, metalness: 0.16 }),
@@ -302,6 +314,7 @@ function buildLiving(g) {
   // 沙发旁圆边几 + 小台灯
   const st = new THREE.Group();
   st.position.set(3.45, 0, -0.05);
+  contact(g, 3.45, -0.05, 0.62, 0.62, 0.5);
   put(st, cyl(0.24, 0.24, 0.04, 20), M.oak, 0, 0.50, 0);
   put(st, cyl(0.035, 0.045, 0.48, 12), M.walnut, 0, 0.25, 0);
   put(st, cyl(0.18, 0.18, 0.03, 16), M.walnut, 0, 0.015, 0);
@@ -398,6 +411,7 @@ function buildBedroom(g) {
   const bz = -1.55;
   const bed = new THREE.Group();
   bed.position.set(bx, 0, bz);
+  contact(g, bx, bz, 2.1, 2.4, 0.85);
 
   put(bed, rbox(1.62, 0.26, 2.02, 0.03, U.wood), M.oak, 0, 0.13, 0); // 床架
   put(bed, rbox(1.50, 0.28, 1.90, 0.05, U.fabric), M.cotton, 0, 0.40, 0); // 厚床垫
@@ -421,6 +435,7 @@ function buildBedroom(g) {
   // 床头柜 + 小台灯（在床的 +x 侧）
   const ns = new THREE.Group();
   ns.position.set(-1.83, 0, -2.34);
+  contact(g, -1.83, -2.34, 0.85, 0.8, 0.6);
   put(ns, rbox(0.46, 0.44, 0.44, 0.02, U.wood), M.oak, 0, 0.24, 0);
   put(ns, slab(0.40, 0.03, 0.02, U.wood), M.walnut, 0, 0.30, 0.223);
   put(ns, slab(0.10, 0.014, 0.014), M.walnut, 0, 0.30, 0.236);
@@ -432,6 +447,7 @@ function buildBedroom(g) {
   // 五斗柜（左墙，床尾外侧）：柜体 + 三条抽屉缝 + 拉手
   const dr = new THREE.Group();
   dr.position.set(-3.76, 0, 0.28);
+  contact(g, -3.72, 0.28, 0.95, 1.7, 0.7);
   put(dr, rbox(0.44, 0.86, 1.34, 0.02, U.wood), M.oak, 0, 0.43, 0);
   put(dr, slab(0.46, 0.03, 1.40, U.wood), M.oak, 0, 0.875, 0);
   for (let i = 0; i < 3; i += 1) {
@@ -493,6 +509,7 @@ function buildDining(g) {
   const cz = -1.38;
   const table = new THREE.Group();
   table.position.set(cx, 0, cz);
+  contact(g, cx, cz, 1.6, 1.6, 0.7);
   put(table, cyl(0.58, 0.58, 0.055, 28), M.oak, 0, 0.715, 0);
   put(table, cyl(0.055, 0.075, 0.69, 12), M.walnut, 0, 0.345, 0);
   put(table, cyl(0.28, 0.30, 0.035, 20), M.walnut, 0, 0.018, 0);
@@ -564,14 +581,58 @@ function buildArt(g, x, y, z, w, h, kind) {
 
 /* ── 8. 充电座（前景中央，机器人空闲时的家） ─────────────────────── */
 
+const SHADOW_TEX = contactShadow();
+
+/** 在物件底下贴一张径向渐变，补上真实阴影给不了的那圈环境光遮蔽 */
+function contact(g, x, z, w, d, opacity = 0.85, y = 0.016) {
+  const m = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, d),
+    new THREE.MeshBasicMaterial({
+      map: SHADOW_TEX, transparent: true, opacity, depthWrite: false,
+    }),
+  );
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, y, z);
+  m.userData.noShadow = true; // 它本身就是阴影，不能再投影
+  g.add(m);
+  return m;
+}
+
+/* ── 充电桩（客厅）────────────────────────────────────────────────
+ * 机器人停在 DOCK 上、**车尾对着桩**，桩柱在 DOCK 的 +z 侧。
+ * 桩身：底座（带停车对位条）+ 立柱 + 两条铜排触点 + 指示灯 + 绕线钩。
+ */
 function buildDock(g) {
   const d = new THREE.Group();
   d.position.set(DOCK.x, 0, DOCK.z);
-  put(d, rbox(0.66, 0.035, 0.66, 0.03), M.mat, 0, 0.018, 0);
-  put(d, slab(0.40, 0.012, 0.05), M.steel, 0, 0.042, -0.20);
-  put(d, slab(0.40, 0.012, 0.05), M.steel, 0, 0.042, 0.20);
-  put(d, rbox(0.30, 0.10, 0.06, 0.02), M.dark, 0, 0.06, 0.30);
+
+  // 底座：机器人停在这上面，前缘做倒角，两边各一条不锈钢对位条
+  put(d, rbox(0.62, 0.035, 0.52, 0.03), M.mat, 0, 0.018, 0);
+  for (const sx of [-1, 1]) {
+    put(d, slab(0.30, 0.010, 0.045), M.steel, sx * 0.09, 0.040, -0.17);
+  }
+  put(d, slab(0.62, 0.012, 0.03, U.wood), M.frame, 0, 0.036, -0.255);
+
+  // 立柱（在机器人尾巴后面）：白壳 + 深色屏 + 铜排触点
+  const colZ = 0.36;
+  const shell = new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 0.42, metalness: 0.05 });
+  put(d, rbox(0.24, 0.52, 0.11, 0.035), shell, 0, 0.30, colZ);
+  put(d, rbox(0.20, 0.11, 0.02, 0.012), M.dark, 0, 0.46, colZ - 0.058); // 小屏
+  put(d, slab(0.17, 0.016, 0.012), M.glow, 0, 0.355, colZ - 0.060);     // 充电指示灯（青绿）
+  put(d, slab(0.17, 0.016, 0.012), M.warn, 0, 0.315, colZ - 0.060);     // 状态灯（琥珀）
+  for (const sx of [-1, 1]) {
+    put(d, slab(0.028, 0.075, 0.012), M.chrome, sx * 0.055, 0.115, colZ - 0.062); // 铜排触点
+  }
+  // 顶盖 + 绕线钩 + 一段垂下来的线缆
+  put(d, rbox(0.27, 0.035, 0.14, 0.016), shell, 0, 0.575, colZ);
+  put(d, cyl(0.017, 0.017, 0.09, 10), M.steel, 0.10, 0.52, colZ - 0.05);
+  const cable = new THREE.Mesh(new THREE.TorusGeometry(0.062, 0.011, 8, 20, Math.PI * 1.5), M.dark);
+  cable.position.set(0.10, 0.42, colZ - 0.04);
+  cable.rotation.y = Math.PI / 2;
+  d.add(cable);
+
   g.add(d);
+  contact(g, DOCK.x, DOCK.z + 0.12, 1.0, 1.0, 0.6, 0.02);
 }
 
 /* ── 构建整个房间 ─────────────────────────────────────────────────── */

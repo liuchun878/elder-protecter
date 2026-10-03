@@ -135,6 +135,22 @@ export function createScene2D({ container }) {
     setCameraLook() {
       /* 2D 俯视没有机位概念 */
     },
+    /* 下面这组是 v1.5 新增的场景 API：2D 降级必须实现同一组函数（契约 §3.1） */
+    enableOrbit() {
+      /* 2D 俯视没有自由视角 */
+    },
+    isOrbitEnabled() {
+      return false;
+    },
+    resetCamera() {
+      /* 2D 俯视没有机位概念 */
+    },
+    setTimeOfDay() {
+      /* 2D 是平涂色块，没有光照概念 */
+    },
+    getTimeOfDay() {
+      return 'day';
+    },
     getCameraMode() {
       return view.mode;
     },

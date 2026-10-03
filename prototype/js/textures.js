@@ -389,6 +389,68 @@ export function leaf({ size = 128, seed = 113, tone = 0x4f7f4a } = {}) {
   return finish(canvas, { repeat: [1, 1] });
 }
 
+
+/* ── 法线贴图：由亮度当高度做 Sobel ────────────────────────────────
+ * 写实感有一大半来自「光打上去有细微凹凸」。没有法线贴图时，木地板、墙面、
+ * 布纹在斜射阳光下都是平的。这里直接拿已有的程序化贴图当高度场，
+ * 用中心差分求梯度再编码成切线空间法线 —— 依然零外部资产。
+ */
+export function normalFromTexture(map, strength = 2.0) {
+  const src = map.image;
+  const w = src.width;
+  const h = src.height;
+  const data = src.getContext('2d').getImageData(0, 0, w, h).data;
+  const { canvas, ctx } = makeCanvas(w, h);
+  const out = ctx.createImageData(w, h);
+
+  const lum = (x, y) => {
+    const i = (((y + h) % h) * w + ((x + w) % w)) * 4;
+    return (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+  };
+
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const dx = (lum(x + 1, y) - lum(x - 1, y)) * strength;
+      const dy = (lum(x, y + 1) - lum(x, y - 1)) * strength;
+      const len = Math.hypot(dx, dy, 1);
+      const i = (y * w + x) * 4;
+      out.data[i] = ((-dx / len) * 0.5 + 0.5) * 255;
+      out.data[i + 1] = ((-dy / len) * 0.5 + 0.5) * 255;
+      out.data[i + 2] = ((1 / len) * 0.5 + 0.5) * 255;
+      out.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.copy(map.repeat);
+  tex.colorSpace = THREE.NoColorSpace; // 法线贴图必须是线性数据，不能当 sRGB 解
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/* ── 接触阴影贴片：家具与地面之间那圈「脏」────────────────────────
+ * 真实阴影贴图给的是投影，给不了家具正下方那圈环境光遮蔽（AO）。
+ * 用一张径向渐变的透明贴片贴在物件底下，是廉价但非常有效的补法。
+ */
+export function contactShadow({ size = 128 } = {}) {
+  const { canvas, ctx } = makeCanvas(size, size);
+  const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.06, size / 2, size / 2, size * 0.5);
+  g.addColorStop(0.0, 'rgba(30,24,18,0.55)');
+  g.addColorStop(0.45, 'rgba(30,24,18,0.28)');
+  g.addColorStop(0.78, 'rgba(30,24,18,0.07)');
+  g.addColorStop(1.0, 'rgba(30,24,18,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 /* ── 环境贴图用的天空盒场景 ───────────────────────────────────────── */
 
 /**
@@ -437,5 +499,6 @@ export function buildEnvironmentScene() {
 }
 
 export const textures = {
-  woodFloor, wallPaint, fabric, rug, wood, stone, cityView, leaf, buildEnvironmentScene,
+  woodFloor, wallPaint, fabric, rug, wood, stone, cityView, leaf,
+  normalFromTexture, contactShadow, buildEnvironmentScene,
 };

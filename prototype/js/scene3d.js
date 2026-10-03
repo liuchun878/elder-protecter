@@ -38,11 +38,15 @@ export function isWebGLAvailable() {
 }
 
 const CAMERA_PRESETS = {
-  // 固定等距斜俯视主视角：能看到客厅（沙发 · 王阿姨）、卧室、厨房三个分区与前景的充电座
+  // 固定等距斜俯视主视角：能看到客厅（沙发 · 王阿姨）、卧室、厨房三个分区与前景的充电桩
   wide: { position: [7.1, 6.5, 8.6], lookAt: [0.35, 0.45, 0.25], fov: 42 },
-  // 药盘特写机位（陈列时可切换；降级第 1 项会砍掉它）
-  // 按「机器人在客厅停靠点」标定：能同时看到机器人正面、抬起的药盘与沙发上的王阿姨
+  // 药盘特写机位（按「机器人在客厅停靠点」标定：机器人正面 + 托盘 + 沙发上的王阿姨）
   tray: { position: [3.5, 1.1, -0.6], lookAt: [1.2, 0.52, 1.35], fov: 36 },
+  // 交互平台用的分区机位（陈列/讲解时切）
+  living: { position: [4.6, 2.5, 4.9], lookAt: [1.7, 0.55, 1.2], fov: 40 },
+  bedroom: { position: [0.9, 1.9, 1.5], lookAt: [-2.9, 0.6, -1.7], fov: 42 },
+  kitchen: { position: [0.5, 1.9, 1.1], lookAt: [2.7, 0.85, -2.0], fov: 42 },
+  dock: { position: [2.6, 1.5, 3.9], lookAt: [0.9, 0.45, 2.4], fov: 38 },
 };
 
 /**
@@ -66,6 +70,22 @@ export function createScene3D({ container }) {
 
   /** 仅视觉状态：相机模式、帧率统计 */
   const view = { mode: 'wide', fps: 0, frames: 0, lastFpsAt: 0 };
+
+  /**
+   * 自由视角（球坐标绕目标点转）。
+   * ⚠️ **只在交互模式开启**：拍摄模式（?film=1）每帧都用 `setCameraLook` 复写机位，
+   * 打开 orbit 会把逐帧可复现的画面搅乱。
+   */
+  const orbit = {
+    enabled: false,
+    dragging: false,
+    target: new THREE.Vector3(0, 0.5, 0),
+    radius: 12,
+    azimuth: 0.7,
+    polar: 0.85,
+    lastX: 0,
+    lastY: 0,
+  };
 
   const camera = new THREE.PerspectiveCamera(CAMERA_PRESETS.wide.fov, 1, 0.1, 120);
   applyCameraPreset('wide');
@@ -139,6 +159,25 @@ export function createScene3D({ container }) {
   bounce.position.set(-3.2, -2.0, -2.6);
   scene.add(bounce);
 
+  /* ── 一天里的光（交互平台可切）：正午 / 黄昏 ─────────────────────── */
+  const TIME_OF_DAY = {
+    day: { sun: 0xffe0b4, sunI: 2.75, hemi: 0.24, fill: 0.18, exposure: 0.88, tint: 0xffffff, pos: [-5.2, 3.55, -8.4] },
+    dusk: { sun: 0xff9a52, sunI: 2.35, hemi: 0.2, fill: 0.12, exposure: 1.0, tint: 0xffc79a, pos: [-7.4, 1.9, -7.0] },
+  };
+  let timeOfDay = 'day';
+
+  function applyTimeOfDay(mode) {
+    const t = TIME_OF_DAY[mode] || TIME_OF_DAY.day;
+    timeOfDay = TIME_OF_DAY[mode] ? mode : 'day';
+    sun.color.setHex(t.sun);
+    sun.intensity = t.sunI;
+    sun.position.set(...t.pos);
+    hemi.intensity = t.hemi;
+    fill.intensity = t.fill;
+    renderer.toneMappingExposure = t.exposure;
+    backdrop.material.color.setHex(t.tint);
+  }
+
   scene.add(buildRoom());
   applyShadowFlags();
 
@@ -157,13 +196,33 @@ export function createScene3D({ container }) {
     });
   }
 
+  /** 由当前机位反算球坐标，之后拖拽/滚轮就围绕这个目标点转 */
+  function syncOrbitFromCamera() {
+    const off = camera.position.clone().sub(orbit.target);
+    orbit.radius = Math.max(0.8, off.length());
+    orbit.azimuth = Math.atan2(off.x, off.z);
+    orbit.polar = Math.acos(Math.min(1, Math.max(-1, off.y / orbit.radius)));
+  }
+
+  function applyOrbit() {
+    const sp = Math.sin(orbit.polar);
+    camera.position.set(
+      orbit.target.x + orbit.radius * sp * Math.sin(orbit.azimuth),
+      orbit.target.y + orbit.radius * Math.cos(orbit.polar),
+      orbit.target.z + orbit.radius * sp * Math.cos(orbit.azimuth),
+    );
+    camera.lookAt(orbit.target);
+  }
+
   function applyCameraPreset(mode) {
     const preset = CAMERA_PRESETS[mode] || CAMERA_PRESETS.wide;
     view.mode = CAMERA_PRESETS[mode] ? mode : 'wide';
     camera.fov = preset.fov;
+    orbit.target.set(...preset.lookAt);
     camera.position.set(...preset.position);
-    camera.lookAt(new THREE.Vector3(...preset.lookAt));
+    camera.lookAt(orbit.target);
     camera.updateProjectionMatrix();
+    syncOrbitFromCamera();
   }
 
   function resize() {
@@ -177,6 +236,48 @@ export function createScene3D({ container }) {
 
   resize();
   window.addEventListener('resize', resize);
+
+  /* ── 拖拽旋转 / 滚轮缩放（自由视角）──────────────────────────────── */
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const dom = renderer.domElement;
+
+  function onPointerDown(event) {
+    if (!orbit.enabled || event.button !== 0) return;
+    orbit.dragging = true;
+    orbit.lastX = event.clientX;
+    orbit.lastY = event.clientY;
+    dom.classList.add('is-dragging');
+    try { dom.setPointerCapture(event.pointerId); } catch (err) { /* 某些环境不支持 */ }
+  }
+  function onPointerMove(event) {
+    if (!orbit.enabled || !orbit.dragging) return;
+    const dx = event.clientX - orbit.lastX;
+    const dy = event.clientY - orbit.lastY;
+    orbit.lastX = event.clientX;
+    orbit.lastY = event.clientY;
+    orbit.azimuth -= dx * 0.0062;
+    orbit.polar = clamp(orbit.polar - dy * 0.0055, 0.16, 1.45); // 别翻到地板下面去
+    applyOrbit();
+  }
+  function onPointerUp(event) {
+    if (!orbit.dragging) return;
+    orbit.dragging = false;
+    dom.classList.remove('is-dragging');
+    try { dom.releasePointerCapture(event.pointerId); } catch (err) { /* 忽略 */ }
+  }
+  function onWheel(event) {
+    if (!orbit.enabled) return;
+    event.preventDefault();
+    orbit.radius = clamp(orbit.radius * Math.exp(event.deltaY * 0.0011), 1.5, 24);
+    applyOrbit();
+  }
+
+  dom.addEventListener('pointerdown', onPointerDown);
+  dom.addEventListener('pointermove', onPointerMove);
+  dom.addEventListener('pointerup', onPointerUp);
+  dom.addEventListener('pointercancel', onPointerUp);
+  dom.addEventListener('wheel', onWheel, { passive: false });
+  dom.addEventListener('contextmenu', (e) => { if (orbit.enabled) e.preventDefault(); });
 
   const api = {
     /** 挂载角色（契约 §3.1）——actor: { id, kind, object3D, radius? } */
@@ -223,15 +324,45 @@ export function createScene3D({ container }) {
     /** 任意机位（拍摄模式/陈列用）：{ position:{x,y,z}, lookAt:{x,y,z}, fov? } */
     setCameraLook({ position, lookAt, fov } = {}) {
       if (position) camera.position.set(position.x, position.y, position.z);
-      if (lookAt) camera.lookAt(new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z));
+      if (lookAt) {
+        orbit.target.set(lookAt.x, lookAt.y, lookAt.z);
+        camera.lookAt(orbit.target);
+      }
       if (fov) {
         camera.fov = fov;
         camera.updateProjectionMatrix();
       }
+      syncOrbitFromCamera();
+    },
+
+    /** 自由视角开关（交互平台用；拍摄模式务必保持关闭） */
+    enableOrbit(enabled) {
+      orbit.enabled = Boolean(enabled);
+      if (orbit.enabled) syncOrbitFromCamera();
+      dom.classList.toggle('is-orbiting', orbit.enabled);
+    },
+
+    isOrbitEnabled() {
+      return orbit.enabled;
+    },
+
+    /** 回到当前机位预设（自由视角转晕了的「复位」） */
+    resetCamera() {
+      applyCameraPreset(view.mode);
     },
 
     getCameraMode() {
       return view.mode;
+    },
+
+    /** 一天里的光：'day' | 'dusk'（交互平台用） */
+    setTimeOfDay(mode) {
+      applyTimeOfDay(mode);
+      return timeOfDay;
+    },
+
+    getTimeOfDay() {
+      return timeOfDay;
     },
 
     setShadows(enabled) {
@@ -271,6 +402,10 @@ export function createScene3D({ container }) {
 
     dispose() {
       window.removeEventListener('resize', resize);
+      dom.removeEventListener('pointerdown', onPointerDown);
+      dom.removeEventListener('pointermove', onPointerMove);
+      dom.removeEventListener('pointerup', onPointerUp);
+      dom.removeEventListener('wheel', onWheel);
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     },

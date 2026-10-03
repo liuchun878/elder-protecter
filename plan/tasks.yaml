@@ -273,6 +273,19 @@ tasks:
            仍然只用 Box/Cylinder/Sphere/Torus/Extrude，不落任何 CAD 文件或网格（红线不变）。"
     cut_first: "发光环与细节 → 单个方块（功能不受影响）"
     status: done
+  - id: S11
+    title: 交互控制台（controls.js）+ 自由视角 + 充电桩
+    line: S
+    block: D2PM
+    milestone: M4
+    priority: P1
+    files: [prototype/js/controls.js, prototype/js/scene3d.js, prototype/js/room.js, prototype/js/scene2d.js, prototype/css/hud.css, prototype/index.html]
+    depends_on: [S1]
+    acceptance: "控制台 12 个按钮全部生效（CDP 真点一遍）；拍摄模式下不挂载、自由视角保持关闭；2D 降级下控制台仍可用；充电桩在客厅、机器人回桩时车尾朝桩"
+    note: "只把契约里已有的命令接到可见按钮上，不新增业务规则（契约 §3.2）。
+           scene2d 补齐 v1.5 新增的 5 个场景 API 空实现，保证 2D 降级功能一条不少。"
+    cut_first: "自由视角与光照 → 只留时钟/位置/机位三组按钮"
+    status: done
   - id: R3
     title: 路径动画（waypoint 折线 + 缓动 + 到点朝向 + 约 1.2 m/s）+ 药盘抬升
     line: R

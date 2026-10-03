@@ -77,7 +77,7 @@ const SEGMENTS = [
   {
     frames: 30,
     say: '王阿姨 76 岁，独居｜每天固定时段要吃好几种药',
-    cam: (k) => ({ followCam: { distance: lerp(4.8, 4.1, k), height: lerp(2.0, 1.75, k), angleDeg: lerp(-34, -22, k), aimHeight: 0.55, fov: 40 } }),
+    cam: (k) => ({ followCam: { distance: lerp(4.8, 4.2, k), height: lerp(2.0, 1.8, k), angleDeg: lerp(46, 32, k), aimHeight: 0.55, fov: 40 } }),
   },
   {
     frames: 84,

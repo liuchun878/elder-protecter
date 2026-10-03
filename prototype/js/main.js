@@ -19,6 +19,7 @@ import { createScene2D } from './scene2d.js';
 import { createRobot } from './robot.js';
 import { createPerson } from './person.js';
 import { mountHud } from './hud.js';
+import { mountConsole } from './controls.js';
 import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
 
@@ -247,6 +248,14 @@ function startMainView() {
   });
 
   mountDebugDrawer({ scene, clock });
+  // 交互控制台：拍摄模式下不挂载（会进画面，也会破坏逐帧可复现）
+  if (!FILM_MODE) {
+    mountConsole(document.getElementById('console'), {
+      scene, clock, presence, machine, store, debug: debugApi,
+    });
+    // 交互模式才开自由视角；拍摄模式每帧由脚本复写机位，必须保持关闭
+    scene.enableOrbit(true);
+  }
   // 演示时钟「仅内存、刷新即复位」——先把今天尚未了结的事件退回 scheduled，再开始走表
   store.setClock(clock.snapshot());
   schedule.reconcileOnBoot();
