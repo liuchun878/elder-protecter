@@ -90,7 +90,7 @@
   };
   const R=0.190;                       // 机身最宽半径
   const DOOR={y0:0.170,y1:0.300,az:0.42};   // 前下方对开门的范围（高度带 + 单侧张角）
-  const FY=Math.PI/2;                  // 正面方位角
+  const FY=0;   // 关键：LatheGeometry 的 phi=0 即正面(+Z)，不是 π/2                  // 正面方位角
   const robot=new T.Group();scene.add(robot);
   const put=(g,m,x,y,z,par)=>{const o=new T.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;(par||robot).add(o);return o;};
   // —— 蛋形机身（轮廓旋转体），前下方留出门洞
@@ -137,6 +137,11 @@
     const hd = new T.Mesh(new T.CylinderGeometry(0.0085, 0.0085, 0.013, 16), M.alu);
     hd.position.set(px - hx, (DOOR.y0 + DOOR.y1) / 2, pz - hz);
     hd.rotation.x = Math.PI / 2; hd.castShadow = true; g.add(hd);
+    // 上下铰链活页（贴在铰链竖线上，说明门是连在机身上的）
+    [DOOR.y0 + 0.014, DOOR.y1 - 0.014].forEach(hy => {
+      const kn = new T.Mesh(new T.CylinderGeometry(0.0055, 0.0055, 0.018, 12), M.alu);
+      kn.position.set(0, hy, 0); kn.castShadow = true; g.add(kn);
+    });
     return g;
   }
   const doorL = makeLeaf(-1), doorR = makeLeaf(1);
@@ -233,7 +238,7 @@
   STEPS.forEach(s=>{const d=document.createElement('div');d.className='step';d.innerHTML='<i></i><span>'+s.n+'</span>';stepsEl.appendChild(d);});
   function update(k){
     const open=ease(seg(k,STEPS[0].a,STEPS[0].b)), close=ease(seg(k,STEPS[5].a,0.995));
-    const sw=open*1.05*(1-close);
+    const sw=open*(Math.PI/2)*(1-close);   // 门敞开到 90°
     doorL.rotation.y=-sw; doorR.rotation.y=sw;
     const out=ease(seg(k,STEPS[1].a,STEPS[1].b)), give=ease(seg(k,STEPS[3].a,STEPS[3].b)), back=ease(seg(k,STEPS[5].a,0.995));
     const reach=(out*0.190+give*0.050)*(1-back);
