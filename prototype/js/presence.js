@@ -16,18 +16,27 @@ export const LOCATIONS = ['living_room', 'bedroom', 'kitchen', 'away'];
 export const LOCATION_LABEL = {
   living_room: '客厅',
   bedroom: '卧室',
-  kitchen: '餐桌 · 厨房',
+  kitchen: '餐区 · 餐桌',
   away: '出门',
 };
 
 /**
- * 房间分区（与 room.js / scene2d.js 的家具坐标一致，改一处要同步另一处）。
+ * 房间分区（套房户型，世界坐标；与 room.js 的 ROOMS 一致，改户型要同步这里）。
  * 用途只有一个：**点击落座后把 location 归到某个分区**，好让到点判定 / 安静时段 /
  * 升级链路继续读 `location`，不必知道 `seat` 的存在。
+ *
+ * 套房 13.4×10.6 m，世界坐标 x ∈ [−6.7, 6.7]、z ∈ [−5.3, 5.3]：
+ *   三间卧室（A 西北 / B 东北 / C 西南）→ bedroom；
+ *   起居·餐区的**北带**（含餐桌）→ kitchen（演示里的「餐区」）；
+ *   起居·客厅（沙发/电视）以及书房、卫生间、走廊 → living_room。
  */
 const ZONES = [
-  { location: 'kitchen', x0: 1.05, x1: 4.0, z0: -3.0, z1: 0.25 },
-  { location: 'bedroom', x0: -4.0, x1: -1.15, z0: -3.0, z1: 0.45 },
+  // 餐区先判：它是起居室北带，比"客厅"更具体
+  { location: 'kitchen', x0: -1.90, x1: 6.70, z0: -1.00, z1: 1.60 },
+  // 三间卧室
+  { location: 'bedroom', x0: -6.70, x1: -2.10, z0: -5.30, z1: -1.00 }, // 卧室 A
+  { location: 'bedroom', x0: 2.60, x1: 6.70, z0: -5.30, z1: -1.00 },   // 卧室 B
+  { location: 'bedroom', x0: -6.70, x1: -1.90, z0: 1.60, z1: 5.30 },   // 卧室 C
 ];
 
 /** 世界坐标 → 房间分区（契约 §2：location 必须是四个枚举之一） */

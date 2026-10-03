@@ -116,7 +116,7 @@ export function mountConsole(root, ctx) {
   const c = section('机位');
   const CAMS = [
     ['wide', '全景'], ['living', '客厅'], ['bedroom', '卧室'],
-    ['kitchen', '餐厨'], ['dock', '充电桩'], ['tray', '药盘特写'],
+    ['kitchen', '餐区'], ['dock', '充电桩'], ['tray', '药盘特写'],
   ];
   const camButtons = new Map();
   for (const [mode, label] of CAMS) {
@@ -148,12 +148,14 @@ export function mountConsole(root, ctx) {
     scene.setShadows(shadowsOn);
     event.currentTarget.textContent = shadowsOn ? '软阴影：开' : '软阴影：关';
   }, { title: '关掉可换帧率（降级表里的那一项）' });
-  let dusk = false;
-  const timeBtn = button(sc.row, '光照：正午', (event) => {
-    dusk = !dusk;
-    scene.setTimeOfDay(dusk ? 'dusk' : 'day');
-    event.currentTarget.textContent = dusk ? '光照：黄昏' : '光照：正午';
-  });
+  // 一天里的光三档循环：正午 → 黄昏 → 夜晚（v1.11 新增夜晚）
+  const TIME_MODES = [['day', '光照：正午'], ['dusk', '光照：黄昏'], ['night', '光照：夜晚']];
+  let timeIdx = 0;
+  const timeBtn = button(sc.row, TIME_MODES[0][1], (event) => {
+    timeIdx = (timeIdx + 1) % TIME_MODES.length;
+    scene.setTimeOfDay(TIME_MODES[timeIdx][0]);
+    event.currentTarget.textContent = TIME_MODES[timeIdx][1];
+  }, { title: '白天 / 黄昏 / 夜晚：夜晚天空压暗、室内暖光成为主光' });
 
   /* ── ⑥ 闭环命令 ─────────────────────────────────────────────────── */
   const f = section('闭环');

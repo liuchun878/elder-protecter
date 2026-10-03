@@ -22,8 +22,8 @@ import * as THREE from 'three';
 
 /* ── 确定性伪随机 ─────────────────────────────────────────────────── */
 
-/** 线性同余发生器：同一 seed 永远给出同一串随机数 */
-function makeRng(seed) {
+/** 线性同余发生器：同一 seed 永远给出同一串随机数（`suite-textures.js` 也用同一个） */
+export function makeRng(seed) {
   let s = (seed >>> 0) || 1;
   return () => {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0;

@@ -76,27 +76,106 @@ export function chime(channel = 'voice') {
   osc.stop(now + 1.2);
 }
 
+/* ── 童声（v1.11）──────────────────────────────────────────────────────
+ * 用户口径：「机器人走到奶奶身边督促吃药，**声音是童声**」，并指了他仓库里的
+ * `suite-3d/robot/voice/p1..p3.mp3`（三个提交：吃药提醒 / 鼓励 / 留言给子女手机，**男孩童声**）。
+ * 因此这里照搬他仓库 HEAD 版 `suite-3d/robot/index.html` 的做法：
+ *   ① 优先播**预录童声 mp3**（`prototype/assets/voice/*.mp3`，本地文件、零网络请求）；
+ *   ② 播不了（文件缺失 / 解码失败 / 无手势）→ 退回 **TTS 抬高音调**（pitch 1.70）兜底；
+ *   ③ 音色优先级同样照搬：系统童声 > 男声（抬高音调即男童）> 女声 > 任意中文。
+ * 仍然是「断网可用」：mp3 是提交进仓库的本地文件，没有任何外链。
+ */
+const VOICE_PRIORITY = [
+  /yaoyao|瑶瑶|童|child|kid/i, // 系统里的童声
+  /kangkang|康康|yunxi|云希|yunyang|云扬|male|男/i, // 男声 → 抬高音调即男童（孙子）
+  /xiaoxiao|xiaoyi|晓晓|晓伊|female|女/i,
+  /zh[-_]CN|Chinese|普通话|中文/i,
+];
+/** 预录童声片段（键 → 用途，供文档与自测核对） */
+export const CHILD_CLIPS = {
+  p1: '吃药提醒（机器人到身边督促）',
+  p2: '鼓励（已取走之后）',
+  p3: '留言给子女手机（记录已同步）',
+};
+const CLIP_BASE = './assets/voice/';
+// ⚠️ 默认**不播**预录片段：那三段录音的措辞与本项目口径冲突（见 CHANGELOG 本轮小节）——
+//    p1 里有固定粒数「这三粒药」，p2 是「药都吃完啦」（= 已服下，红线）。
+//    想听录音本身：在网址后面加 `?voiceclip=1`（只影响演示，不改任何业务）。
+const USE_CLIPS = typeof window !== 'undefined'
+  && new URLSearchParams(window.location.search).get('voiceclip') === '1';
+
+let zhVoice = null;
+let clipAudio = null;
+
+/** 选一个最像童声的中文音色（TTS 兜底用） */
+export function pickChildVoice() {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  const voices = (window.speechSynthesis.getVoices() || [])
+    .filter((v) => /zh|Chinese/i.test(`${v.lang} ${v.name}`));
+  if (!voices.length) return null;
+  for (const re of VOICE_PRIORITY) {
+    const hit = voices.find((v) => re.test(v.name));
+    if (hit) { zhVoice = hit; return zhVoice; }
+  }
+  zhVoice = zhVoice || voices[0];
+  return zhVoice;
+}
+
+export function getVoiceName() {
+  return zhVoice ? zhVoice.name : null;
+}
+
+function tts(text, { pitch, rate }, done) {
+  if (!hasTTS()) { if (done) done(); return; }
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = rate;
+    utterance.pitch = pitch;
+    if (zhVoice) utterance.voice = zhVoice;
+    utterance.onend = () => { if (done) done(); };
+    utterance.onerror = () => { if (done) done(); };
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    if (done) done();
+  }
+}
+
 /**
  * 语音播报（与屏幕同步；同一句话 3 秒内不重复念，避免「原样重推」）
  * @param {string} text 只传医嘱原文拼出的句子
+ * @param {{force?: boolean, style?: 'elder'|'child', clip?: string}} opts
+ *   style='child' → 童声（督促吃药那几句用它）；clip='p1'..'p3' → 优先播预录童声 mp3
  */
-export function speak(text, { force = false } = {}) {
+export function speak(text, { force = false, style = 'elder', clip = null } = {}) {
   if (!enabled || !text) return;
   const now = Date.now();
   if (!force && text === lastSpoken && now - lastSpokenAt < 3000) return;
   lastSpoken = text;
   lastSpokenAt = now;
 
-  if (!hasTTS()) return; // 静默降级：大字 + 低频音，不弹错误窗
+  const child = style === 'child';
+  const pitch = child ? 1.70 : 1; // 童声：抬高音调（与用户仓库 HEAD 版一致）
+  const rate = child ? 1.0 : 0.85; // 成人向：放慢语速（适老化）
+
+  const fallback = () => tts(text, { pitch, rate });
+  if (!clip || !USE_CLIPS || typeof window === 'undefined' || typeof window.Audio !== 'function') {
+    fallback();
+    return;
+  }
   try {
-    window.speechSynthesis.cancel();
-    const utterance = new window.SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-CN';
-    utterance.rate = 0.85; // 适老化：放慢语速
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+    if (clipAudio) { clipAudio.pause(); clipAudio = null; }
+    const a = new window.Audio(`${CLIP_BASE}${clip}.mp3`);
+    clipAudio = a;
+    let guard = null;
+    const done = () => { if (guard) clearTimeout(guard); clipAudio = null; };
+    a.onended = done;
+    a.onerror = () => { done(); fallback(); };
+    guard = setTimeout(done, 15000); // 兜底：文件卡住也别把通道占死
+    a.play().catch(() => { done(); fallback(); });
   } catch (err) {
-    // 静默降级
+    fallback();
   }
 }
 
@@ -105,4 +184,6 @@ export function playChannel(channel) {
   chime(channel);
 }
 
-export const audio = { attachUnlock, setEnabled, isEnabled, hasTTS, speak, chime: playChannel };
+export const audio = {
+  attachUnlock, setEnabled, isEnabled, hasTTS, speak, chime: playChannel, pickChildVoice, getVoiceName,
+};

@@ -1,31 +1,29 @@
 /**
- * scene3d.js —— 3D 场景骨架 + 场景 API（S 线）
+ * scene3d.js —— 3D 场景 + 场景 API（S 线）
  *
- * 契约：契约-接口.md §3.1 场景 API（addActor / setActorPosition / getWaypoint / render）
+ * 契约：契约-接口.md §3.1 场景 API（addActor / setActorPosition / getWaypoint /
+ *       getApproachPoint / getDock / findPath / pick / render）
  *       + 仿真呈现与开发阶段计划 §2.2 3D 场景规格
  *
- * 硬约束：
+ * v1.7（套房）：户型换成 `suite-3d` 的 13.4 × 10.6 m 套房（见 room.js）。因此多了三件事：
+ *   ① **导航网格**（navgrid.js）：多房间有墙，机器人/人不能两点一线，`findPath` 走可通行网格；
+ *   ② **光照换成套房那一套**（半球 + 环境 + 太阳 + 冷补光 + 室内暖光），日光/黄昏两档；
+ *   ③ **拾取仍然有效**：落点必须落在可走区域里，且按家具/坐具元数据吸附。
+ *
+ * 硬约束（不变）：
  *   - 只读 store.getState()，不改 state
  *   - 不 import hud / family / person
  *   - **3D 里不渲染任何文字**
- *   - 阴影默认关闭（移动端掉帧第一来源）；pixelRatio 上限 2
+ *   - 阴影默认开启（软阴影），`setShadows()` 可一键关掉换帧率
  *   - WebGL 不可用 → 返回 null，由 main.js 切到 scene2d.js（功能一条不少）
  */
 
 import * as THREE from 'three';
-import { buildRoom, WAYPOINTS, APPROACH_POINTS, DOCK, FURNITURE_BLOCK } from './room.js';
-import { buildEnvironmentScene } from './textures.js';
-
-/**
- * 写实化取向（v2）：
- *   - **色调映射**：ACESFilmic。不开的话白墙一片死白、金属没有高光层次。
- *   - **软阴影**：PCFSoft。写实的「家具落在地上」几乎全靠接触阴影；
- *     代价是移动端掉帧，所以 `setShadows()` 开关保留（契约里的降级阶梯没变）。
- *   - **环境光照（IBL）**：用 textures.buildEnvironmentScene() 造一个渐变天空 + 一块「太阳」，
- *     经 PMREMGenerator 变成 envMap。没有它，PBR 的 metalness/roughness 就没有参照。
- *   - **背景**：一个内表面渐变穹顶（不是纯色），窗外的天光才有来处。
- */
-const BACKGROUND = 0xdcd5ca;
+import {
+  buildRoom, WAYPOINTS, APPROACH_POINTS, DOCK, DOCK_FACING,
+} from './room.js';
+import { createNavGrid } from './navgrid.js';
+import { skyCanvas } from './suite-textures.js';
 
 /** WebGL 能力检测（P1 就要做，不能等降级时才想） */
 export function isWebGLAvailable() {
@@ -37,16 +35,35 @@ export function isWebGLAvailable() {
   }
 }
 
+/**
+ * 机位预设（世界坐标；屋子中心在原点，x ∈ [−6.7, 6.7]，z ∈ [−5.3, 5.3]）
+ *   wide    全景：整户斜俯视
+ *   living  客厅（沙发 + 茶几 + 电视墙 + 充电桩）
+ *   bedroom 卧室 C（床）
+ *   kitchen 餐区（餐桌 + 吊灯）
+ *   dock    客厅东北角的充电桩
+ *   tray    药盘特写（按"机器人在沙发前停靠点"标定）
+ */
 const CAMERA_PRESETS = {
-  // 固定等距斜俯视主视角：能看到客厅（沙发 · 王阿姨）、卧室、厨房三个分区与前景的充电桩
-  wide: { position: [7.1, 6.5, 8.6], lookAt: [0.35, 0.45, 0.25], fov: 42 },
-  // 药盘特写机位（按「机器人在客厅停靠点」标定：机器人正面 + 托盘 + 沙发上的王阿姨）
-  tray: { position: [3.5, 1.1, -0.6], lookAt: [1.2, 0.52, 1.35], fov: 36 },
-  // 交互平台用的分区机位（陈列/讲解时切）
-  living: { position: [4.6, 2.5, 4.9], lookAt: [1.7, 0.55, 1.2], fov: 40 },
-  bedroom: { position: [0.9, 1.9, 1.5], lookAt: [-2.9, 0.6, -1.7], fov: 42 },
-  kitchen: { position: [0.5, 1.9, 1.1], lookAt: [2.7, 0.85, -2.0], fov: 42 },
-  dock: { position: [2.6, 1.5, 3.9], lookAt: [0.9, 0.45, 2.4], fov: 38 },
+  // ⚠️ 机位必须落在**室内**：世界 z > 5.18 或 x > 6.58 就已经在墙外了（会隔着墙看）。
+  wide: { position: [10.6, 12.4, 14.2], lookAt: [0.0, 0.9, 0.6], fov: 40 },
+  living: { position: [1.15, 2.05, 4.35], lookAt: [3.60, 0.80, 2.55], fov: 54 },
+  bedroom: { position: [3.00, 1.95, -1.30], lookAt: [5.55, 0.72, -3.45], fov: 50 },
+  kitchen: { position: [3.05, 2.35, 2.95], lookAt: [0.10, 0.72, -0.10], fov: 48 },
+  dock: { position: [4.35, 1.85, 2.45], lookAt: [5.80, 0.52, 1.10], fov: 42 },
+  tray: { position: [0.30, 1.05, 3.80], lookAt: [1.55, 0.62, 3.55], fov: 36 },
+};
+
+/**
+ * 一天里的光（v1.11 起三档：日光 / 黄昏 / **夜晚**）。
+ * 黄昏：太阳压低、色温转暖，室内暖光组打开。
+ * 夜晚：天空压暗、太阳几乎只剩一点冷月光，**室内暖光成为主光**（每间房一盏，见下方 warm()），
+ *       曝光再压一档 —— 这样窗洞是深蓝夜色、屋里是暖黄灯，一眼能看出"天黑了、家里开着灯"。
+ */
+const TIME_OF_DAY = {
+  day: { sun: 0xfff0d8, sunI: 2.35, sunPos: [-9, 13, -11], hemi: 0.72, fill: 0.42, amb: 0.24, exposure: 1.06, bg: 0xd9d6d1, interior: 1.0, interiorOn: false, moon: 0 },
+  dusk: { sun: 0xffc07a, sunI: 2.30, sunPos: [-15, 4.5, -3], hemi: 0.40, fill: 0.30, amb: 0.22, exposure: 1.04, bg: 0xcfc3b4, interior: 0.8, interiorOn: true, moon: 0 },
+  night: { sun: 0xaec4e6, sunI: 0.30, sunPos: [-7, 11, -9], hemi: 0.20, fill: 0.10, amb: 0.13, exposure: 0.88, bg: 0x1a2130, interior: 1.75, interiorOn: true, moon: 1 },
 };
 
 /**
@@ -56,25 +73,25 @@ const CAMERA_PRESETS = {
 export function createScene3D({ container }) {
   if (!isWebGLAvailable()) return null;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.88;
-  renderer.shadowMap.enabled = true; // 写实化后默认开启；setShadows() 仍可关掉换帧率
+  renderer.toneMappingExposure = TIME_OF_DAY.day.exposure;
+  renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
   renderer.domElement.classList.add('scene-canvas');
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(BACKGROUND);
+  scene.background = new THREE.Color(TIME_OF_DAY.day.bg);
 
   /** 仅视觉状态：相机模式、帧率统计 */
   const view = { mode: 'wide', fps: 0, frames: 0, lastFpsAt: 0 };
 
   /**
    * 自由视角（球坐标绕目标点转）。
-   * ⚠️ **只在交互模式开启**：拍摄模式（?film=1）每帧都用 `setCameraLook` 复写机位，
-   * 打开 orbit 会把逐帧可复现的画面搅乱。
+   * ⚠️ **只在交互模式开启**：拍摄模式（?film=1）每帧都用 `setCameraLook` 复写机位。
    */
   const orbit = {
     enabled: false,
@@ -87,147 +104,219 @@ export function createScene3D({ container }) {
     lastY: 0,
   };
 
-  const camera = new THREE.PerspectiveCamera(CAMERA_PRESETS.wide.fov, 1, 0.1, 120);
-  applyCameraPreset('wide');
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 400);
 
-  /* ── 环境光照：程序化天空 → PMREM ────────────────────────────────── */
+  /* ── 环境光照：程序化天空 → PMREM（与套房一致的做法）─────────────── */
+  const skyTex = new THREE.CanvasTexture(skyCanvas());
+  skyTex.colorSpace = THREE.SRGBColorSpace;
+  skyTex.mapping = THREE.EquirectangularReflectionMapping;
+  skyTex.needsUpdate = true;
   const pmrem = new THREE.PMREMGenerator(renderer);
-  pmrem.compileEquirectangularShader();
-  const envScene = buildEnvironmentScene();
-  const envRT = pmrem.fromScene(envScene, 0.03);
+  const envRT = pmrem.fromEquirectangular(skyTex);
   scene.environment = envRT.texture;
-  envScene.traverse((node) => {
-    if (node.isMesh) {
-      node.geometry.dispose();
-      if (node.material.map) node.material.map.dispose();
-      node.material.dispose();
-    }
-  });
+  // v1.11：夜晚用**另一张**夜空环境贴图。只压阳光/曝光是不够的 ——
+  // 白墙会被白天的天光（IBL）整体提亮，画面依旧是"白天关灯"而不是"夜里开灯"。
+  const nightSkyTex = new THREE.CanvasTexture(skyCanvas(20266, 'night'));
+  nightSkyTex.colorSpace = THREE.SRGBColorSpace;
+  nightSkyTex.mapping = THREE.EquirectangularReflectionMapping;
+  const nightEnvRT = pmrem.fromEquirectangular(nightSkyTex);
+  pmrem.dispose();
 
-  /* ── 背景穹顶：柔和渐变，比纯色背景更像「窗外天光」─────────────── */
-  const backdropCanvas = document.createElement('canvas');
-  backdropCanvas.width = 8;
-  backdropCanvas.height = 256;
-  {
-    const c = backdropCanvas.getContext('2d');
-    const g = c.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0.0, '#a9c0d4');
-    g.addColorStop(0.46, '#d3d6d3');
-    g.addColorStop(0.58, '#ded3c2');
-    g.addColorStop(1.0, '#b3a795');
-    c.fillStyle = g;
-    c.fillRect(0, 0, 8, 256);
-  }
-  const backdropTex = new THREE.CanvasTexture(backdropCanvas);
-  backdropTex.colorSpace = THREE.SRGBColorSpace;
-  const backdrop = new THREE.Mesh(
-    new THREE.SphereGeometry(46, 32, 20),
-    new THREE.MeshBasicMaterial({ map: backdropTex, side: THREE.BackSide, depthWrite: false }),
-  );
-  backdrop.name = 'backdrop';
-  scene.add(backdrop);
-
-  /* ── 光照：窗外太阳 + 天光 + 逆向补光 ───────────────────────────── */
-  const hemi = new THREE.HemisphereLight(0xd8e6f2, 0x7b6a58, 0.24);
+  /* ── 光照：半球 + 环境 + 窗外太阳（投影）+ 冷补光 + 室内暖光 ─────── */
+  const hemi = new THREE.HemisphereLight(0xe9f0f7, 0xb59a7c, TIME_OF_DAY.day.hemi);
   scene.add(hemi);
+  const amb = new THREE.AmbientLight(0xfff2e2, TIME_OF_DAY.day.amb);
+  scene.add(amb);
 
-  // 主光：从窗外（-z / -x 方向）斜射进来，暖色，负责全部接触阴影
-  const sun = new THREE.DirectionalLight(0xffe0b4, 2.75);
-  sun.position.set(-5.2, 3.55, -8.4); // 压低太阳：窗光会在地板上拉出一长条光斑
-  sun.target.position.set(-0.2, 0.5, 0.4);
+  const sun = new THREE.DirectionalLight(TIME_OF_DAY.day.sun, TIME_OF_DAY.day.sunI);
+  sun.position.set(...TIME_OF_DAY.day.sunPos);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -7.6;
-  sun.shadow.camera.right = 7.6;
-  sun.shadow.camera.top = 7.6;
-  sun.shadow.camera.bottom = -7.6;
+  sun.shadow.camera.left = -13;
+  sun.shadow.camera.right = 13;
+  sun.shadow.camera.top = 13;
+  sun.shadow.camera.bottom = -13;
   sun.shadow.camera.near = 1;
-  sun.shadow.camera.far = 34;
-  sun.shadow.bias = -0.0012;
-  sun.shadow.normalBias = 0.022;
+  sun.shadow.camera.far = 55;
+  sun.shadow.bias = -0.0005;
+  sun.shadow.normalBias = 0.028;
   sun.shadow.radius = 2.2;
+  sun.target.position.set(0, 0, 0);
   scene.add(sun);
   scene.add(sun.target);
 
-  // 补光：从相机一侧压一点冷光，避免暗部死黑
-  const fill = new THREE.DirectionalLight(0xbdd2e6, 0.18);
-  fill.position.set(6.5, 4.2, 6.0);
+  const fill = new THREE.DirectionalLight(0xdce8f5, TIME_OF_DAY.day.fill);
+  fill.position.set(10, 7, 9);
   scene.add(fill);
 
-  // 窗口内的地面反射光（很弱，只是让木地板有一点点「透亮」）
-  const bounce = new THREE.DirectionalLight(0xffd9ac, 0.14);
-  bounce.position.set(-3.2, -2.0, -2.6);
-  scene.add(bounce);
+  // 室内暖光（黄昏才开）：点光源按房间名各一盏，位置与吊灯一致
+  const interior = new THREE.Group();
+  interior.visible = TIME_OF_DAY.day.interiorOn;
+  scene.add(interior);
+  const interiorLights = [];
+  function warm(x, y, z, intensity, dist) {
+    const l = new THREE.PointLight(0xffd9a6, intensity, dist || 7, 2);
+    l.position.set(x, y, z);
+    l.userData.base = intensity;
+    interior.add(l);
+    interiorLights.push(l);
+    return l;
+  }
+  warm(0.40, 2.35, 0.05, 6, 7);      // 餐区吊灯
+  warm(-4.40, 2.30, -3.25, 4, 6);    // 卧室 A
+  warm(4.40, 2.30, -3.25, 4, 6);     // 卧室 B
+  warm(-4.35, 2.30, 3.55, 4, 6);     // 卧室 C
+  warm(-0.50, 2.30, 4.65, 3.5, 5);   // 书房
+  warm(3.65, 2.30, 3.55, 4.5, 6.5);  // 起居
 
-  /* ── 一天里的光（交互平台可切）：正午 / 黄昏 ─────────────────────── */
-  const TIME_OF_DAY = {
-    day: { sun: 0xffe0b4, sunI: 2.75, hemi: 0.24, fill: 0.18, exposure: 0.88, tint: 0xffffff, pos: [-5.2, 3.55, -8.4] },
-    dusk: { sun: 0xff9a52, sunI: 2.35, hemi: 0.2, fill: 0.12, exposure: 1.0, tint: 0xffc79a, pos: [-7.4, 1.9, -7.0] },
-  };
   let timeOfDay = 'day';
+
+  /* ── 地面 / 楼板 / 接触阴影 ───────────────────────────────────────── */
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(140, 140),
+    new THREE.MeshStandardMaterial({ color: 0xcdc8c1, roughness: 1 }),
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.45;
+  ground.receiveShadow = true;
+  ground.userData.noPick = true;
+  scene.add(ground);
+  const contactPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 60),
+    new THREE.ShadowMaterial({ opacity: 0.20 }),
+  );
+  contactPlane.rotation.x = -Math.PI / 2;
+  contactPlane.position.y = -0.44;
+  contactPlane.receiveShadow = true;
+  contactPlane.userData.noShadow = true;
+  contactPlane.userData.noPick = true;
+  scene.add(contactPlane);
+
+  /* ── 户型 ─────────────────────────────────────────────────────────── */
+  const room = buildRoom();
+  scene.add(room);
+
+  /** 导航网格：多房间有墙，机器人/人一律走它给的可通行折线 */
+  const nav = createNavGrid({
+    bounds: room.userData.nav.bounds,
+    walls: room.userData.nav.walls,
+    boxes: room.userData.nav.boxes,
+    cell: 0.1,
+  radius: 0.22,
+  });
+
+  /** 导航网格可视化（调试抽屉用；默认关） */
+  const navOverlay = (() => {
+    const { cols, rows } = nav;
+    const canvas = document.createElement('canvas');
+    canvas.width = cols;
+    canvas.height = rows;
+    const ctx = canvas.getContext('2d');
+    const img = ctx.createImageData(cols, rows);
+    for (let r = 0; r < rows; r += 1) {
+      for (let c = 0; c < cols; c += 1) {
+        const free = nav.walkable[r * cols + c];
+        const i = (r * cols + c) * 4;
+        img.data[i] = free ? 60 : 220;
+        img.data[i + 1] = free ? 200 : 90;
+        img.data[i + 2] = free ? 160 : 80;
+        img.data[i + 3] = free ? 40 : 150;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    const b = nav.bounds;
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(b.x1 - b.x0, b.z1 - b.z0),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }),
+    );
+    m.rotation.x = -Math.PI / 2;
+    m.position.set((b.x0 + b.x1) / 2, 0.03, (b.z0 + b.z1) / 2);
+    m.visible = false;
+    m.userData.noShadow = true;
+    m.userData.noPick = true;
+    m.renderOrder = 5;
+    scene.add(m);
+    return m;
+  })();
+
+  /** 充电桩上的灯（room.js 交回来的引用）——充电呼吸由本文件驱动 */
+  const dockLights = (room.userData.dock && room.userData.dock.leds) || [];
+  let pulse = 0;
+
+  function applyShadowFlags() {
+    const on = renderer.shadowMap.enabled;
+    scene.traverse((node) => {
+      if (!node.isMesh) return;
+      if (node.userData.noShadow || node === navOverlay || node === ground) return;
+      node.castShadow = on;
+      node.receiveShadow = on;
+    });
+    ground.receiveShadow = true;
+    contactPlane.receiveShadow = true;
+  }
+  applyShadowFlags();
 
   function applyTimeOfDay(mode) {
     const t = TIME_OF_DAY[mode] || TIME_OF_DAY.day;
     timeOfDay = TIME_OF_DAY[mode] ? mode : 'day';
     sun.color.setHex(t.sun);
     sun.intensity = t.sunI;
-    sun.position.set(...t.pos);
+    sun.position.set(...t.sunPos);
     hemi.intensity = t.hemi;
     fill.intensity = t.fill;
+    // 夜晚的补光改成冷月光（白天的补光是窗外的天光）
+    fill.color.setHex(t.moon ? 0x9fb6d8 : 0xdce8f5);
+    amb.intensity = t.amb;
+    amb.color.setHex(t.moon ? 0xc9d6ee : 0xfff2e2);
     renderer.toneMappingExposure = t.exposure;
-    backdrop.material.color.setHex(t.tint);
+    scene.background.setHex(t.bg);
+    scene.environment = t.moon ? nightEnvRT.texture : envRT.texture; // 夜里换夜空 IBL
+    interior.visible = t.interiorOn;
+    for (const l of interiorLights) l.intensity = l.userData.base * t.interior;
   }
-
-  const room = buildRoom();
-  scene.add(room);
-  applyShadowFlags();
-
-  /** 充电桩上的灯（room.js 交回来的引用）——充电呼吸由本文件驱动，避免 R/S 互相 import */
-  const dockLights = (room.userData.dock && room.userData.dock.leds) || [];
-  let pulse = 0;
 
   const actors = new Map();
 
-  /* ── 可拾取物 / 单击落座（v1.6，契约 §3.1）────────────────────────
+  /* ── 可拾取物 / 单击落座（契约 §3.1）──────────────────────────────
    * 规则（顺序很重要）：
-   *   ① 命中带 `userData.seat` 的坐具 → 吸附到 spec 给的落点（沙发垫中间 / 椅子正中 / 床边）；
-   *   ② 命中**朝上的面**且高度在 [0.08, 0.62] → 坐到该表面上（茶几、矮凳、窗台…）；
-   *   ③ 其余（墙、竖直面、太高的家具）→ 沿水平法线推开一点，**坐到地板上**。
-   * 不拾取：透明面（窗纱）、自发光面（窗外天幕）、光柱、接触阴影贴片、相机标记。
+   *   ① 命中带 `userData.seat` 的坐具 → 吸附到 spec 给的落点（沙发垫 / 椅子正中 / 床沿）；
+   *   ② 命中**朝上的面**且高度在 [0.08, 0.62] → 坐到该表面上；
+   *   ③ 其余（墙、竖直面、太高的家具）→ 沿水平法线推开一点，**坐到地板上**；
+   *   ④ 落点必须落在**可通行区域**内，否则忽略这次点击（点墙外/屋外不该让人穿墙坐）。
+   * 不拾取：透明面（玻璃/窗）、自发光面、导航贴图、地面板、相机标记。
    */
   const SEAT_MAX_Y = 0.62;
   const SEAT_MIN_Y = 0.08;
-  const ROOM_ANCHOR = { x: 0.8, z: 0.6 };
   const pickables = [];
-
-  /** 把落点夹回房间内，别让人坐到墙里去 */
-  const clampRoomX = (x) => Math.min(3.55, Math.max(-3.55, x));
-  const clampRoomZ = (z) => Math.min(2.5, Math.max(-2.55, z));
 
   function refreshPickables() {
     pickables.length = 0;
     room.traverse((node) => {
       if (!node.isMesh || node === marker) return;
-      if (node.userData.noShadow) return;
+      if (node.userData.noShadow || node.userData.noPick) return;
       const mats = Array.isArray(node.material) ? node.material : [node.material];
       if (mats.some((m) => m && m.transparent && m.opacity < 0.9)) return;
       pickables.push(node);
     });
   }
 
-  /** 朝向：面向房间的空场中心（地板落点用；沙发/椅子有自己的朝向） */
   function facingTowardsRoom(x, z) {
-    return Math.atan2(ROOM_ANCHOR.x - x, ROOM_ANCHOR.z - z);
+    return Math.atan2(-x, -z); // 朝向户型中心
   }
 
-  function seatFromHit(hit) {    // ① 坐具元数据（向上找最近的一层）
+  function seatFromHit(hit) {
+    // ① 坐具元数据（向上找最近的一层）
     for (let node = hit.object; node && node !== room; node = node.parent) {
       const spec = node.userData && node.userData.seat;
       if (!spec) continue;
       let x = spec.lockX !== undefined ? spec.lockX : hit.point.x;
       let z = spec.lockZ !== undefined ? spec.lockZ : hit.point.z;
-      if (spec.clampX) x = Math.min(spec.clampX[1], Math.max(spec.clampX[0], x));
-      if (spec.clampZ) z = Math.min(spec.clampZ[1], Math.max(spec.clampZ[0], z));
+      if (spec.clampX) x = clamp(x, spec.clampX[0], spec.clampX[1]);
+      if (spec.clampZ) z = clamp(z, spec.clampZ[0], spec.clampZ[1]);
       return { x, z, surfaceY: spec.surfaceY, facing: spec.facing, kind: spec.kind };
     }
 
@@ -239,61 +328,19 @@ export function createScene3D({ container }) {
     // ② 朝上的面：直接坐上去
     if (Math.abs(normal.y) > 0.6 && y >= SEAT_MIN_Y && y <= SEAT_MAX_Y) {
       return {
-        x: clampRoomX(hit.point.x),
-        z: clampRoomZ(hit.point.z),
-        surfaceY: y,
-        facing: facingTowardsRoom(hit.point.x, hit.point.z),
-        kind: 'surface',
+        x: hit.point.x, z: hit.point.z, surfaceY: y, facing: facingTowardsRoom(hit.point.x, hit.point.z), kind: 'surface',
       };
     }
 
     // ③ 墙面 / 太高的家具：沿水平法线推开，坐地板
-    const nx = normal.x;
-    const nz = normal.z;
-    const len = Math.hypot(nx, nz) || 1;
-    const x = clampRoomX(hit.point.x + (nx / len) * 0.34);
-    const z = clampRoomZ(hit.point.z + (nz / len) * 0.34);
+    const len = Math.hypot(normal.x, normal.z) || 1;
+    const x = hit.point.x + (normal.x / len) * 0.34;
+    const z = hit.point.z + (normal.z / len) * 0.34;
     return { x, z, surfaceY: 0, facing: facingTowardsRoom(x, z), kind: 'floor' };
   }
 
   const raycaster = new THREE.Raycaster();
   const pointerNDC = new THREE.Vector2();
-
-  /** 机器人站在人的正前方多远（米）——递药与"跟到身边"用同一个距离 */
-  const STANDOFF = 0.95;
-  const ROBOT_RADIUS = 0.30;
-
-  /** 这个点能不能站机器人：在房间内，且不在任何家具占位里（各方向留出机身半径） */
-  function isFreeSpot(x, z) {
-    if (x < -3.5 || x > 3.5 || z < -2.5 || z > 2.5) return false;
-    for (const b of FURNITURE_BLOCK) {
-      if (x > b.x0 - ROBOT_RADIUS && x < b.x1 + ROBOT_RADIUS
-        && z > b.z0 - ROBOT_RADIUS && z < b.z1 + ROBOT_RADIUS) return false;
-    }
-    return true;
-  }
-
-  /**
-   * 落座点 → 机器人站位。
-   * 先试"人的正前方"，被家具占了就绕着她左右各偏 35°/70°/105°，最后才退回夹在房间里的正前方。
-   * 这里只做**站位选择**，不是路径规划（机器人仍是直线趋近，见 §5 降级表）。
-   */
-  function approachForSeat(seat) {
-    const facing = Number(seat.facing) || 0;
-    const sx = Number(seat.x);
-    const sz = Number(seat.z);
-    for (const offsetDeg of [0, 35, -35, 70, -70, 105, -105, 150, -150, 180]) {
-      const a = facing + (offsetDeg * Math.PI) / 180;
-      const x = sx + Math.sin(a) * STANDOFF;
-      const z = sz + Math.cos(a) * STANDOFF;
-      if (isFreeSpot(x, z)) return { x, y: 0, z };
-    }
-    return {
-      x: clampRoomX(sx + Math.sin(facing) * STANDOFF),
-      y: 0,
-      z: clampRoomZ(sz + Math.cos(facing) * STANDOFF),
-    };
-  }
 
   function pickAt(clientX, clientY) {
     const rect = dom.getBoundingClientRect();
@@ -303,7 +350,13 @@ export function createScene3D({ container }) {
     raycaster.setFromCamera(pointerNDC, camera);
     const hits = raycaster.intersectObjects(pickables, false);
     if (!hits.length) return null;
-    return seatFromHit(hits[0]);
+    const seat = seatFromHit(hits[0]);
+    // ④ 地板落点必须真的落在地板上（可通行区内）——否则点到屋外/墙里就会让人穿墙坐。
+    //    坐具/家具表面的落点是元数据给定的（本来就在家具上），不能用"可站"去卡它。
+    if (seat.kind === 'floor'
+      && !nav.isWalkable(seat.x, seat.z)
+      && nav.nearestWalkable(seat.x, seat.z, 0.6) === null) return null;
+    return seat;
   }
 
   /* ── 点击落座标记：一圈扩散淡出的环（纯视觉反馈）───────────────── */
@@ -318,25 +371,159 @@ export function createScene3D({ container }) {
   marker.position.y = 0.02;
   marker.visible = false;
   marker.userData.noShadow = true;
-  marker.renderOrder = 4;
+  marker.renderOrder = 6;
   scene.add(marker);
   let markerAge = Infinity;
   refreshPickables();
 
-  /** 新加入场景的物体（房间/角色）都要有阴影标记 */
-  function applyShadowFlags() {
-    const on = renderer.shadowMap.enabled;
-    scene.traverse((node) => {
-      if (!node.isMesh) return;
-      // 背景穹顶、窗外天空片这类「自发光平面」不参与阴影：
-      // 让它们投影会把窗外的阳光整片挡掉，室内就永远没有光斑。
-      if (node.name === 'backdrop' || node.userData.noShadow) return;
-      node.castShadow = on;
-      node.receiveShadow = on;
-    });
+  /* ── 寻路（契约 §3.1：findPath）────────────────────────────────── */
+  const pathCache = new Map();
+  function findPath(from, to) {
+    if (!from || !to) return null;
+    const k = `${from.x.toFixed(1)},${from.z.toFixed(1)}>${to.x.toFixed(1)},${to.z.toFixed(1)}`;
+    const hit = pathCache.get(k);
+    if (hit) return hit.map((p) => ({ ...p }));
+    const path = nav.findPath(from, to);
+    if (pathCache.size > 200) pathCache.clear();
+    pathCache.set(k, path);
+    return path ? path.map((p) => ({ ...p })) : null;
   }
 
-  /** 由当前机位反算球坐标，之后拖拽/滚轮就围绕这个目标点转 */
+  /** 机器人站在人的正前方多远（米）——递药与"跟到身边"用同一个距离 */
+  const STANDOFF = 0.95;
+
+  /**
+   * 落座点 → 机器人站位：先试"人的正前方"，被家具/墙占了就绕着她左右各偏 35°/70°/105°…
+   * 只做**站位选择**，不是路径规划（路径由 findPath 给）。
+   */
+  function approachForSeat(seat) {
+    const facing = Number(seat.facing) || 0;
+    const sx = Number(seat.x);
+    const sz = Number(seat.z);
+    for (const offsetDeg of [0, 35, -35, 70, -70, 105, -105, 150, -150, 180]) {
+      const a = facing + (offsetDeg * Math.PI) / 180;
+      const x = sx + Math.sin(a) * STANDOFF;
+      const z = sz + Math.cos(a) * STANDOFF;
+      if (nav.isWalkable(x, z)) return { x, y: 0, z };
+    }
+    const near = nav.nearestWalkable(sx + Math.sin(facing) * STANDOFF, sz + Math.cos(facing) * STANDOFF, 1.4);
+    return near ? { x: near.x, y: 0, z: near.z } : { x: sx, y: 0, z: sz };
+  }
+
+  /* ── 点击后自动取景（v1.9）：把相机搬到"看得见落座点"的位置 ──────────
+   * 为什么需要：`living` 机位的 lookAt 是**电视墙**，而沙发被自身扶手 + 茶几 + 边柜
+   * 围在凹槽里 —— 对着电视墙看，根本看不见沙发上的人。用户点完沙发的感受就是
+   * "点了没反应"。**取景不是场景缺陷，但看不见就等于没反馈**。
+   * 做法（纯几何，不猜业务）：从落座点**正面**往外找机位（正面 → 左右 35°/70°/105°/
+   * 145°/180°），取第一个同时满足 ①在户型内 ②与落座点之间不隔墙（门洞放行）
+   * ③不陷在家具里 的位置。找不到就返回 null，**保留原机位，不硬凑**。
+   */
+  const FRAME_CAND = {
+    dists: [2.4, 3.0, 3.6, 1.9],
+    offsets: [0, 35, -35, 70, -70, 105, -105, 145, -145, 180],
+    height: 1.30,
+    look: 0.62,
+    fov: 46,
+  };
+  const navWalls = room.userData.nav.walls;
+  const navBoxes = room.userData.nav.boxes;
+  const navBounds = room.userData.nav.bounds;
+
+  function insideSuite(x, z, margin = 0.40) {
+    return x > navBounds.x0 + margin && x < navBounds.x1 - margin
+      && z > navBounds.z0 + margin && z < navBounds.z1 - margin;
+  }
+
+  function insideFurniture(x, z, pad = 0.16) {
+    return navBoxes.some((b) => x > b.x0 - pad && x < b.x1 + pad && z > b.z0 - pad && z < b.z1 + pad);
+  }
+
+  /** 视线是否被墙挡住：与墙中心线求交；交点在门洞区间内 → 放行（能透过门看见） */
+  function wallBlocksView(ax, az, bx, bz) {
+    const d1x = bx - ax;
+    const d1z = bz - az;
+    for (const w of navWalls) {
+      const d2x = w.x2 - w.x1;
+      const d2z = w.z2 - w.z1;
+      const den = d1x * d2z - d1z * d2x;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((w.x1 - ax) * d2z - (w.z1 - az) * d2x) / den;
+      const u = ((w.x1 - ax) * d1z - (w.z1 - az) * d1x) / den;
+      if (t <= 0.04 || t >= 0.96 || u < -0.02 || u > 1.02) continue; // 只算严格夹在中间的墙
+      const along = u * (Math.hypot(d2x, d2z) || 1);
+      const inDoor = (w.pass || []).some(([a, b]) => along > a - 0.05 && along < b + 0.05);
+      if (!inDoor) return true;
+    }
+    return false;
+  }
+
+  function seatCameraPose(seat) {
+    const facing = Number(seat.facing) || 0;
+    const sx = Number(seat.x);
+    const sz = Number(seat.z);
+    for (const dist of FRAME_CAND.dists) {
+      for (const off of FRAME_CAND.offsets) {
+        const a = facing + (off * Math.PI) / 180;
+        const x = sx + Math.sin(a) * dist;
+        const z = sz + Math.cos(a) * dist;
+        if (!insideSuite(x, z)) continue;
+        if (insideFurniture(x, z)) continue;
+        if (wallBlocksView(x, z, sx, sz)) continue;
+        return {
+          position: { x, y: FRAME_CAND.height, z },
+          lookAt: { x: sx, y: FRAME_CAND.look, z: sz },
+          fov: FRAME_CAND.fov,
+        };
+      }
+    }
+    return null;
+  }
+
+  /** 相机平滑搬运：不让画面"啪"一下跳过去（拖拽/切机位会立刻接管） */
+  const camFly = {
+    active: false, t: 0, dur: 0.85,
+    fromP: new THREE.Vector3(), fromT: new THREE.Vector3(),
+    toP: new THREE.Vector3(), toT: new THREE.Vector3(),
+    fromFov: 40, toFov: 40,
+  };
+  const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - ((-2 * k + 2) ** 3) / 2);
+  let lastFocusPose = null;
+
+  function flyTo(pose, instant = false) {
+    if (!pose) return;
+    camFly.fromP.copy(camera.position);
+    camFly.fromT.copy(orbit.target);
+    camFly.toP.set(pose.position.x, pose.position.y, pose.position.z);
+    camFly.toT.set(pose.lookAt.x, pose.lookAt.y, pose.lookAt.z);
+    camFly.fromFov = camera.fov;
+    camFly.toFov = pose.fov || camera.fov;
+    lastFocusPose = {
+      position: { ...pose.position }, lookAt: { ...pose.lookAt }, fov: camFly.toFov,
+    };
+    if (instant) {
+      camera.position.copy(camFly.toP);
+      orbit.target.copy(camFly.toT);
+      camera.fov = camFly.toFov;
+      camera.updateProjectionMatrix();
+      camera.lookAt(orbit.target);
+      syncOrbitFromCamera();
+      camFly.active = false;
+      return;
+    }
+    camFly.active = true;
+    camFly.t = 0;
+  }
+
+  /** 取景到落座点：算机位 → 平滑搬过去（找不到机位就什么都不做） */
+  function focusSeat(seat, { animate = true } = {}) {
+    const pose = seat ? seatCameraPose(seat) : null;
+    if (!pose) return null;
+    view.mode = 'seat'; // 不再对应任何预设按钮（面板上不该有为它高亮的按钮）
+    flyTo(pose, !animate);
+    return pose;
+  }
+
+  /* ── 相机 ─────────────────────────────────────────────────────────── */
   function syncOrbitFromCamera() {
     const off = camera.position.clone().sub(orbit.target);
     orbit.radius = Math.max(0.8, off.length());
@@ -357,6 +544,7 @@ export function createScene3D({ container }) {
   function applyCameraPreset(mode) {
     const preset = CAMERA_PRESETS[mode] || CAMERA_PRESETS.wide;
     view.mode = CAMERA_PRESETS[mode] ? mode : 'wide';
+    camFly.active = false; // 切机位/复位立刻接管，别被"飞过去"的动画盖掉
     camera.fov = preset.fov;
     orbit.target.set(...preset.lookAt);
     camera.position.set(...preset.position);
@@ -378,17 +566,19 @@ export function createScene3D({ container }) {
   window.addEventListener('resize', resize);
 
   /* ── 拖拽旋转 / 滚轮缩放（自由视角）──────────────────────────────── */
-  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const dom = renderer.domElement;
 
-  /** 单击落座回调（v1.6）：只有"按下 → 抬起"位移很小才算点击，否则是拖拽旋转视角 */
+  /** 单击落座回调：只有"按下 → 抬起"位移很小才算点击，否则是拖拽旋转视角 */
   let pickHandler = null;
+  /** 点画面后是否自动取景（默认**关**：主演示的固定构图不受影响，预览台自己开） */
+  let autoFrame = false;
   const tap = { x: 0, y: 0, at: 0 };
 
   function onPointerDown(event) {
     tap.x = event.clientX;
     tap.y = event.clientY;
     tap.at = performance.now();
+    camFly.active = false; // 用户一上手就交还控制权
     if (!orbit.enabled || event.button !== 0) return;
     orbit.dragging = true;
     orbit.lastX = event.clientX;
@@ -403,16 +593,21 @@ export function createScene3D({ container }) {
     orbit.lastX = event.clientX;
     orbit.lastY = event.clientY;
     orbit.azimuth -= dx * 0.0062;
-    orbit.polar = clamp(orbit.polar - dy * 0.0055, 0.16, 1.45); // 别翻到地板下面去
+    orbit.polar = clamp(orbit.polar - dy * 0.0055, 0.16, 1.45);
     applyOrbit();
   }
   function onPointerUp(event) {
-    // 先判「点击」：与拖拽互不影响（拖拽时位移大，自然不算点击）
     if (pickHandler && event.button === 0) {
+      // 判定"点击"还是"拖拽"：**只看位移**（< 8 px 就是点击）。
+      // 不设时间窗：重场景下（多房间套房 + 软阴影）一帧可能就要 1 s 以上，
+      // 自动化脚本的"按下 → 抬起"之间也会隔很久，卡时间窗会把真点击判掉。
       const moved = Math.hypot(event.clientX - tap.x, event.clientY - tap.y);
-      if (moved < 6 && performance.now() - tap.at < 400) {
+      if (moved < 8) {
         const seat = pickAt(event.clientX, event.clientY);
-        if (seat) pickHandler(seat);
+        if (seat) {
+          pickHandler(seat);
+          if (autoFrame) focusSeat(seat);
+        }
       }
     }
     if (!orbit.dragging) return;
@@ -423,7 +618,7 @@ export function createScene3D({ container }) {
   function onWheel(event) {
     if (!orbit.enabled) return;
     event.preventDefault();
-    orbit.radius = clamp(orbit.radius * Math.exp(event.deltaY * 0.0011), 1.5, 24);
+    orbit.radius = clamp(orbit.radius * Math.exp(event.deltaY * 0.0011), 1.5, 34);
     applyOrbit();
   }
 
@@ -433,6 +628,8 @@ export function createScene3D({ container }) {
   dom.addEventListener('pointercancel', onPointerUp);
   dom.addEventListener('wheel', onWheel, { passive: false });
   dom.addEventListener('contextmenu', (e) => { if (orbit.enabled) e.preventDefault(); });
+
+  applyCameraPreset('wide');
 
   const api = {
     /** 挂载角色（契约 §3.1）——actor: { id, kind, object3D, radius? } */
@@ -450,7 +647,6 @@ export function createScene3D({ container }) {
       actors.delete(actorId);
     },
 
-    /** 直接把人/机器人放到某个位置（用于强制摆位；日常跟随由各自 update 驱动） */
     setActorPosition(actorId, location) {
       const actor = actors.get(actorId);
       const point = WAYPOINTS[location] || APPROACH_POINTS[location];
@@ -458,7 +654,6 @@ export function createScene3D({ container }) {
       actor.object3D.position.set(point.x, point.y, point.z);
     },
 
-    /** 取路径点（人的位置） */
     getWaypoint(location) {
       return WAYPOINTS[location] || null;
     },
@@ -472,16 +667,33 @@ export function createScene3D({ container }) {
       if (seat && Number.isFinite(Number(seat.x)) && Number.isFinite(Number(seat.z))) {
         return approachForSeat(seat);
       }
-      return APPROACH_POINTS[location] || DOCK;
+      const preset = APPROACH_POINTS[location] || DOCK;
+      if (nav.isWalkable(preset.x, preset.z)) return preset;
+      const near = nav.nearestWalkable(preset.x, preset.z, 1.2);
+      return near ? { x: near.x, y: 0, z: near.z } : preset;
     },
 
-    /** 点击落座点 → 机器人站位（人正前方 STANDOFF 米，夹回房间内） */
     getApproachFor(seat) {
-      return approachForSeat(seat);
+      return seat ? approachForSeat(seat) : DOCK;
     },
 
     getDock() {
       return DOCK;
+    },
+
+    /** 回桩后的朝向（契约 v1.7）——机器人不 import 户型文件也能对齐充电桩 */
+    getDockFacing() {
+      return DOCK_FACING;
+    },
+
+    /** 寻路（契约 v1.7）：世界坐标折线，含起点与终点；不可达返回 null */
+    findPath(from, to) {
+      return findPath(from, to);
+    },
+
+    /** 某点是否可走（表现层只读用：落座合法性、站位选择） */
+    isWalkable(x, z) {
+      return nav.isWalkable(x, z);
     },
 
     /** 屏幕坐标 → 落座点（契约 v1.6 §3.1） */
@@ -489,13 +701,11 @@ export function createScene3D({ container }) {
       return pickAt(clientX, clientY);
     },
 
-    /** 注册单击回调（`null` 注销）。拍摄模式下由 main.js 保持不注册。 */
     enablePick(fn) {
       pickHandler = typeof fn === 'function' ? fn : null;
       dom.style.cursor = pickHandler ? 'crosshair' : '';
     },
 
-    /** 在落点闪一圈标记 */
     showPickMarker(seat) {
       if (!seat) return;
       marker.position.set(seat.x, 0.02, seat.z);
@@ -503,7 +713,6 @@ export function createScene3D({ container }) {
       markerAge = 0;
     },
 
-    /** 取角色当前世界坐标（只读，给控制台做"距离多远"的回显） */
     getActorPosition(actorId) {
       const actor = actors.get(actorId);
       if (!actor) return null;
@@ -515,8 +724,33 @@ export function createScene3D({ container }) {
       applyCameraPreset(mode);
     },
 
-    /** 任意机位（拍摄模式/陈列用）：{ position:{x,y,z}, lookAt:{x,y,z}, fov? } */
+    /** 点击落座后把相机搬到"看得见落座点"的机位（契约 v1.9 §3.1）；找不到返回 null */
+    focusSeat(seat, { animate = true } = {}) {
+      return focusSeat(seat, { animate });
+    },
+
+    /** 自测用：最近一次自动取景用的机位 */
+    getFocusPose() {
+      return lastFocusPose;
+    },
+
+    /** 自测用：相机是否还在"飞" */
+    isCameraMoving() {
+      return camFly.active;
+    },
+
+    /** 点画面后是否自动取景（默认关） */
+    setAutoFrame(on) {
+      autoFrame = Boolean(on);
+      return autoFrame;
+    },
+
+    isAutoFrame() {
+      return autoFrame;
+    },
+
     setCameraLook({ position, lookAt, fov } = {}) {
+      camFly.active = false;
       if (position) camera.position.set(position.x, position.y, position.z);
       if (lookAt) {
         orbit.target.set(lookAt.x, lookAt.y, lookAt.z);
@@ -529,7 +763,6 @@ export function createScene3D({ container }) {
       syncOrbitFromCamera();
     },
 
-    /** 自由视角开关（交互平台用；拍摄模式务必保持关闭） */
     enableOrbit(enabled) {
       orbit.enabled = Boolean(enabled);
       if (orbit.enabled) syncOrbitFromCamera();
@@ -540,7 +773,6 @@ export function createScene3D({ container }) {
       return orbit.enabled;
     },
 
-    /** 回到当前机位预设（自由视角转晕了的「复位」） */
     resetCamera() {
       applyCameraPreset(view.mode);
     },
@@ -549,7 +781,6 @@ export function createScene3D({ container }) {
       return view.mode;
     },
 
-    /** 一天里的光：'day' | 'dusk'（交互平台用） */
     setTimeOfDay(mode) {
       applyTimeOfDay(mode);
       return timeOfDay;
@@ -559,17 +790,22 @@ export function createScene3D({ container }) {
       return timeOfDay;
     },
 
+    /** 导航网格可视化（调试抽屉用） */
+    showNavGrid(on) {
+      navOverlay.visible = Boolean(on);
+      return navOverlay.visible;
+    },
+
     setShadows(enabled) {
       const on = Boolean(enabled);
       renderer.shadowMap.enabled = on;
       sun.castShadow = on;
       scene.traverse((node) => {
         if (!node.isMesh) return;
-        // 自发光面（窗外天幕、窗纱、光柱、接触阴影贴片、相机标记）永远不投影
-        node.castShadow = on && !node.userData.noShadow;
+        if (node.userData.noShadow || node === navOverlay || node === ground) return;
+        node.castShadow = on;
         node.receiveShadow = on;
       });
-      // 每次重绘都要重编材质（阴影开关会改变 shader）
       scene.traverse((node) => {
         if (node.isMesh && node.material) {
           const mats = Array.isArray(node.material) ? node.material : [node.material];
@@ -580,6 +816,19 @@ export function createScene3D({ container }) {
 
     /** 每帧由 main.js 调用（契约 §3.1：render(state, dt)）。scene 只读 state。 */
     render(state, dt = 0) {
+      // ⓪ 自动取景：把相机平滑搬到落座点机位（用户一拖拽 / 一切机位立刻接管）
+      if (camFly.active) {
+        camFly.t = Math.min(camFly.dur, camFly.t + Math.max(0, dt));
+        const k = easeInOut(camFly.dur > 0 ? camFly.t / camFly.dur : 1);
+        camera.position.lerpVectors(camFly.fromP, camFly.toP, k);
+        orbit.target.lerpVectors(camFly.fromT, camFly.toT, k);
+        camera.fov = camFly.fromFov + (camFly.toFov - camFly.fromFov) * k;
+        camera.updateProjectionMatrix();
+        camera.lookAt(orbit.target);
+        syncOrbitFromCamera();
+        if (camFly.t >= camFly.dur) camFly.active = false;
+      }
+
       // ① 点击落座标记：0.9 秒内扩散淡出
       if (marker.visible) {
         markerAge += Math.max(0, dt);
@@ -591,7 +840,6 @@ export function createScene3D({ container }) {
       }
 
       // ② 充电呼吸：机器人真的停在桩上、也没有提示事件时，桩上的充电灯才呼吸
-      //    （纯视觉推算，不新增业务状态；state 只读）
       pulse += Math.max(0, dt);
       const robot = actors.get('robot');
       const docked = Boolean(
@@ -628,18 +876,25 @@ export function createScene3D({ container }) {
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     },
 
-    /** 供调试抽屉显示 WebGL 信息 */
     info() {
       return renderer.info;
+    },
+
+    /** 自测用：导航统计 */
+    navStats() {
+      return nav.stats();
     },
 
     kind: '3d',
     scene,
     camera,
     renderer,
+    nav,
   };
 
   return api;
 }
 
-export const scene3d = { createScene3D, isWebGLAvailable, WAYPOINTS, APPROACH_POINTS, DOCK, FURNITURE_BLOCK };
+export const scene3d = {
+  createScene3D, isWebGLAvailable, WAYPOINTS, APPROACH_POINTS, DOCK,
+};

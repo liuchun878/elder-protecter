@@ -21,15 +21,18 @@
 | `escalate.js` | **H** | 升级链路：T+60s 换通道、T+180s 通知家属、冷却去重、三选项 | `store.js` |
 | `family.js` | **H** | 家属端视图（副屏） | `store.js` + 命令 |
 | `person.js` | **H** | 王阿姨：3D 人形 + 位置姿态跟随 state；**v1.6：任意落座点（家具按 `surfaceY` 反解坐姿，地板走 `FLOOR_SIT`）** | `store.js` + 场景 API + `textures.js` |
-| `robot.js` | **R** | 机器人本体 + 行为动画（**state 的纯函数**）：真机 UNNC-AGV 底盘 + 白色机身 + **开舱递药**；**v1.6：有 `presence.seat` 就感应前往（光锥）＋回桩充电呼吸** | `store.js`（只读）+ `textures.js` |
+| `robot.js` | **R** | 机器人本体 + 行为动画（**state 的纯函数**）：**v1.8 按参考图重做**（回转体蛋形机身 0.71 m + 顶部前倾平板屏 + **正面抽屉式药盘**）；有 `presence.seat` 就感应前往（光锥）；回桩充电呼吸 | `store.js`（只读）+ `textures.js` |
 | `hud.js` | **R** | 长者端面板（大字 + 药格灯 + 一键确认 + 防重复） | `store.js`（只读）+ 命令 |
 | `audio.js` | **R** | 语音 `speechSynthesis` + 预录音频兜底 + 低频提示音 + 灯效 | 无 |
-| `scene3d.js` | **S** | 场景、相机、光照（ACES + 软阴影 + IBL）、渲染循环、场景 API；**v1.6：射线拾取 `pick/enablePick`、落座标记、家具避让站位、充电灯呼吸** | `store.js`（只读）+ `textures.js` + `room.js` |
+| `scene3d.js` | **S** | 场景、相机、光照（ACES + 软阴影 + IBL）、渲染循环、场景 API；**v1.7：导航网格与 `findPath`、`pick/enablePick`、室内暖光两档、机位改到套房** | `store.js`（只读）+ `textures.js` + `suite-textures.js` + `room.js` + `navgrid.js` |
 | `textures.js` | **S** | **程序化贴图**（木地板/墙面/布纹/石材/窗外城市）+ **法线贴图 + 粗糙度贴图 + 光柱贴图** + 环境光照场景；零外部资产、确定性 | 只有 `three` |
-| `room.js` | **S** | 房间与分区（客厅/卧室/餐厨 + 后墙整面大窗）+ **客厅充电桩**；**v1.6：坐具元数据 `userData.seat`、家具占位表 `FURNITURE_BLOCK`、窗光光柱** | `textures.js` |
+| `room.js` | **S** | **suite-3d 套房户型**（13.4×10.6 m / 10 房间 / 墙体+门窗洞口 / 家具布置 / 坐具元数据 / 导航墙段与家具占位 / 客厅电视旁的充电桩）+ 路径点真相（`WAYPOINTS`/`APPROACH_POINTS`/`DOCK`） | `suite-textures.js` |
+| `suite-textures.js` | **S** | 套房用的**程序化贴图**（木地板/石材/卫浴深色石材/布纹/灰泥/天空/花纹毯），固定 seed、零外部资产 | 只有 `three` |
+| `navgrid.js` | **S** | **可通行网格 + A***：墙段（含门洞）× 家具占位各外扩机身半径，8 邻域 + 禁止切角 + 拉直 | 无（纯数学，不 import three） |
 | `scene2d.js` | **S** | **降级通道**：WebGL 不可用时的 2D 俯视仿真（**v1.6：同样支持点击落座**） | `store.js`（只读） |
 | `clock.js` | **S** | 演示时钟（1 / 60× / 600×、设时钟、复位） | 无 |
 | `controls.js` | **S** | **交互控制台**：把契约里已有的命令接到可见按钮上（时钟/位置/**点击落座**/机位/光照/闭环）+ 机器人视角回显；**不新增业务规则**；拍摄模式下不挂载 | 命令接口 + 场景 API |
+| `suite.html` | **S** | **室内预览台**（独立页面，不进演示主链路）：自由视角 / 机位预设 / 日光·黄昏 / 导航网格开关 / 点哪坐哪；与主演示同一份模块 | 与 `main.js` 同级（只装配） |
 | `main.js` | **S** | **只做装配**：订阅 → 调各 `render(state)` | 以上全部 |
 
 ---

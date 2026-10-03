@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "_comment": "自测夹具清单（由 scripts/make-test-glb.py 生成）。不参与正式演示。",
+  "models": {
+    "test-elder": {
+      "file": "test-elder.glb",
+      "name": "夹具 · 王阿姨形（中心原点 + 面朝 -z）",
+      "kind": "character",
+      "realHeight": 1.56,
+      "fit": "height",
+      "forward": [0, 0, -1],
+      "flip": true,
+      "radius": 0.32
+    },
+    "test-robot": {
+      "file": "test-robot.glb",
+      "name": "夹具 · 机器人（中心原点 + 面朝 +x）",
+      "kind": "robot",
+      "realHeight": 0.78,
+      "fit": "height",
+      "forward": [1, 0, 0],
+      "radius": 0.24
+    },
+    "test-tiny-unit": {
+      "file": "test-tiny-unit.glb",
+      "name": "夹具 · 单位踩坑（小 100 倍，面朝 +z）",
+      "kind": "prop",
+      "realHeight": 1.56,
+      "fit": "height",
+      "forward": [0, 0, 1],
+      "radius": 0.3
+    }
+  }
+}

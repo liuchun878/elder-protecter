@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>资产量具 · 外部 .glb 尺寸/朝向/比例核对</title>
+    <meta name="description" content="把外部 .glb 与 1.7 m 人体参照放在同一场景里，读出它的真实尺寸、朝向与归一化参数，并产出可直接粘进 manifest.json 的条目" />
+    <!-- 内联 favicon：不写这一行浏览器会去请求 /favicon.ico，在零外部请求的门禁里算一次 404 -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232f7f86'/%3E%3Cpath d='M9 21l7-11 7 11z' fill='%23fff'/%3E%3C/svg%3E" />
+    <!--
+      资产量具（S 线 · 本地工具页，不进演示主链路）
+      ------------------------------------------------------------------
+      为什么需要它：`.glb` 不会告诉你"我多高、我脸朝哪、我的座面在哪"。
+      这些量必须**量出来**，否则归一化只能靠猜，接进去就是尺寸错的模型。
+
+      它做四件事：
+        ① 把模型与 **1.7 m 人体参照**、0.5 m 网格、原点十字轴放在一起 → 比例和接地一眼可辨；
+        ② 列出归一化前后的实测尺寸（处理"中心原点"这个最常见的导出默认）；
+        ③ 六个候选朝向 + 翻转开关 → 用肉眼看哪一档"脸/车头朝 +z"；
+        ④ 实时生成 `manifest.json` 条目，复制即可用。
+    -->
+    <style>
+      :root { --line:#d8d2c6; --ink:#24211d; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden;
+        font: 13px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--ink); }
+      #stage { position: fixed; inset: 0; }
+      .panel {
+        position: absolute; top: 14px; left: 14px; z-index: 5; width: 340px;
+        max-height: calc(100vh - 28px); overflow: auto; padding: 14px 15px;
+        background: rgba(253,251,247,.96); border: 1px solid var(--line); border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(40,34,26,.18);
+      }
+      h1 { margin: 0 0 4px; font-size: 16px; }
+      h2 { margin: 13px 0 6px; font-size: 12px; color: #6d665c; letter-spacing: .05em; }
+      p.note { margin: 0 0 8px; font-size: 12px; color: #55504a; }
+      .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      button {
+        font: inherit; font-size: 12.5px; padding: 6px 10px; min-height: 30px; cursor: pointer;
+        border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+      }
+      button:hover { background: #f4f0e9; }
+      button.on { background: #2f7f86; border-color: #2f7f86; color: #fff; }
+      select, input {
+        font: inherit; font-size: 12.5px; padding: 5px 7px; min-height: 30px;
+        border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); max-width: 100%;
+      }
+      table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+      td { padding: 3px 0; vertical-align: top; }
+      td:first-child { color: #6d665c; white-space: nowrap; padding-right: 10px; }
+      td.num { font-variant-numeric: tabular-nums; font-weight: 600; }
+      .warn { color: #a8442a; font-weight: 600; }
+      .ok { color: #2f7f5f; font-weight: 600; }
+      pre {
+        margin: 6px 0 0; padding: 9px 10px; border-radius: 9px; background: #f4f0e9;
+        border: 1px dashed var(--line); font-size: 11.5px; line-height: 1.5; overflow: auto; max-height: 240px;
+        white-space: pre; user-select: all;
+      }
+      .hint { font-size: 11.5px; color: #7a736a; margin: 6px 0 0; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+
+    <aside class="panel">
+      <h1>资产量具</h1>
+      <p class="note">
+        把外部 <code>.glb</code> 与 <b>1.7 m 人体参照</b>、0.5 m 网格、原点十字轴放在同一场景里 ——
+        比例、接地、朝向一眼可辨。左侧面板底部会产出可直接粘进 <code>manifest.json</code> 的条目。
+      </p>
+
+      <h2>清单</h2>
+      <div class="row">
+        <select id="manifestSel"></select>
+        <select id="assetSel"></select>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button id="reloadBtn" type="button">重新加载</button>
+        <button id="ghostBtn" type="button">归一化前/后</button>
+        <button id="wireBtn" type="button">线框</button>
+      </div>
+
+      <h2>实测</h2>
+      <table id="stats"><tbody></tbody></table>
+
+      <h2>归一化参数</h2>
+      <table><tbody>
+        <tr><td>fit</td><td>
+          <select id="fit">
+            <option value="height">height（按高度缩）</option>
+            <option value="footprint">footprint（按占地缩）</option>
+            <option value="none">none（尺寸已对，别动）</option>
+          </select>
+        </td></tr>
+        <tr><td>realHeight</td><td><input id="realHeight" type="number" step="0.01" min="0.05" value="1.7" style="width:110px" /> m</td></tr>
+        <tr><td>forward</td><td>
+          <select id="forward">
+            <option value="0,0,1">+Z</option><option value="0,0,-1">−Z</option>
+            <option value="1,0,0">+X</option><option value="-1,0,0">−X</option>
+            <option value="0,1,0">+Y</option><option value="0,-1,0">−Y</option>
+          </select>
+          <label style="margin-left:6px"><input id="flip" type="checkbox" /> 翻转 180°</label>
+        </td></tr>
+      </tbody></table>
+      <p class="hint" id="forwardHint">「朝向」要肉眼确认：切到让<b>脸 / 车头 / 药盘</b>指向遥控器里那根<b>绿轴（+Z）</b>。</p>
+
+      <h2>视图</h2>
+      <div class="row" id="views"></div>
+      <div class="row" style="margin-top:6px">
+        <button id="refBtn" type="button" class="on">人体参照</button>
+        <button id="gridBtn" type="button" class="on">网格</button>
+        <button id="boxBtn" type="button" class="on">包围盒</button>
+      </div>
+
+      <h2>manifest 条目</h2>
+      <pre id="entry">–</pre>
+      <p class="hint">
+        ⚠️ 量具只能给「尺寸 / 朝向 / 接地」这三个量。**座面高度与墙体碰撞体量不出来** ——
+        前者要你知道哪块面能坐，后者需要墙段与门洞而非一个盒子（见 assets/README.md）。
+      </p>
+    </aside>
+
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three/three.module.js" } }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      import {
+        loadAsset, listAssets, measure, summarize, normalize, resetAssetCache,
+      } from './js/asset-loader.js';
+
+      const stage = document.getElementById('stage');
+      const el = (id) => document.getElementById(id);
+
+      /* ── 渲染器 / 场景 ──────────────────────────────────────────── */
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      stage.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xdfe3e6);
+
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.02, 200);
+      const target = new THREE.Vector3(0, 0.85, 0);
+      const orbit = { azimuth: 0.72, polar: 1.02, radius: 4.6 };
+
+      scene.add(new THREE.HemisphereLight(0xf2f6fa, 0x8d7f6d, 1.25));
+      const key = new THREE.DirectionalLight(0xfff4e2, 2.0);
+      key.position.set(3.4, 6.2, 4.4);
+      key.castShadow = true;
+      key.shadow.mapSize.set(1024, 1024);
+      key.shadow.camera.left = -4; key.shadow.camera.right = 4;
+      key.shadow.camera.top = 4; key.shadow.camera.bottom = -4;
+      key.shadow.bias = -0.0006;
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0xdfe8f2, 0.55);
+      fill.position.set(-4, 2.5, -3.5);
+      scene.add(fill);
+
+      /* 0.5 m 网格 + 地台：网格给比例尺，地台给接触阴影 */
+      const grid = new THREE.GridHelper(12, 24, 0x8d9aa4, 0xc3ccd3);
+      grid.material.transparent = true; grid.material.opacity = 0.85;
+      scene.add(grid);
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(24, 24),
+        new THREE.MeshStandardMaterial({ color: 0xe8eaec, roughness: 0.95, metalness: 0 }),
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -0.001;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      /* 原点十字轴：+Z 画成**绿色长轴**（"正面朝这边"） */
+      const axes = new THREE.Group();
+      const arrow = (dir, len, color) => {
+        const a = new THREE.ArrowHelper(dir, new THREE.Vector3(0, 0, 0), len, color, len * 0.14, len * 0.07);
+        a.line.material.linewidth = 2;
+        return a;
+      };
+      axes.add(arrow(new THREE.Vector3(0, 0, 1), 1.5, 0x27a35a));   // +Z 正面
+      axes.add(arrow(new THREE.Vector3(1, 0, 0), 0.9, 0xc0392b));   // +X
+      axes.add(arrow(new THREE.Vector3(0, 1, 0), 1.1, 0x2c7fb8));   // +Y
+      scene.add(axes);
+
+      /* 1.7 m 人体参照：比例的唯一客观依据（看不到它就没法判断模型该多大） */
+      const ref = new THREE.Group();
+      const refMat = new THREE.MeshStandardMaterial({ color: 0x6f7b86, roughness: 0.85, transparent: true, opacity: 0.55 });
+      const stick = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 1.53, 6, 16), refMat);
+      stick.position.y = 0.85;
+      stick.castShadow = true;
+      ref.add(stick);
+      const refLabelTick = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.012, 0.012),
+        new THREE.MeshBasicMaterial({ color: 0x2c3e50 }));
+      refLabelTick.position.set(0.30, 1.70, 0);
+      ref.add(refLabelTick);
+      ref.position.set(-0.95, 0, 0);
+      scene.add(ref);
+
+      /* 包围盒线框 */
+      const boxHelper = new THREE.Box3Helper(new THREE.Box3(), 0xf0a020);
+      boxHelper.visible = false;
+      scene.add(boxHelper);
+
+      /* ── 加载 ──────────────────────────────────────────────────── */
+      let current = null;        // loadAsset 的返回值
+      let placed = null;         // 当前挂进场景的根
+      let wire = false;
+
+      const MANIFESTS = [
+        { label: 'assets/manifest.json（正式）', url: './assets/manifest.json' },
+        { label: 'manifest.test.json（自测夹具）', url: './assets/manifest.test.json' },
+      ];
+      for (const [i, m] of MANIFESTS.entries()) {
+        const o = document.createElement('option');
+        o.value = m.url; o.textContent = m.label;
+        el('manifestSel').appendChild(o);
+        if (i === 1) o.selected = true;   // 默认选夹具：正式清单一开始是空的
+      }
+
+      async function fillAssetList() {
+        const sel = el('assetSel');
+        sel.innerHTML = '';
+        try {
+          const url = el('manifestSel').value;
+          const res = await fetch(url, { cache: 'no-cache' });
+          const json = await res.json();
+          const models = json.models || {};
+          const ids = Object.keys(models);
+          if (!ids.length) {
+            sel.innerHTML = '<option value="">（清单为空 —— 放入 .glb 后编辑该清单）</option>';
+            el('entry').textContent = '清单为空。把 Tripo 导出的 .glb 放进 prototype/assets/，\n然后在清单里加一条即可。';
+            return [];
+          }
+          for (const id of ids) {
+            const o = document.createElement('option');
+            o.value = id; o.textContent = models[id].name || id;
+            sel.appendChild(o);
+          }
+          return ids;
+        } catch (err) {
+          sel.innerHTML = `<option value="">读取清单失败：${err.message}</option>`;
+          return [];
+        }
+      }
+
+      async function show(id) {
+        if (!id) return;
+        const t0 = performance.now();
+        try {
+          current = await loadAsset(id, { manifest: el('manifestSel').value });
+        } catch (err) {
+          el('entry').textContent = `加载失败：${err.message}`;
+          return;
+        }
+        if (placed) { scene.remove(placed); placed = null; }
+        placed = current.object;
+        scene.add(placed);
+
+        const m = measure(placed);
+        target.set((m.min.x + m.max.x) / 2, m.size.y / 2, (m.min.z + m.max.z) / 2);
+        orbit.radius = Math.max(1.6, m.size.length() * 1.55);
+
+        // 把清单里的参数回填到控件（量具要能"读回来"才算量具）
+        const e = current.entry;
+        el('fit').value = e.fit || 'height';
+        el('realHeight').value = e.realHeight ?? 1.7;
+        el('forward').value = (e.forward || [0, 0, 1]).join(',');
+        el('flip').checked = Boolean(e.flip);
+        el('forwardHint').innerHTML = e.forward
+          ? '「朝向」要肉眼确认：切到让<b>脸 / 车头 / 药盘</b>指向那根<b>绿色轴（+Z）</b>。'
+          : '<span class="warn">清单里没写 forward —— 归一化按"已对齐 +Z"处理。</span>';
+
+        report(t0);
+      }
+
+      /* ── 报告 ──────────────────────────────────────────────────── */
+      function row(k, v, cls = '') {
+        return `<tr><td>${k}</td><td class="num ${cls}">${v}</td></tr>`;
+      }
+
+      function report(t0) {
+        if (!current) return;
+        const o = current.object;
+        const m = measure(o);
+        const info = summarize(o);
+        const e = current.entry;
+        const declared = Number(el('realHeight').value) || null;
+        const fit = el('fit').value;
+        const actualY = m.size.y;
+
+        const dev = declared && fit === 'height' ? Math.abs(actualY - declared) / declared : null;
+        const devCell = dev === null ? '<span class="warn">未按高度归一化</span>'
+          : dev <= 0.001 ? '<span class="ok">一致</span>'
+            : dev <= 0.02 ? `${(dev * 100).toFixed(2)}%` : `<span class="warn">${(dev * 100).toFixed(1)}% 偏差</span>`;
+
+        el('stats').innerHTML = `<tbody>
+          ${row('归一化后 长×高×宽', `${m.size.x.toFixed(3)} × ${m.size.y.toFixed(3)} × ${m.size.z.toFixed(3)} m`)}
+          ${row('底面对齐 y', Math.abs(m.min.y) < 1e-3 ? '<span class="ok">0（已接地）</span>' : `<span class="warn">${m.min.y.toFixed(4)} m（未接地）</span>`)}
+          ${row('与声明高度', devCell)}
+          ${row('网格 / 三角', `${info.meshes} / ${info.triangles.toLocaleString()}`)}
+          ${row('材质 / 贴图', `${info.materials} / ${info.textures}`)}
+          ${row('蒙皮 / 骨骼', `${info.skinnedMeshes} / ${info.bones}`)}
+          ${row('动画', current.animations.length)}
+          ${row('归一化前尺寸', current.report.before
+            ? `${current.report.before.size.map((v) => v.toFixed(3)).join(' × ')} m` : '–')}
+          ${row('缩放系数', current.report.steps.scale?.factor
+            ? `× ${current.report.steps.scale.factor.toFixed(4)}` : '–')}
+          ${row('朝向修正', current.report.steps.forward?.applied
+            ? `${(current.report.steps.forward.angle * 180 / Math.PI).toFixed(1)}°${current.report.steps.forward.flipped ? ' + 180°' : ''}`
+            : '无需修正')}
+          ${row('加载耗时', `${Math.round(performance.now() - (t0 || performance.now()))} ms`)}
+        </tbody>`;
+
+        const entry = {
+          file: e.file,
+          name: e.name || current.id,
+          kind: e.kind || 'prop',
+          realHeight: declared,
+          fit,
+          forward: el('forward').value.split(',').map(Number),
+          ...(el('flip').checked ? { flip: true } : {}),
+          radius: e.radius ?? null,
+        };
+        el('entry').textContent = JSON.stringify(entry, null, 2)
+          .replace(/\n\s*"radius": null,?/, '');
+
+        // 包围盒随模型更新
+        boxHelper.box.setFromObject(o);
+        boxHelper.box.expandByScalar(0.002);
+      }
+
+      /** 重新归一化当前模型（改参数后即时看效果） */
+      async function renormalize() {
+        if (!current) return;
+        const id = el('assetSel').value;
+        if (!id) return;
+        try {
+          current = await loadAsset(id, { manifest: el('manifestSel').value });
+        } catch (err) { el('entry').textContent = `加载失败：${err.message}`; return; }
+        if (placed) scene.remove(placed);
+        placed = current.object;
+        scene.add(placed);
+        // 量具里的参数覆盖清单里的声明（这样才能"试着调"）
+        const spec = {
+          fit: el('fit').value,
+          realHeight: Number(el('realHeight').value) || undefined,
+          forward: el('forward').value.split(',').map(Number),
+          flip: el('flip').checked,
+        };
+        current.report = normalize(placed, spec);
+        const m = measure(placed);
+        target.set((m.min.x + m.max.x) / 2, m.size.y / 2, (m.min.z + m.max.z) / 2);
+        report();
+      }
+
+      /* ── 控件 ──────────────────────────────────────────────────── */
+      const VIEWS = [
+        ['front', '正面 (+Z)', 0, Math.PI / 2 - 0.001],
+        ['side', '侧面 (+X)', Math.PI / 2, Math.PI / 2 - 0.001],
+        ['iso', '斜 45°', 0.72, 1.02],
+        ['top', '俯视', 0.72, 0.05],
+        ['low', '低机位', 0.72, 1.42],
+      ];
+      for (const [, label, az, pol] of VIEWS) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = label;
+        b.addEventListener('click', () => { orbit.azimuth = az; orbit.polar = pol; });
+        el('views').appendChild(b);
+      }
+
+      const toggle = (btn, on, fn) => {
+        let state = on;
+        btn.classList.toggle('on', state);
+        btn.addEventListener('click', () => { state = !state; btn.classList.toggle('on', state); fn(state); });
+      };
+      toggle(el('refBtn'), true, (v) => { ref.visible = v; });
+      toggle(el('gridBtn'), true, (v) => { grid.visible = v; });
+      toggle(el('boxBtn'), true, (v) => { boxHelper.visible = v; });
+      toggle(el('wireBtn'), false, (v) => {
+        wire = v;
+        if (!placed) return;
+        placed.traverse((n) => {
+          if (!n.isMesh) return;
+          for (const m of Array.isArray(n.material) ? n.material : [n.material]) {
+            if (m) m.wireframe = v;
+          }
+        });
+      });
+      el('ghostBtn').addEventListener('click', () => {
+        // 归一化前/后对比：把缩放与旋转还原（只对比，不改缓存）
+        if (!placed) return;
+        const r = current.report;
+        if (placed.userData.__raw) {
+          placed.scale.copy(placed.userData.__raw.scale);
+          placed.position.copy(placed.userData.__raw.position);
+          placed.rotation.copy(placed.userData.__raw.rotation);
+          placed.userData.__raw = null;
+        } else {
+          placed.userData.__raw = {
+            scale: placed.scale.clone(), position: placed.position.clone(), rotation: placed.rotation.clone(),
+          };
+          placed.scale.set(1, 1, 1);
+          placed.position.set(0, 0, 0);
+          placed.rotation.set(0, 0, 0);
+        }
+        void r;
+        boxHelper.box.setFromObject(placed);
+      });
+
+      el('assetSel').addEventListener('change', (e) => show(e.target.value));
+      el('manifestSel').addEventListener('change', async () => {
+        resetAssetCache();
+        const ids = await fillAssetList();
+        if (ids.length) show(ids[0]);
+      });
+      el('reloadBtn').addEventListener('click', () => { resetAssetCache(); show(el('assetSel').value); });
+      for (const id of ['fit', 'realHeight', 'forward', 'flip']) {
+        el(id).addEventListener('change', renormalize);
+      }
+
+      let dragging = false; let lx = 0; let ly = 0;
+      renderer.domElement.addEventListener('pointerdown', (e) => { dragging = true; lx = e.clientX; ly = e.clientY; });
+      addEventListener('pointerup', () => { dragging = false; });
+      addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        orbit.azimuth -= (e.clientX - lx) * 0.0062;
+        orbit.polar = Math.min(1.52, Math.max(0.05, orbit.polar - (e.clientY - ly) * 0.0055));
+        lx = e.clientX; ly = e.clientY;
+      });
+      renderer.domElement.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        orbit.radius = Math.min(30, Math.max(0.8, orbit.radius * Math.exp(e.deltaY * 0.0011)));
+      }, { passive: false });
+
+      function resize() {
+        const w = innerWidth; const h = innerHeight;
+        renderer.setSize(w, h, false);
+        renderer.domElement.style.width = `${w}px`;
+        renderer.domElement.style.height = `${h}px`;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      addEventListener('resize', resize);
+      resize();
+
+      function frame() {
+        const sp = Math.sin(orbit.polar);
+        camera.position.set(
+          target.x + orbit.radius * sp * Math.sin(orbit.azimuth),
+          target.y + orbit.radius * Math.cos(orbit.polar),
+          target.z + orbit.radius * sp * Math.cos(orbit.azimuth),
+        );
+        camera.lookAt(target);
+        renderer.render(scene, camera);
+        requestAnimationFrame(frame);
+      }
+      frame();
+
+      /* ── 启动 ──────────────────────────────────────────────────── */
+      const ids = await fillAssetList();
+      if (ids.length) await show(ids[0]);
+      else report();
+
+      // 自动化/调试口子
+      window.assetInspector = {
+        scene, camera, show, renormalize, report,
+        get current() { return current; },
+        measure: () => (placed ? measure(placed) : null),
+        setView: (az, pol, r) => { orbit.azimuth = az; orbit.polar = pol; if (r) orbit.radius = r; },
+        listAssets: async () => listAssets(),
+      };
+      window.__inspectorReady = true;
+    </script>
+  </body>
+</html>

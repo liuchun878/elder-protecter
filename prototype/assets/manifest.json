@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "_comment": "外部 .glb 资产清单。file 相对本目录；详见 README.md。该文件被 js/asset-loader.js 读取。",
+  "models": {}
+}

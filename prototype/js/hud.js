@@ -222,11 +222,12 @@ export function mountHud(root) {
       if (attempt && attemptKey !== spokenAttemptKey) {
         spokenAttemptKey = attemptKey;
         const isRenotify = event.attempts.length > lastAttemptCount && lastAttemptCount > 0;
+        // v1.11：到点提醒与再次提醒都用**童声**（用户口径：「机器人走到奶奶身边督促吃药，声音是童声」）
         audio.speak(
           isRenotify
             ? `提醒${event.attempts.length === 2 ? '第二' : '第三'}次，${speechText(event.slotTime, spoken.plan)}，还没有取走`
             : speechText(event.slotTime, spoken.plan),
-          { force: true },
+          { force: true, style: 'child' },
         );
         audio.chime(attempt.channel);
         lastAttemptCount = event.attempts.length;
