@@ -8,8 +8,8 @@
 # 状态枚举: todo | doing | review | done | cut
 # 更新规则: 任何人改变任务状态都必须同时改本文件，并在 PR 里说明。
 
-version: 2
-updated: "2026-10-02"
+version: 3
+updated: "2026-10-03"
 
 repo:
   owner: liuchun878
@@ -77,12 +77,12 @@ milestones:
     gate: "本地历史完整；调研产物入库；尚无原型代码"
   - id: M0.5
     tag: p0.5-parallel-ready
-    status: doing
+    status: done
     goal: 契约冻结 + 三线归属 + agent 可读文档 + 仓库设置
     gate: "契约-接口.md v1.1 与三线一致；AGENTS.md 根/嵌套齐备；plan/tasks.yaml 可用；CODEOWNERS 就位"
   - id: M1
     tag: p1-contract-scene
-    status: todo
+    status: doing
     goal: 契约冻结 + 3D 骨架可见 + Three.js 离线验证
     gate: "页面可见房间/机器人/人形；断网刷新可加载；Network 零外部请求；命令接口空实现已可用"
     blocks: [D1AM]
@@ -132,7 +132,7 @@ tasks:
     depends_on: []
     acceptance: "store.getState() 返回含空数组的合法 StateSnapshot；store.subscribe() 可用"
     why: "R 与 S 必须立刻能开工，否则整个上午空等"
-    status: todo
+    status: done
   - id: H1
     title: store.js + plan.js（服药计划：录入/变更/有效期/暂停不删）
     line: H
@@ -143,7 +143,7 @@ tasks:
     depends_on: [H0]
     acceptance: "计划可增删改；temporary 到期自动 paused；pause 不删除记录"
     cut_first: "有效期自动失效 → 先做手动暂停"
-    status: todo
+    status: done
   - id: H2
     title: presence.js（人的状态：在家/客厅/卧室/出门/安静时段）
     line: H
@@ -153,7 +153,7 @@ tasks:
     files: [prototype/js/presence.js]
     depends_on: [H1]
     acceptance: "presence.setLocation 生效；away 等价 home:false"
-    status: todo
+    status: done
   - id: H3
     title: schedule.js（到点判定：计划时段 × 时钟 × 在场 × 安静时段）
     line: H
@@ -163,7 +163,7 @@ tasks:
     files: [prototype/js/schedule.js]
     depends_on: [H1, H2]
     acceptance: "推进演示时钟能触发 notifying；不在家/安静时段走 defer 并记原因"
-    status: todo
+    status: done
   - id: H4
     title: person.js（3D 人形 + 位置姿态跟随 state）
     line: H
@@ -174,7 +174,7 @@ tasks:
     depends_on: [H2]
     acceptance: "人形出现在 presence.location；坐/躺/出门三态可见"
     cut_first: "姿态动画 → 只留位置跟随"
-    status: todo
+    status: done
   - id: H5
     title: machine.js（事件状态机 S0–S3 + 异常分支）
     line: H
@@ -184,7 +184,8 @@ tasks:
     files: [prototype/js/machine.js]
     depends_on: [H3]
     acceptance: "按契约 §5 转移表逐条成立；missed 文案为「未确认」不得写「未服用」"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付转移表 1/2/3/4/7/8/10 与 activeEventId 维护；M2 补 5/6 的细化验证"
   - id: H6
     title: log.js（追加式记录 + 双时间戳 + JSON 导出）
     line: H
@@ -194,7 +195,8 @@ tasks:
     files: [prototype/js/log.js]
     depends_on: [H5]
     acceptance: "每条事件含 occurredAtDemo 与 occurredAtReal；导出可用"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付追加式记录 + 双时间戳 + JSON 导出"
   - id: H7
     title: escalate.js（T+60s 换通道换措辞 → T+180s 通知家属 → 冷却去重 → 三选项 → skipped_known）
     line: H
@@ -205,7 +207,8 @@ tasks:
     depends_on: [H5, H6]
     acceptance: "加速档 60 秒内完成升级；通知 text 零补服建议；known_out 不计依从失败"
     cut_first: "冷却合并 → 只做单条去重"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付 T+60s 换通道换措辞 / T+180s 家属通知 / 冷却去重 / 三选项 resolve；M3 补时间线回放与措辞细化"
   - id: H8
     title: family.js（家属端：计划变更 / 通知三选项 / 时间线）
     line: H
@@ -216,7 +219,8 @@ tasks:
     depends_on: [H1, H7]
     acceptance: "新增临时加药立即生效；时段冲突并列两条原始医嘱不做取舍"
     cut_first: "时间线回放 → 日志列表 + JSON 导出"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付计划变更 / 通知三选项 / 时间线列表 / 导出；M4 补临时用药与冲突并列的完整交互"
   - id: H9
     title: 契约维护与冻结（review 三人意见，11:00 冻结）
     line: H
@@ -226,7 +230,8 @@ tasks:
     files: [契约-接口.md]
     depends_on: []
     acceptance: "契约 v1.1 与实现一致；冻结后只加字段不改语义"
-    status: todo
+    status: doing
+    p1_note: "P1 期间契约升到 v1.2（只加函数）：getApproachPoint / getDock / clock.advance / §5.1 启动对账"
   - id: H10
     title: 陈述脚本与简报卡起草（60 秒 + 5 分钟）
     line: H
@@ -248,7 +253,7 @@ tasks:
     files: [prototype/index.html, prototype/css/hud.css]
     depends_on: []
     acceptance: "留出 #scene 与 #hud；对比度 ≥4.5:1；点击目标 ≥60×60；100% 缩放不裁切"
-    status: todo
+    status: done
   - id: R2
     title: robot.js 本体（底盘 + 机身 + 药盘 + 发光环）+ 状态可视化
     line: R
@@ -259,7 +264,7 @@ tasks:
     depends_on: [R1]
     acceptance: "robot.update(state, dt) 是 state 的纯函数；按 activeEventId 切换状态"
     cut_first: "发光环与细节 → 单个方块（功能不受影响）"
-    status: todo
+    status: done
   - id: R3
     title: 路径动画（waypoint 折线 + 缓动 + 到点朝向 + 约 1.2 m/s）+ 药盘抬升
     line: R
@@ -269,7 +274,8 @@ tasks:
     files: [prototype/js/robot.js]
     depends_on: [R2]
     acceptance: "改 presence.location 机器人走到正确位置；动作连贯无穿模"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付直线趋近 + 到点转向 + 药盘抬升 0.6s；M2 补 waypoint 折线拐点与缓动"
   - id: R4
     title: hud.js 长者端面板（大字 + 药格灯 + 一键确认 + 防重复）
     line: R
@@ -279,7 +285,8 @@ tasks:
     files: [prototype/js/hud.js]
     depends_on: [R1, H5]
     acceptance: "文字为「已取走/已记录/未确认」，出现「已服下」即判不通过"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付大字面板 / 药格灯 / 一键确认 / 防重复；M2 补更多状态与撤单交互"
   - id: R5
     title: audio.js（语音 speechSynthesis + 预录音频兜底 + 低频提示音 + 灯效）
     line: R
@@ -290,7 +297,8 @@ tasks:
     depends_on: [R4]
     acceptance: "TTS 不可用时静默降级为大字 + 低频音；提示音为低频而非 3100 Hz 高频"
     cut_first: "灯效 → 只留提示音与大字"
-    status: todo
+    status: doing
+    p1_note: "P1 已交付 speechSynthesis + 静默降级 + 低频提示音（520Hz 方波/正弦）；预录音频兜底待 M3"
   - id: R6
     title: 适老化走查（契约 §9 清单逐条）
     line: R
@@ -322,7 +330,7 @@ tasks:
     files: [prototype/js/scene3d.js, prototype/js/scene2d.js]
     depends_on: []
     acceptance: "能渲染空场景；WebGL 不可用时切 scene2d 且功能不减"
-    status: todo
+    status: done
   - id: S2
     title: vendor Three.js 两个文件 + 断网验证
     line: S
@@ -333,7 +341,7 @@ tasks:
     depends_on: []
     acceptance: "three.module.js + three.core.js 本地加载；DevTools Offline 刷新完整可用；零外部请求"
     note: "0.186.1 已无 UMD 构建，实测 three.min.js 404"
-    status: todo
+    status: done
   - id: S3
     title: room.js 房间与分区（客厅/卧室/餐桌·厨房台面）+ 相机光照
     line: S
@@ -344,7 +352,7 @@ tasks:
     depends_on: [S1]
     acceptance: "三个功能区可辨识；相机固定等距斜俯视"
     cut_first: "家具细节 → 分区色块"
-    status: todo
+    status: done
   - id: S4
     title: clock.js 演示时钟（1/60x/600x、直接设时钟、复位）
     line: S
@@ -354,7 +362,7 @@ tasks:
     files: [prototype/js/clock.js]
     depends_on: [S1]
     acceptance: "推进时钟能触发 H 的到点判定；加速档可切"
-    status: todo
+    status: done
   - id: S5
     title: main.js 装配 + 订阅 + 调试抽屉（时间/在场/离线/复位）
     line: S
@@ -364,7 +372,7 @@ tasks:
     files: [prototype/js/main.js]
     depends_on: [S3, S4, R2, H3]
     acceptance: "store.subscribe 驱动 hud/scene/person render；调试抽屉默认隐藏；一键复位可用"
-    status: todo
+    status: done
   - id: S6
     title: 场景 API 交付（addActor / setActorPosition / getWaypoint / render）
     line: S
@@ -374,7 +382,7 @@ tasks:
     files: [prototype/js/scene3d.js]
     depends_on: [S3]
     acceptance: "H 的人形能挂进场景并跟随位置；R 的机器人能取到路径点"
-    status: todo
+    status: done
   - id: S7
     title: 性能与适配（pixelRatio 上限 2、关阴影、>=30 FPS）
     line: S

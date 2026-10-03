@@ -57,7 +57,9 @@ cd elder-protecter
 | **H** | `feat/h-store-contract` | **`H0`（最高优先，卡住全队）** | `store.js` 命令接口**空实现**（签名对、返回合法默认值） | `store.getState()` 返回含空数组的合法快照 |
 
 > ⚠️ **`H0` 是并行开发的生命线**：R 与 S 都依赖命令接口存在。空实现即可，**不必等业务逻辑写完**。
-> ⚠️ **M1 之前 `prototype/` 里只有 `AGENTS.md`、还没有页面**。此时 `cd prototype && python3 -m http.server` 只会列目录，这是正常的，不是你的环境坏了。`R1` / `S1` 落地后才有可打开的页面。
+> ℹ️ **P1 骨架已在分支 `feat/p1-skeleton` 落地**（19 个文件 / 3,766 行，含 vendored Three.js）。
+> 也就是说页面能打开了；但**该分支尚未合入 `main`**，克隆 `main` 的队员会看到 `prototype/` 里只有 `AGENTS.md`——
+> 此时 `python3 -m http.server` 只会列目录，这是正常的，不是你环境坏了。等 M1 合并后即消失。
 
 **开工前只做三件事**：切到你的分支（`feat/r-…`）、只改你那条线的文件、改完按 [AGENTS.md](AGENTS.md) 第 4 节的 4 项验证跑一遍。
 
@@ -66,8 +68,8 @@ cd elder-protecter
 | 阶段 | tag | 状态 |
 |---|---|---|
 | P0 基线与流程 | `p0-baseline` | ✅ 完成 |
-| P0.5 三线并行就绪（契约 + 归属 + agent 文档 + 仓库设置） | `p0.5-parallel-ready` | 🟡 进行中 |
-| P1 契约 + 3D 骨架 | `p1-contract-scene` | ⬜ 待做 |
+| P0.5 三线并行就绪（契约 + 归属 + agent 文档 + 仓库设置） | `p0.5-parallel-ready` | ✅ 完成 |
+| P1 契约 + 3D 骨架 | `p1-contract-scene` | 🟡 本地实现完成（**未合并 / 未打 tag / 未推送**，等交叉验证与凭据） |
 | P2 主链路 | `p2-happy-path` | ⬜ 待做 |
 | P3 升级链路 | `p3-escalation` | ⬜ 待做 |
 | P4 方案变更 | `p4-plan-change` | ⬜ 待做 |
@@ -83,9 +85,12 @@ cd elder-protecter
 ```bash
 cd prototype
 python3 -m http.server 8000
-# 浏览器打开 http://localhost:8000/
+# 主屏（3D 场景 + 长者端大字叠层）：http://localhost:8000/
+# 副屏（家属端）：                 http://localhost:8000/?view=family
 ```
 
+- 调试抽屉：页面内按 `` ` `` 或 `Ctrl/Cmd+Shift+D`（**默认隐藏**，观众第一眼看到的必须是产品，不是控制台）
+- 演示初始态：演示时钟 `2026-10-03 07:50`、加速 60×（1 分钟 = 1 小时）、王阿姨在客厅、机器人在充电座
 - 端口用 8000；**不要占用 19387**（那是本机 DSH 界面的端口）
 - 备选：`npx serve -l 8000`
 
@@ -113,5 +118,5 @@ bash scripts/push-stage.sh <tag> "<验收声明>"
 
 ## 许可
 
-- 本项目代码：MIT（`LICENSE`，P1 阶段加入）
-- 第三方：Three.js（MIT），见 `THIRD-PARTY.md`（P1 阶段加入）
+- 本项目代码：MIT，见 [LICENSE](LICENSE)
+- 第三方：Three.js **0.186.1**（MIT，本地 vendored），版本、来源与 sha256 见 [THIRD-PARTY.md](THIRD-PARTY.md)

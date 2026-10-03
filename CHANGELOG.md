@@ -6,6 +6,48 @@
 
 ---
 
+## p1-contract-scene（**尚未打 tag**）— 2026-10-03 — 契约冻结 v1.2；页面可见房间/机器人/王阿姨；断网可加载
+
+> **为什么还没打 tag**：milestone DoD 第 ⑥ 条要求"三线均已合入 main"，第 ⑦ 条要求"打 annotated tag + push"。
+> 当前代码在分支 `feat/p1-skeleton`，**未合并、未推送、未做交叉验证**。这一段先按事实记录，合并并打 tag 后再去掉"尚未打 tag"。
+
+### 新增（原型代码首次入库，19 个文件 / 3,766 行）
+
+- **`prototype/index.html` + `prototype/css/hud.css`**（R）—— 挂载点 `#scene` / `#hud` / `#family` / `#debug` / `#banner`；
+  适老化硬数值落地：正文对比度 14.6:1、主色 4.8:1、最大字号 44px、点击目标 ≥60×60、行距 1.45、200% 缩放不裁切。
+- **`prototype/js/robot.js`、`hud.js`、`audio.js`**（R）—— 机器人本体（底盘 + 机身 + 药盘 + 发光环 + 屏幕脸，`update(state, dt)` 是 state 的纯函数）；
+  长者端大字面板（含药格灯"颜色 + 文字"双编码、一键确认、防重复）；`speechSynthesis`（zh-CN、rate 0.85）+ **520 Hz 低频提示音**（WebAudio 合成，无音频资产）+ TTS 不可用时静默降级。
+- **`prototype/js/scene3d.js`、`room.js`、`scene2d.js`、`clock.js`、`main.js`**（S）—— 固定等距斜俯视 + 药盘特写两机位；
+  8m×6m 三个功能区（客厅/卧室/餐桌·厨房）纯几何体；2D 俯视降级通道（与 3D **同一组场景 API**）；演示时钟 1/60×/600×；
+  装配与调试抽屉（`` ` `` 或 `Ctrl/Cmd+Shift+D`，默认隐藏）+ 假数据种子 + 启动对账。
+- **`prototype/js/store.js`、`plan.js`、`presence.js`、`schedule.js`、`machine.js`、`log.js`、`escalate.js`、`family.js`、`person.js`**（H）——
+  唯一状态源与命令接口（H0 同步点）；计划/在场/到点判定；**唯一业务状态机**；追加式记录 + **双时间戳**；
+  升级链路（T+60s 换通道换措辞 → T+180s 家属通知 → 冷却去重 → 三选项）；家属端；王阿姨 3D 人形（坐/躺/站三态）。
+- **`prototype/vendor/three/`**（S）—— three@0.186.1（`three.module.js` + `three.core.js` + LICENSE，2.12 MB），**全量 vendored**。
+- **`LICENSE`（MIT）、`THIRD-PARTY.md`**（公共）—— 与计划附录 A/C 一致；`THIRD-PARTY.md` 记录来源 URL、文件大小与 sha256 校验值。
+
+### 契约 `契约-接口.md` → **v1.2**（只加函数，不改语义）
+
+- §3.1 新增 `scene.getApproachPoint(location)` 与 `scene.getDock()`：实测发现"人的位置"与"机器人停靠点"不是同一个点；
+  明确 `addActor(actor)` 的 actor 结构，以及 **2D 降级必须实现同一组函数**。
+- §3 新增 `clock.advance(seconds)`（调试推进，只动时钟）；标注 `store.setClock/setPresence/setOffline/setActiveEventId` 为内部写入。
+- §5.1 新增 **启动对账**：演示时钟仅内存、事件持久化，两者必须先对账，否则"时钟回到 07:50 却挂着上一轮未确认"。
+
+### 自测（无头 Chrome + CDP 自动走查，15 项全绿、零控制台异常）
+
+到点 → `notifying` + `activeEventId` + `voice/v1` ✅ ｜ HUD 文案「药盒已放在托盘上」且**无补服/剂量/「已服下」** ✅ ｜
+双时间戳齐备 ✅ ｜ 点「已取走」→ `confirmed` + `method` + `confirmedAt` ✅ ｜ **重复取药被拦截** ✅ ｜
+T+60s `voice/v1 → screen/v2`（换通道换措辞）✅ ｜ T+180s 家属端收到「20:00 的 华法林 未确认，已提醒 2 次」✅ ｜
+通知文本零补服/剂量/依从性内容 ✅ ｜ 家属端渲染 ✅ ｜ **断网后仍可交互并落库** ✅ ｜ 断网提示 ✅ ｜
+**Network 零外部请求**（全部指向 `127.0.0.1:8000`）✅ ｜ WebGL 可用时走 3D、不可用时走 2D ✅
+
+### 尚未包含
+
+- 路径仍是直线趋近（waypoint 折线与缓动在 M2）；预录音频兜底、时间线回放、临时加药第 8 天自动失效的界面动作分别在 M3/M4。
+- **交叉验证与门禁未执行**（禁止自我验证），因此 M1 尚未合并 `main`、未打 tag。
+
+---
+
 ## p0.5-parallel-ready — 2026-10-02 — 三线并行就绪：契约冻结、归属落定、agent 可读
 
 ### 新增
