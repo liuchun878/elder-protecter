@@ -7,6 +7,8 @@
 | 路径 | 内容 |
 | --- | --- |
 | `unnc-sophicar/` | 机器人结构设计原始文件（SolidWorks） |
+| `suite-3d/` | 套房 3D 交互预览（浏览器打开 `suite-3d/index.html`） |
+| `family-app/` | **子女端提示 App** —— 子女手机端交互原型（浏览器打开 `family-app/index.html`） |
 
 ## unnc-sophicar 说明
 
