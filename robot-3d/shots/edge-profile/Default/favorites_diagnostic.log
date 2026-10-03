@@ -1,0 +1,36 @@
+2026-10-03 09:37:47.743: [INFO] CurrentProfilePath: D:\桌面\机器人\robot-3d\shots\edge-profile\Default
+2026-10-03 09:37:47.743: [INFO] Profiles total count: 1
+2026-10-03 09:37:47.743: [INFO] Profile: name=用户配置 1 path=D:\桌面\机器人\robot-3d\shots\edge-profile\Default lastActive=null
+2026-10-03 09:37:47.743: [INFO] LastUsedProfileDir: D:\桌面\机器人\robot-3d\shots\edge-profile\Default
+2026-10-03 09:37:47.743: [INFO] VisibilityChanged: 0
+2026-10-03 09:37:47.766: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.767: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.767: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.768: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.768: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.768: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.769: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.769: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.769: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.770: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:47.777: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:47.777: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:47.777: [INFO] OnDoneLoading sync enabled: 0
+2026-10-03 09:37:47.777: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-10-03 09:37:47.777: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-10-03 09:37:47.777: [INFO] BookmarksSnapshot Startup total=2 bar=2 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-10-03 09:37:47.833: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:49.839: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 0
+2026-10-03 09:37:49.845: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-10-03 09:37:49.848: [INFO] Primary account changed.
+2026-10-03 09:37:49.848: [INFO] OnPrimaryAccountChanged PrimaryAccountChangeEvent::Type::kSet
+2026-10-03 09:37:49.858: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-10-03 09:37:49.875: [INFO] RecordSyncInitDuration has_sync_been_enabled: 0 state: 3
+2026-10-03 09:37:54.452: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:54.452: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:54.453: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:54.453: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:54.453: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:54.453: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:54.453: [INFO] BookmarkNodeAdded, ABU: 0
+2026-10-03 09:37:56.864: [INFO] Sync initialization duration: 6696ms
