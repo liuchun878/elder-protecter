@@ -1,0 +1,23 @@
+{
+  "url": "http://127.0.0.1:5173/",
+  "out": "shots",
+  "viewport": [1600, 900],
+  "dismissWelcome": false,
+  "loadWait": 3200,
+  "settle": 1200,
+  "shots": [
+    { "name": "01-首次进入-引导卡", "js": "", "wait": 600 },
+    { "name": "02-跟随视角-开场自动走位", "js": "document.getElementById('wStart').click(); return null;", "wait": 2600 },
+    { "name": "03-近看人物", "js": "document.querySelector('[data-view=close]').click(); return null;", "wait": 2600 },
+    { "name": "04-点按钮走到沙发旁", "js": "document.querySelector('[data-key=sofa]').click(); document.querySelector('[data-view=follow]').click(); return null;", "wait": 4200 },
+    { "name": "05-走到茶几吃药", "js": "document.querySelector('[data-key=table]').click(); return null;", "wait": 4600 },
+    { "name": "06-走到窗边", "js": "document.querySelector('[data-view=window]').click(); document.querySelector('[data-key=window]').click(); return null;", "wait": 4600 },
+    { "name": "07-看全景", "js": "document.querySelector('[data-view=room]').click(); return null;", "wait": 3000 },
+    { "name": "08-机器人送药到位", "js": "document.querySelector('[data-key=robot]').click(); return null;", "wait": 3800 },
+    { "name": "09-夜晚灯光", "js": "document.querySelector('[data-light=night]').click(); document.querySelector('[data-view=room]').click(); return null;", "wait": 2600 },
+    { "name": "10-白天灯光", "js": "document.querySelector('[data-light=day]').click(); document.querySelector('[data-view=follow]').click(); return null;", "wait": 2600 },
+    { "name": "11-大字模式", "js": "document.querySelector('[data-light=dusk]').click(); document.getElementById('btnBig').click(); return null;", "wait": 2200 },
+    { "name": "12-点在家具上会提示走不过去", "js": "APP.walkTo(-1.35,-2.05); return null;", "wait": 900 },
+    { "name": "13-站在取药机器人前", "js": "APP.setHold(false); APP.pose(0.85,2.45,3.1416,0); document.querySelector('[data-view=follow]').click(); return null;", "wait": 2600 }
+  ]
+}
