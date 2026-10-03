@@ -1,0 +1,150 @@
+{
+   "checksum": "676898e2ce5e719d5222d8e0fb5e908c",
+   "roots": {
+      "bookmark_bar": {
+         "children": [ {
+            "date_added": "13412741033279374",
+            "date_last_used": "0",
+            "guid": "cbed63a4-2d9b-453b-a7d3-743d46ac4809",
+            "id": "9",
+            "name": "免费4K高清壁纸-电脑背景图片-Mac壁纸网站「哲风壁纸」",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://haowallpaper.com/",
+            "visit_count": 1
+         }, {
+            "date_added": "13419431404318858",
+            "date_last_used": "13420778642231197",
+            "guid": "af72e299-718e-4ad1-9838-347d97c21140",
+            "id": "10",
+            "name": "PLAN-1",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://yun.kujiale.com/cloud/tool/h5/bim?designid=3FO3B9NJ89IC&em=0&isIdentify=true&levelid=NHF3H6IKTIG32AABAAAAAAY8&tre=000.000.002&tre=000.000.001.zhuzhan.workbench_aiChat_Superwidget_newHuxing&gs.nav.type=auto-global&__rd=y&_gr_ds=true",
+            "visit_count": 2
+         }, {
+            "date_added": "13420780611892905",
+            "date_last_used": "0",
+            "guid": "2cd74a04-450b-4d75-8638-7cbe8110be14",
+            "id": "11",
+            "name": "未命名",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.kujiale.com/tool/h5/bim?designid=3FO3BJSS9V43&tre=000.000.001.zhuzhan.nav&gs.nav.type=auto-global&__rd=y&_gr_ds=true",
+            "visit_count": 1
+         }, {
+            "date_added": "13421126346742686",
+            "date_last_used": "0",
+            "guid": "ffb6088a-866b-4b81-871b-d64b33e5caeb",
+            "id": "12",
+            "name": "未命名",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.kujiale.com/tool/h5/bim?designid=3FO3ATVFC1EN&tre=000.000.001.zhuzhan.nav&gs.nav.type=auto-global&__rd=y&_gr_ds=true",
+            "visit_count": 1
+         }, {
+            "date_added": "13425576144906958",
+            "date_last_used": "0",
+            "guid": "1237c81a-d602-441b-ba31-999d3078e918",
+            "id": "13",
+            "name": "四六级专题训练 | ExamCraft在线学习社区",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.examcrafts.com/cet/topic",
+            "visit_count": 1
+         }, {
+            "date_added": "13434021670679815",
+            "date_last_used": "0",
+            "guid": "6db67817-d0a3-4b5d-ab58-b61a1efc2580",
+            "id": "14",
+            "name": "Moët Hennessy APAC，新加坡 | M Moser Associates",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.mmoser.com/zh-hans/projects/moet-hennessy-asia-pacific-hq-singapore/",
+            "visit_count": 1
+         }, {
+            "date_added": "13434023636150616",
+            "date_last_used": "0",
+            "guid": "43f17d46-ebd6-4693-9d25-f1cd4b7d743a",
+            "id": "15",
+            "name": "UPDIS深规院创智云城办公总部 / 蘑菇云设计工作室 | ArchDaily 中文版",
+            "show_icon": false,
+            "source": "sync",
+            "type": "url",
+            "url": "https://www.archdaily.com/zh/1012622/updisshen-gui-yuan-chuang-zhi-yun-cheng-ban-gong-zong-bu-mo-gu-yun-she-ji-gong-zuo-shi",
+            "visit_count": 1
+         }, {
+            "date_added": "13435493867777344",
+            "date_last_used": "0",
+            "guid": "d204cfc6-ee65-4616-9288-bb0db5f6671e",
+            "id": "8",
+            "name": "联想服务",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "https://support.lenovo.com/",
+            "visit_count": 0
+         }, {
+            "date_added": "13435493867777056",
+            "date_last_used": "0",
+            "guid": "f58a8345-7db3-4e62-b568-df3658e3458e",
+            "id": "7",
+            "name": "联想",
+            "show_icon": false,
+            "source": "oem_preload",
+            "type": "url",
+            "url": "https://www.lenovo.com/",
+            "visit_count": 0
+         } ],
+         "date_added": "13435493867530857",
+         "date_last_used": "0",
+         "date_modified": "13435493867777344",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "收藏夹栏",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "other": {
+         "children": [  ],
+         "date_added": "13435493867530857",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "其他收藏夹",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13435493867530857",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "移动收藏夹",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "workspaces_v2": {
+         "children": [  ],
+         "date_added": "13435493867530857",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "75aa6670-344f-549d-b742-660f029506ab",
+         "id": "5",
+         "name": "工作区",
+         "source": "unknown",
+         "type": "folder"
+      }
+   },
+   "sync_metadata": "CjEKDgiIgQISCJlaHwGhAQAAEgAqGFRJMGE3L29LRm1rYmh6MG9uZUVCY1E9PUgDoAYHEowBCAUShwEKHHdSQnJaTCs2UEE5YXZLZ2pOUDdKWERMY2Z2cz0SJDRjOTE0NTI2LTBkYWItNTE5MS1iNThkLTFhMjllMTVhYWE5ZRgAIAAoADCl7ozvpDM4q/CM76QzQKvwjO+kM0ocbm14NjVzUUR2eEk4VGdFZXYrQStudHRvU240PWUAAAAAwj4CYAASjAEIAhKHAQocWWNTVG9udkVTUHdxQ3M0TDJjclZodjY4TDk4PRIkNmY3YTExNjYtOTZmMC01NmE2LThlMGEtZDdiNmRiZDRhMjU4GAAgACgAMNiYtdT5Mji3m7XU+TJAt5u11PkyShxvUFZraHdCUmJWNjVLQ1dSMitJT05IV29PdTg9ZQAAAADCPgJgABKtAQgNEqgBChxYRXFkcnJLSU9Kd3pydnBTWFNmektrZUIydTA9EiQxMjM3YzgxYS1kNjAyLTQ0MWItYmEzMS05OTlkMzA3OGU5MTgYACAAKAAw+Z7wj+szOLmn8I/rM0C5p/CP6zNKHHFjSnBFa2FNYzR5aVcxNUtESjB0eEp5UTBLST1aHyId7EdaVjEyV0thSlQrbmExQ3oyNVdlT2oyY0xwOD1lTmUVysI+AmAFEq0BCAwSqAEKHDVpVVdrMFhJWGZyMUZuVXlPZE44ekNWNVUrcz0SJGZmYjYwODhhLTg2NmItNGI4MS04NzFiLWQ2NGIzM2U1Y2FlYhgAIAAoADD5lIbG2jM4u5aGxtozQLuWhsbaM0ocOGllS1Z1eDg2aGluWlF4a3ZoMGpHNDdlLzZrPVofIh3ZK3BpMlFMWllTaEJiaXk2dDJmdFlaUkpLUHJvPWXClkrcwj4CYAUSrQEIDxKoAQocb2M4VVA4cGVhQTFsNzI4Y3dRdi83ZEt5TEtzPRIkNDNmMTdkNDYtZWJkNi00NjkzLTlkMjUtZjFjZDRiN2Q3NDNhGAAgACgAMI+g+suKNDirsPrLijRAq7D6y4o0ShxHZzE1UlU2TlNIMm90T1FXS3VDWmJDdklBNGc9Wh8iHfszRTV0TnZRMEplbUpOcDdVcUxUaEt6N1pCeVk9ZcBD7WLCPgJgBRKtAQgOEqgBChxsdUZsbTZvUUJNRC9SS1RjbGVST25GU1VJY1k9EiQ2ZGI2NzgxNy1kMGEzLTRiNWQtYWI1OC1iNjFhMWVmYzI1ODAYACAAKAAwhqCCy4o0OIGhgsuKNECBoYLLijRKHHZZdjlTZTdwb0ExUGxwdHlQK2NCZ2VvR0Z1cz1aHyId9jd1cDBRVzk4K2FJcnl2ZFpCMTFPMDF3Vk11az1lKfQoYMI+AmAFEq0BCAsSqAEKHDFmZkR6Qmd1M1VIbGpSd2JXSUpyU0RvTURwYz0SJDJjZDc0YTA0LTQ1MGItNGQ3NS04NjM4LTdjYmU4MTEwYmUxNBgAIAAoADCdkpih2TM4p5aYodkzQKeWmKHZM0ocdjBScUc4NXNRM3ByL1VtVzFwMi9RdVByZWtrPVofIh2yQjJ2NDZjWmJTQUNmYjVIaFY2ZHk2MmdkK3pvPWXClkrcwj4CYAUSrAEIChKnAQocdlBPa09sby9BZ1NBaFNjMUY0dHlpdnE3L2UwPRIkYWY3MmUyOTktNzE4ZS00YWQxLTk4MzgtMzQ3ZDk3YzIxMTQwGAAgACgAMOftn6DZMzib+Oqd1DNAm/jqndQzShxHRW5zaHpOSkxDQ2c4eHF5N3ltWWxnWnkrejg9Wh4iHGV1dG1mbkZpZE9Wa1dQVWl6NW5rcWdxWm5udz1lwpZK3MI+AmAFEqwBCAkSpwEKHFV5WVpFQld1bktuZ3RDRWcxbEp3bEVWcjJ6az0SJGNiZWQ2M2E0LTJkOWItNDUzYi1hN2QzLTc0M2Q0NmFjNDgwORgAIAAoADDRm8+nuzM4t6DPp7szQLegz6e7M0ocQ09oQjI3TzJabEt6ajVWWW0yT01FbGZaVWswPVoeIhxhSHQwTkJIcncxV0I1T3BqMDZISkYxOElxUDQ9ZUfEgKfCPgJgBRKMAQgBEocBChx5eEovNmZ2a2VjcjdrcDVFUXpCNHRXTHBkYkU9EiQzOTU3Y2ExOS05ZDFjLTU2N2ItYWJlNy0yMDRmZTI5MDNhZDQYACAAKAAw15i11PkyOJibtdT5MkCYm7XU+TJKHGFSQ1dMZ2hGOWI1SW5xS0lEdnVKL2p2UWtGYz1lAAAAAMI+AmAAEowBCAMShwEKHG5qZ0R1ODhlQ3J2WHA4NnBEN2ZIR2NxRnA4OD0SJDNmNzgxMDE3LWI3MTYtNWRkNS04NDI5LWRkZjE1NjBkZjNmNhgAIAAoADDdmLXU+TI485u11PkyQPObtdT5MkoceXpOQjAxY241NEE3Y1JVMHVUKy9QZ21UdFVvPWUAAAAAwj4CYAAwADgA",
+   "version": 1
+}
