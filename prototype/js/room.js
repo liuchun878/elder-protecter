@@ -22,7 +22,7 @@
 import * as THREE from 'three';
 import {
   woodFloor, wallPaint, fabric, rug, wood, stone, cityView, leaf,
-  normalFromTexture, contactShadow,
+  normalFromTexture, roughnessFromTexture, lightShaft, contactShadow,
 } from './textures.js';
 
 /* ── 契约：路径点（一字不改） ─────────────────────────────────────── */
@@ -45,6 +45,28 @@ export const APPROACH_POINTS = {
 
 /** 机器人充电座（空闲时的家）——放在前景中央，保证固定机位下始终可见（不被 HUD 挡住） */
 export const DOCK = { x: 0.92, y: 0, z: 2.36 }; // 客厅里、地毯前缘（充电桩柱在它 +z 侧）
+
+/**
+ * 家具占位（XZ 平面 AABB，米）——**给 scene3d 选机器人站位用**：
+ * 人坐下的位置千变万化，机器人不能傻站在"人的正前方 0.95 m"那个点，
+ * 那里很可能是茶几/餐桌。scene3d 会绕着她试几个方向，挑一个不在这些方块里的。
+ * 与 room.js 的家具坐标同源（3D 与 2D 一致），改家具要同步改这里。
+ */
+export const FURNITURE_BLOCK = [
+  { x0: 2.86, x1: 3.94, z0: 0.28, z1: 2.52 }, // 沙发
+  { x0: -0.33, x1: 0.63, z0: 1.06, z1: 1.64 }, // 茶几
+  { x0: -3.82, x1: -2.08, z0: -2.64, z1: -0.48 }, // 床
+  { x0: -2.08, x1: -1.56, z0: -2.58, z1: -2.08 }, // 床头柜
+  { x0: -4.02, x1: -3.50, z0: -0.44, z1: 1.00 }, // 五斗柜
+  { x0: 2.28, x1: 4.02, z0: -3.00, z1: -2.34 }, // 厨房台面（贴后墙）
+  { x0: 3.30, x1: 4.02, z0: -2.42, z1: -0.84 }, // 厨房台面（转角）
+  { x0: 1.93, x1: 3.17, z0: -2.00, z1: -0.76 }, // 餐桌
+  { x0: 3.17, x1: 3.74, z0: -0.34, z1: 0.24 }, // 沙发边几
+  { x0: -4.02, x1: -3.30, z0: 0.52, z1: 2.38 }, // 电视柜 + 电视
+  { x0: 3.32, x1: 3.94, z0: 2.32, z1: 2.94 }, // 客厅绿植
+  { x0: -3.68, x1: -3.12, z0: -0.08, z1: 0.48 }, // 卧室绿植
+  { x0: 0.52, x1: 1.34, z0: 2.02, z1: 2.72 }, // 充电桩
+];
 
 /* ── 几何 / 材质：全部实例复用 ────────────────────────────────────── */
 
@@ -167,19 +189,51 @@ const NM = {
   rug: normalFromTexture(TEX.rug, 2.4),
 };
 
+/**
+ * 粗糙度贴图（v1.6）：接了它以后材质的 `roughness` 必须设成 **1**，
+ * 因为 three 的公式是 `roughness = material.roughness × roughnessMap.g`——
+ * 值由贴图给绝对值，材质只当乘数。地板/石材取「越暗越糙」（缝里更糙），
+ * 布纹反过来（绒面凸起处更亮更光）。
+ */
+const RM = {
+  floor: roughnessFromTexture(TEX.floor, { base: 0.52, amount: 0.5 }),
+  wall: roughnessFromTexture(TEX.wall, { base: 0.94, amount: 0.12 }),
+  oak: roughnessFromTexture(TEX.oak, { base: 0.58, amount: 0.3 }),
+  walnut: roughnessFromTexture(TEX.walnut, { base: 0.55, amount: 0.3 }),
+  stone: roughnessFromTexture(TEX.stone, { base: 0.24, amount: 0.28 }),
+  sofa: roughnessFromTexture(TEX.sofa, { base: 0.9, amount: 0.16, invert: true }),
+  linen: roughnessFromTexture(TEX.linen, { base: 0.93, amount: 0.14, invert: true }),
+  rug: roughnessFromTexture(TEX.rug, { base: 0.96, amount: 0.1, invert: true }),
+};
+
+/** 布料的「绒面反光」：织物的真实感几乎全来自掠射角那层柔光 */
+function fabricMat(map, normalMap, { roughnessMap, normalScale = 0.45, sheen = 0.55, sheenRoughness = 0.85 } = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    map,
+    normalMap,
+    normalScale: new THREE.Vector2(normalScale, normalScale),
+    roughnessMap,
+    roughness: 1.0,
+    metalness: 0.0,
+    sheen,
+    sheenRoughness,
+    sheenColor: new THREE.Color(0xffffff),
+  });
+}
+
 const M = {
-  floor: new THREE.MeshStandardMaterial({ map: TEX.floor, normalMap: NM.floor, normalScale: new THREE.Vector2(0.45, 0.45), roughness: 0.55, metalness: 0.02 }),
-  wall: new THREE.MeshStandardMaterial({ map: TEX.wall, normalMap: NM.wall, normalScale: new THREE.Vector2(0.22, 0.22), roughness: 0.95, metalness: 0.0 }),
-  ceiling: new THREE.MeshStandardMaterial({ color: 0xf7f3ec, roughness: 1.0, metalness: 0.0 }),
+  floor: new THREE.MeshStandardMaterial({ map: TEX.floor, normalMap: NM.floor, normalScale: new THREE.Vector2(0.45, 0.45), roughnessMap: RM.floor, roughness: 1.0, metalness: 0.02 }),
+  wall: new THREE.MeshStandardMaterial({ map: TEX.wall, normalMap: NM.wall, normalScale: new THREE.Vector2(0.22, 0.22), roughnessMap: RM.wall, roughness: 1.0, metalness: 0.0 }),
+  ceiling: new THREE.MeshStandardMaterial({ color: 0xf7f3ec, roughness: 0.95, metalness: 0.0 }),
   trim: new THREE.MeshStandardMaterial({ color: 0xded6c7, roughness: 0.62, metalness: 0.02 }),
-  oak: new THREE.MeshStandardMaterial({ map: TEX.oak, normalMap: NM.oak, roughness: 0.62, metalness: 0.02 }),
-  walnut: new THREE.MeshStandardMaterial({ map: TEX.walnut, normalMap: NM.walnut, roughness: 0.58, metalness: 0.02 }),
-  stone: new THREE.MeshStandardMaterial({ map: TEX.stone, normalMap: NM.stone, roughness: 0.26, metalness: 0.03 }),
-  sofa: new THREE.MeshStandardMaterial({ map: TEX.sofa, normalMap: NM.sofa, normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.96, metalness: 0.0 }),
+  oak: new THREE.MeshStandardMaterial({ map: TEX.oak, normalMap: NM.oak, roughnessMap: RM.oak, roughness: 1.0, metalness: 0.02 }),
+  walnut: new THREE.MeshStandardMaterial({ map: TEX.walnut, normalMap: NM.walnut, roughnessMap: RM.walnut, roughness: 1.0, metalness: 0.02 }),
+  stone: new THREE.MeshStandardMaterial({ map: TEX.stone, normalMap: NM.stone, roughnessMap: RM.stone, roughness: 1.0, metalness: 0.03 }),
+  sofa: fabricMat(TEX.sofa, NM.sofa, { roughnessMap: RM.sofa, normalScale: 0.5, sheen: 0.7 }),
   sofaLit: new THREE.MeshStandardMaterial({ map: TEX.sofaLit, roughness: 0.96, metalness: 0.0 }),
-  linen: new THREE.MeshStandardMaterial({ map: TEX.linen, normalMap: NM.linen, normalScale: new THREE.Vector2(0.45, 0.45), roughness: 0.97, metalness: 0.0 }),
+  linen: fabricMat(TEX.linen, NM.linen, { roughnessMap: RM.linen, normalScale: 0.45, sheen: 0.6 }),
   cotton: new THREE.MeshStandardMaterial({ map: TEX.cotton, roughness: 0.97, metalness: 0.0 }),
-  rug: new THREE.MeshStandardMaterial({ map: TEX.rug, normalMap: NM.rug, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 1.0, metalness: 0.0 }),
+  rug: fabricMat(TEX.rug, NM.rug, { roughnessMap: RM.rug, normalScale: 0.6, sheen: 0.5, sheenRoughness: 0.95 }),
   steel: new THREE.MeshStandardMaterial({ color: 0x8d959b, roughness: 0.26, metalness: 0.85 }),
   chrome: new THREE.MeshStandardMaterial({ color: 0xa8b0b6, roughness: 0.18, metalness: 0.95 }),
   frame: new THREE.MeshStandardMaterial({ color: 0x93a8b6, roughness: 0.48, metalness: 0.16 }),
@@ -202,6 +256,20 @@ const M = {
     emissiveIntensity: 1.15,
     roughness: 0.5,
   }),
+  // 充电桩状态灯（v1.5 里误用了不存在的 M.warn，three 会静默退回默认白色材质）
+  warn: new THREE.MeshStandardMaterial({
+    color: 0xffcf8a,
+    emissive: 0xffa63c,
+    emissiveIntensity: 1.0,
+    roughness: 0.42,
+  }),
+  // 充电桩充电灯（回桩时由 scene3d 呼吸）
+  charge: new THREE.MeshStandardMaterial({
+    color: 0x9ff2c9,
+    emissive: 0x2fe08a,
+    emissiveIntensity: 1.2,
+    roughness: 0.38,
+  }),
   shade: new THREE.MeshStandardMaterial({ color: 0xf3e6d2, roughness: 0.85, side: THREE.DoubleSide }),
   ceramic: new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.4, metalness: 0.03 }),
   terracotta: new THREE.MeshStandardMaterial({ color: 0xb9a08b, roughness: 0.8 }),
@@ -210,6 +278,15 @@ const M = {
   art2: new THREE.MeshStandardMaterial({ color: 0x4d6d72, roughness: 0.9 }),
   art3: new THREE.MeshStandardMaterial({ color: 0xe6ddc9, roughness: 0.9 }),
   mat: new THREE.MeshStandardMaterial({ color: 0x6f7378, roughness: 0.85 }),
+  // 拐杖 / 拖鞋 / 钟壳 / 遥控器
+  cane: new THREE.MeshStandardMaterial({ color: 0x8a6440, roughness: 0.42, metalness: 0.06 }),
+  felt: new THREE.MeshStandardMaterial({ color: 0x7d6f79, roughness: 0.95 }),
+  // 充电桩地垫：中性深灰（原来用 M.felt 偏紫，看着像块地毯）
+  matBoot: new THREE.MeshStandardMaterial({ color: 0x565f63, roughness: 0.92 }),
+  clockCase: new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.55 }),
+  paper: new THREE.MeshStandardMaterial({ color: 0xd9cfbe, roughness: 0.9 }),
+  // 停车地垫四角的对位标（不发光，别用 M.warn）
+  hazard: new THREE.MeshStandardMaterial({ color: 0xd8a13c, roughness: 0.82, metalness: 0.02 }),
 };
 // 纱帘不投影：shadowSide=FrontSide 让它在阴影 pass 里被背面剔除（否则地板上一整条黑带）
 M.sheer.shadowSide = THREE.FrontSide;
@@ -301,6 +378,35 @@ function buildWindow(g) {
   sheerR.userData.noShadow = true;
 }
 
+/**
+ * ── 落座元数据（v1.6，契约 §3.1 `scene.pick` 用）────────────────────
+ * 挂在**可坐表面**的 mesh 上。射线打中它时，scene3d 会把落点吸附到
+ * 「这个人真的坐得下」的位置（沙发垫中间、椅子正中、床边），而不是命中点在哪就坐哪——
+ * 否则点到扶手会坐扶手、点到椅背会坐椅背。
+ *
+ * 字段：`{ surfaceY, facing, kind, lockX?, lockZ?, clampX?, clampZ? }`（全是纯数据）
+ */
+function markSeat(mesh, spec) {
+  mesh.userData.seat = spec;
+  return mesh;
+}
+
+/** 整组挂同一条坐具信息：点沙发任意一处 = 坐到沙发垫上，而不是"点到哪坐哪" */
+function markSeatDeep(group, spec) {
+  group.traverse((node) => {
+    if (node.isMesh) node.userData.seat = spec;
+  });
+  return group;
+}
+
+/** 沙发：坐垫顶 0.49，人坐 x≈2.99（坐垫前缘），朝向 -x（房间内侧） */
+const SEAT_SOFA = { surfaceY: 0.49, facing: -Math.PI / 2, kind: 'sofa', lockX: 2.99, clampZ: [0.66, 2.14] };
+/** 餐椅：座面顶 0.47，坐正中间，朝向该椅子的正前方（由每把椅子的 rotation.y 填 facing） */
+const seatChair = (x, z, facing) => ({ surfaceY: 0.47, facing, kind: 'chair', lockX: x, lockZ: z });
+/** 床：被褥把床面垫到 0.7 以上，硬把人按 0.54 塞进去会陷进被子里；
+ *  所以点床 = 坐在**床边地板**上（lockX 在床沿外 0.2 m），朝向房间内侧 +x */
+const SEAT_BEDSIDE = { surfaceY: 0, facing: Math.PI / 2, kind: 'floor', lockX: -2.02, clampZ: [-2.22, -0.95] };
+
 /* ── 4. 客厅 ──────────────────────────────────────────────────────── */
 
 function buildLiving(g) {
@@ -324,35 +430,80 @@ function buildLiving(g) {
   g.add(st);
 
   buildPlant(g);
+  buildCane(g);
+  buildSlippers(g);
+}
+
+/* ── 4.1 生活痕迹（v1.6）：拐杖 / 拖鞋 ────────────────────────────
+ * 写实感的一半来自「这里住着一个人」：只加了几十个三角形，但一眼就能看出来。
+ */
+function buildCane(g) {
+  const cane = new THREE.Group();
+  cane.position.set(3.24, 0, 2.52);
+  cane.rotation.z = -0.16;
+  cane.rotation.x = 0.10;
+  // 杖身：上段深胡桃木、下段铝合金 + 橡胶脚垫
+  put(cane, cyl(0.0115, 0.0125, 0.72, 10), M.cane, 0, 0.42, 0);
+  put(cane, cyl(0.0105, 0.0105, 0.16, 10), M.chrome, 0, 0.0, 0);
+  put(cane, cyl(0.019, 0.022, 0.022, 12), M.dark, 0, -0.085, 0);
+  // 弯把手：四分之一圆环 + 收口球
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.0125, 8, 18, Math.PI * 0.62), M.cane);
+  handle.position.set(0.055, 0.78, 0);
+  handle.rotation.z = Math.PI * 0.19;
+  cane.add(handle);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), M.cane);
+  knob.position.set(0.016, 0.828, 0);
+  cane.add(knob);
+  g.add(cane);
+  contact(g, 3.24, 2.52, 0.28, 0.28, 0.45);
+}
+
+function buildSlippers(g) {
+  for (const [x, z, rot] of [[2.72, 2.16, 0.24], [2.62, 2.42, -0.34]]) {
+    const s = new THREE.Group();
+    s.position.set(x, 0, z);
+    s.rotation.y = rot;
+    put(s, rbox(0.09, 0.026, 0.24, 0.03), M.felt, 0, 0.014, 0);
+    put(s, rbox(0.086, 0.055, 0.11, 0.028), M.felt, 0, 0.048, -0.05);
+    g.add(s);
+  }
+  contact(g, 2.67, 2.29, 0.5, 0.5, 0.4);
 }
 
 function buildSofa(g) {
   // 面向 -x（王阿姨坐在 x≈2.98 的座面上，座面顶必须 = 0.49）
   const zc = 1.40;
-  put(g, rbox(0.84, 0.30, 2.04, 0.03), M.sofa, 3.38, 0.23, zc); // 底架
+  const sofa = new THREE.Group();
+  put(sofa, rbox(0.84, 0.30, 2.04, 0.03), M.sofa, 3.38, 0.23, zc); // 底架
   for (const z of [zc - 0.92, zc + 0.92]) {
-    for (const x of [3.06, 3.70]) put(g, cyl(0.022, 0.022, 0.09, 10), M.walnut, x, 0.045, z);
+    for (const x of [3.06, 3.70]) put(sofa, cyl(0.022, 0.022, 0.09, 10), M.walnut, x, 0.045, z);
   }
   for (const s of [-1, 1]) {
-    const c = put(g, rbox(0.90, 0.17, 0.96, 0.06), M.sofaLit, 3.30, 0.405, zc + s * 0.50);
+    const c = put(sofa, rbox(0.90, 0.17, 0.96, 0.06), M.sofaLit, 3.30, 0.405, zc + s * 0.50);
     c.rotation.z = -0.012 * s;
   }
-  put(g, rbox(0.22, 0.60, 2.10, 0.05), M.sofa, 3.80, 0.62, zc); // 靠背
+  put(sofa, rbox(0.22, 0.60, 2.10, 0.05), M.sofa, 3.80, 0.62, zc); // 靠背
   for (const s of [-1, 1]) {
-    const b = put(g, rbox(0.18, 0.44, 0.94, 0.05), M.sofa, 3.60, 0.615, zc + s * 0.50);
+    const b = put(sofa, rbox(0.18, 0.44, 0.94, 0.05), M.sofa, 3.60, 0.615, zc + s * 0.50);
     b.rotation.z = 0.05;
   }
   for (const s of [-1, 1]) {
-    put(g, rbox(0.94, 0.30, 0.20, 0.06), M.sofa, 3.35, 0.47, zc + s * 1.05); // 扶手
+    put(sofa, rbox(0.94, 0.30, 0.20, 0.06), M.sofa, 3.35, 0.47, zc + s * 1.05); // 扶手
   }
   // 两个抱枕（靠在靠背垫上，别悬空）
-  const p1 = put(g, rbox(0.34, 0.34, 0.13, 0.06), M.linen, 3.50, 0.66, zc - 0.70);
+  const p1 = put(sofa, rbox(0.34, 0.34, 0.13, 0.06), M.linen, 3.50, 0.66, zc - 0.70);
   p1.rotation.set(0.06, 0.30, 0.16);
-  const p2 = put(g, rbox(0.32, 0.32, 0.13, 0.06), M.cotton, 3.50, 0.65, zc + 0.70);
+  const p2 = put(sofa, rbox(0.32, 0.32, 0.13, 0.06), M.cotton, 3.50, 0.65, zc + 0.70);
   p2.rotation.set(-0.06, -0.30, -0.16);
   // 搭在扶手上的薄毯
-  const throwB = put(g, rbox(0.44, 0.06, 0.50, 0.03), M.linen, 3.34, 0.64, zc + 1.05);
+  const throwB = put(sofa, rbox(0.44, 0.06, 0.50, 0.03), M.linen, 3.34, 0.64, zc + 1.05);
   throwB.rotation.z = 0.06;
+  // 遥控器（老人常放在扶手上）
+  const remote = put(sofa, rbox(0.05, 0.018, 0.16, 0.008), M.dark, 3.30, 0.625, zc - 1.02);
+  remote.rotation.y = 0.18;
+
+  markSeatDeep(sofa, SEAT_SOFA); // 点沙发任意一处都坐到坐垫上
+  g.add(sofa);
 }
 
 function buildCoffeeTable(g) {
@@ -364,10 +515,17 @@ function buildCoffeeTable(g) {
     for (const z of [-0.19, 0.19]) put(t, cyl(0.021, 0.021, 0.31, 10), M.walnut, x, 0.155, z);
   }
   put(t, rbox(0.72, 0.03, 0.40, 0.012, U.wood), M.oak, 0, 0.19, 0); // 下层板
-  // 茶杯 + 一本书
+  // 茶杯 + 一摞书 + 一板药盒（只有几何，没有任何文字——契约红线）
   put(t, cyl(0.042, 0.036, 0.095, 14), M.ceramic, 0.26, 0.41, 0.02);
   const book = put(t, slab(0.24, 0.028, 0.17, U.fabric), M.art2, -0.24, 0.376, -0.02);
   book.rotation.y = 0.24;
+  const book2 = put(t, slab(0.22, 0.024, 0.16, U.fabric), M.art1, -0.25, 0.402, -0.01);
+  book2.rotation.y = 0.30;
+  const book3 = put(t, slab(0.20, 0.020, 0.145, U.fabric), M.paper, -0.26, 0.424, 0.0);
+  book3.rotation.y = 0.19;
+  const pillBox = put(t, rbox(0.16, 0.028, 0.09, 0.01), M.ceramic, 0.10, 0.377, -0.16);
+  pillBox.rotation.y = -0.12;
+  put(t, slab(0.14, 0.004, 0.07), M.glow, 0.10, 0.393, -0.16).rotation.y = -0.12;
   g.add(t);
 }
 
@@ -430,6 +588,7 @@ function buildBedroom(g) {
   }
   // 床头板
   put(bed, rbox(1.54, 0.96, 0.09, 0.03, U.wood), M.oak, 0, 0.62, -1.06);
+  markSeatDeep(bed, SEAT_BEDSIDE); // 点床 = 坐到床沿前的地板上（被褥太高，坐上去会陷进去）
   g.add(bed);
 
   // 床头柜 + 小台灯（在床的 +x 侧）
@@ -533,6 +692,10 @@ function buildDining(g) {
     }
     put(c, rbox(0.40, 0.34, 0.035, 0.015, U.wood), M.walnut, 0, 0.72, -0.185);
     put(c, rbox(0.36, 0.05, 0.03, 0.012, U.wood), M.walnut, 0, 0.56, -0.185);
+    // 椅背上的坐垫，顺带给"点椅子 → 坐正中间"的落座信息（坐面顶 = 0.47）
+    const pad = put(c, rbox(0.36, 0.03, 0.36, 0.02), M.linen, 0, 0.455, 0);
+    pad.userData.pad = true;
+    markSeatDeep(c, seatChair(x, z, rot));
     g.add(c);
   }
 
@@ -564,6 +727,76 @@ function buildDecor(g) {
   put(g, slab(0.04, 2.02, 0.86, U.wood), M.oak, -3.975, 1.01, dz);
   put(g, slab(0.04, 0.02, 0.60, U.wood), M.walnut, -3.985, 0.44, dz);
   put(g, cyl(0.016, 0.016, 0.10, 8), M.steel, -3.94, 1.02, dz + 0.33).rotation.x = Math.PI / 2;
+
+  buildClock(g);
+  buildCounterProps(g);
+}
+
+/* ── 7.1 挂钟（v1.6）──────────────────────────────────────────────
+ * 12 个刻度 + 两根指针，**一个数字都不写**（3D 里不渲染任何文字，契约红线）。
+ * 指针停在 10:10——钟表业的经典构图，也让「这是一只真在走的钟」一眼可辨。
+ */
+function buildClock(g) {
+  const R = 0.155;
+  const clk = new THREE.Group();
+  clk.position.set(-3.925, 1.98, 1.15);
+
+  clk.add(new THREE.Mesh(cyl(R, R, 0.05, 26, 'x'), M.clockCase));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.011, 8, 28), M.frame);
+  rim.rotation.y = Math.PI / 2;
+  rim.position.x = 0.022;
+  clk.add(rim);
+  const face = new THREE.Mesh(cyl(R - 0.012, R - 0.012, 0.008, 26, 'x'), M.paper);
+  face.position.x = 0.028;
+  clk.add(face);
+
+  for (let i = 0; i < 12; i += 1) {
+    const a = (i * Math.PI) / 6;
+    const tick = new THREE.Mesh(new THREE.BoxGeometry(0.006, i % 3 === 0 ? 0.03 : 0.017, 0.008), M.dark);
+    const r = R - 0.036;
+    tick.position.set(0.036, Math.cos(a) * r, Math.sin(a) * r);
+    tick.rotation.x = a;
+    clk.add(tick);
+  }
+  const hand = (length, width) => {
+    const geo = new THREE.BoxGeometry(0.005, length, width);
+    geo.translate(0, length / 2, 0);
+    return new THREE.Mesh(geo, M.dark);
+  };
+  const hourHand = hand(0.082, 0.010);
+  hourHand.position.x = 0.038;
+  hourHand.rotation.x = ((10 + 10 / 60) / 12) * Math.PI * 2;
+  clk.add(hourHand);
+  const minuteHand = hand(0.115, 0.007);
+  minuteHand.position.x = 0.040;
+  minuteHand.rotation.x = (10 / 60) * Math.PI * 2;
+  clk.add(minuteHand);
+  const pin = new THREE.Mesh(new THREE.SphereGeometry(0.011, 10, 8), M.frame);
+  pin.position.x = 0.042;
+  clk.add(pin);
+  g.add(clk);
+}
+
+/* ── 7.2 厨房台面上的生活用品（v1.6）──────────────────────────────── */
+function buildCounterProps(g) {
+  const topY = 0.885 + 0.025;
+  // 电热水壶：壶身 + 壶盖 + 手柄 + 底座
+  const kettle = new THREE.Group();
+  kettle.position.set(3.28, topY, -2.42);
+  put(kettle, cyl(0.068, 0.078, 0.16, 18), M.steel, 0, 0.08, 0);
+  put(kettle, cyl(0.070, 0.062, 0.03, 18), M.dark, 0, 0.172, 0);
+  put(kettle, cyl(0.062, 0.062, 0.012, 18), M.chrome, 0, 0.008, 0);
+  const loop = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.008, 8, 18, Math.PI), M.dark);
+  loop.position.set(0.085, 0.095, 0);
+  loop.rotation.z = -Math.PI / 2;
+  kettle.add(loop);
+  g.add(kettle);
+  // 调料罐两只（封口用木盖，避免整排白罐子）
+  for (const [x, h] of [[2.42, 0.13], [2.28, 0.10]]) {
+    put(g, cyl(0.032, 0.034, h, 14), M.ceramic, x, topY + h / 2, -2.52);
+    put(g, cyl(0.034, 0.034, 0.012, 14), M.walnut, x, topY + h + 0.006, -2.52);
+  }
+  contact(g, 2.35, -2.52, 0.42, 0.30, 0.4, 0.913);
 }
 
 function buildArt(g, x, y, z, w, h, kind) {
@@ -600,44 +833,108 @@ function contact(g, x, z, w, d, opacity = 0.85, y = 0.016) {
 
 /* ── 充电桩（客厅）────────────────────────────────────────────────
  * 机器人停在 DOCK 上、**车尾对着桩**，桩柱在 DOCK 的 +z 侧。
- * 桩身：底座（带停车对位条）+ 立柱 + 两条铜排触点 + 指示灯 + 绕线钩。
+ * 桩身：地垫 + 底座（带停车对位条）+ 立柱 + 铜排触点 + 充电灯 + 状态灯 + 绕线钩 + 进墙电缆。
+ *
+ * v1.6 增强：① 加一块停车地垫（黄黑对位角）；② 充电灯改成 M.charge 并**交回给 scene3d**——
+ * 机器人真的停回桩上时它会呼吸（充电中），出车时熄灭。判定用「机器人位置离桩多近 + 有没有提示事件」，
+ * 全是只读推算，不新增任何业务状态。
  */
 function buildDock(g) {
   const d = new THREE.Group();
   d.position.set(DOCK.x, 0, DOCK.z);
 
-  // 底座：机器人停在这上面，前缘做倒角，两边各一条不锈钢对位条
-  put(d, rbox(0.62, 0.035, 0.52, 0.03), M.mat, 0, 0.018, 0);
+  // 停车地垫：机器人停在这上面，四角对位标
+  put(d, rbox(0.72, 0.014, 0.66, 0.05), M.matBoot, 0, 0.008, 0.02);
   for (const sx of [-1, 1]) {
-    put(d, slab(0.30, 0.010, 0.045), M.steel, sx * 0.09, 0.040, -0.17);
+    for (const sz of [-1, 1]) {
+      put(d, slab(0.09, 0.006, 0.02), M.hazard, sx * 0.30, 0.017, sz * 0.28);
+    }
   }
-  put(d, slab(0.62, 0.012, 0.03, U.wood), M.frame, 0, 0.036, -0.255);
+  // 底座：前缘做倒角，两边各一条不锈钢对位条
+  put(d, rbox(0.62, 0.035, 0.52, 0.03), M.mat, 0, 0.030, 0);
+  for (const sx of [-1, 1]) {
+    put(d, slab(0.30, 0.010, 0.045), M.steel, sx * 0.09, 0.052, -0.17);
+  }
+  put(d, slab(0.62, 0.012, 0.03, U.wood), M.frame, 0, 0.048, -0.255);
 
   // 立柱（在机器人尾巴后面）：白壳 + 深色屏 + 铜排触点
   const colZ = 0.36;
   const shell = new THREE.MeshStandardMaterial({ color: 0xf2f2f0, roughness: 0.42, metalness: 0.05 });
-  put(d, rbox(0.24, 0.52, 0.11, 0.035), shell, 0, 0.30, colZ);
-  put(d, rbox(0.20, 0.11, 0.02, 0.012), M.dark, 0, 0.46, colZ - 0.058); // 小屏
-  put(d, slab(0.17, 0.016, 0.012), M.glow, 0, 0.355, colZ - 0.060);     // 充电指示灯（青绿）
-  put(d, slab(0.17, 0.016, 0.012), M.warn, 0, 0.315, colZ - 0.060);     // 状态灯（琥珀）
+  put(d, rbox(0.24, 0.52, 0.11, 0.035), shell, 0, 0.31, colZ);
+  put(d, rbox(0.20, 0.11, 0.02, 0.012), M.dark, 0, 0.47, colZ - 0.058); // 小屏
+  const chargeBar = put(d, slab(0.17, 0.016, 0.014), M.charge, 0, 0.365, colZ - 0.060); // 充电指示灯
+  put(d, slab(0.17, 0.016, 0.012), M.warn, 0, 0.325, colZ - 0.060);     // 状态灯（琥珀）
   for (const sx of [-1, 1]) {
-    put(d, slab(0.028, 0.075, 0.012), M.chrome, sx * 0.055, 0.115, colZ - 0.062); // 铜排触点
+    put(d, slab(0.028, 0.075, 0.012), M.chrome, sx * 0.055, 0.125, colZ - 0.062); // 铜排触点
   }
-  // 顶盖 + 绕线钩 + 一段垂下来的线缆
-  put(d, rbox(0.27, 0.035, 0.14, 0.016), shell, 0, 0.575, colZ);
-  put(d, cyl(0.017, 0.017, 0.09, 10), M.steel, 0.10, 0.52, colZ - 0.05);
-  const cable = new THREE.Mesh(new THREE.TorusGeometry(0.062, 0.011, 8, 20, Math.PI * 1.5), M.dark);
-  cable.position.set(0.10, 0.42, colZ - 0.04);
+  // 顶盖 + 绕线钩；进墙电缆只留一小段探进地板（拉一根长黑管过去，在这个尺度下像根棍子）
+  put(d, rbox(0.27, 0.035, 0.14, 0.016), shell, 0, 0.585, colZ);
+  put(d, cyl(0.017, 0.017, 0.09, 10), M.steel, 0.10, 0.53, colZ - 0.05);
+  const cable = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 8, 18, Math.PI * 1.3), M.dark);
+  cable.position.set(0.085, 0.44, colZ - 0.03);
   cable.rotation.y = Math.PI / 2;
   d.add(cable);
+  const stub = put(d, cyl(0.007, 0.007, 0.10, 8), M.dark, -0.075, 0.05, colZ + 0.04);
+  stub.rotation.x = 0.22;
 
   g.add(d);
-  contact(g, DOCK.x, DOCK.z + 0.12, 1.0, 1.0, 0.6, 0.02);
+  contact(g, DOCK.x, DOCK.z + 0.12, 1.05, 1.05, 0.62, 0.019);
+  return { chargeBar, leds: [chargeBar] };
+}
+
+/* ── 8.1 窗光光柱（v1.6）────────────────────────────────────────────
+ * 斜射进来的阳光在空气里是有形的。做法很土但很有效：一张沿光线方向铺开的加法混合贴片。
+ * 硬约束：**不投影、不写深度**，否则它会把整片窗光挡掉（地板就再也没有光斑了）。
+ */
+function buildLightShaft(g) {
+  // 主光方向（与 scene3d 的 sun 一致）：从窗外左上方斜射到室内
+  const dir = new THREE.Vector3(5.0, -3.05, 8.8).normalize();
+  const normal = new THREE.Vector3(0, 0.944, 0.329).normalize(); // 垂直于 dir，又大致朝向主相机
+  const yAxis = dir.clone();
+  const zAxis = normal.clone();
+  const xAxis = new THREE.Vector3().crossVectors(yAxis, zAxis).normalize();
+
+  const shaft = new THREE.Mesh(
+    new THREE.PlaneGeometry(4.6, 5.2),
+    new THREE.MeshBasicMaterial({
+      map: lightShaft({ w: 128, h: 128 }),
+      transparent: true,
+      opacity: 0.34,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  shaft.name = 'light-shaft';
+  shaft.userData.noShadow = true;
+  shaft.renderOrder = 3;
+  const basis = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
+  shaft.quaternion.setFromRotationMatrix(basis);
+  shaft.position.set(0.2, 1.15, -0.55);
+  g.add(shaft);
+
+  // 贴地那一片更亮的光斑边缘（补一层很淡的暖光，让地板"被晒到"）
+  const patch = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.2, 4.6),
+    new THREE.MeshBasicMaterial({
+      map: lightShaft({ w: 128, h: 128 }),
+      transparent: true,
+      opacity: 0.11,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  patch.rotation.x = -Math.PI / 2;
+  patch.rotation.z = 0.42;
+  patch.position.set(1.1, 0.022, -0.2);
+  patch.userData.noShadow = true;
+  patch.renderOrder = 3;
+  g.add(patch);
 }
 
 /* ── 构建整个房间 ─────────────────────────────────────────────────── */
 
-/** 构建整个房间，返回 THREE.Group */
+/** 构建整个房间，返回 THREE.Group（`userData.dock` 里带着充电灯的引用，供 scene3d 做充电呼吸） */
 export function buildRoom() {
   const group = new THREE.Group();
   group.name = 'room';
@@ -648,7 +945,9 @@ export function buildRoom() {
   buildBedroom(group);
   buildKitchen(group);
   buildDecor(group);
-  buildDock(group);
+  const dock = buildDock(group);
+  buildLightShaft(group);
+  group.userData.dock = dock;
   return group;
 }
 

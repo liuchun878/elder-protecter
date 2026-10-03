@@ -357,11 +357,34 @@ function buildRobot() {
   beacon.position.set(0.13, 0.53, faceZ + 0.004);
   group.add(beacon);
 
-  return { group, ring, doors, shelf, beacon, strip, cargo: [g, w, coaster, pillBody, lid] };
+  /* ── 位置感应光束（v1.6，只在"跟到阿姨身边"时出现）────────────────
+   * 契约 §3.1.1：这是**位置输入的可视化**，不是摄像头/识别。
+   * 一束从头部射向阿姨落脚点的柔光：圆锥底面落在她那边，本地 +z 为前方。
+   * 用 scale.z 控制长度（底面半径不随距离放大，看着更像测距而不是探照灯）。
+   */
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: TEAL,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const beamGeo = new THREE.ConeGeometry(0.06, 1, 14, 1, true);
+  beamGeo.translate(0, -0.5, 0);      // 顶点挪到原点
+  beamGeo.rotateX(-Math.PI / 2);      // 指向本地 +z
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.name = 'robot-sense-beam';
+  beam.position.set(0, Y.neck + 0.02, 0.06);
+  beam.visible = false;
+  beam.userData.noShadow = true;      // 自发光面不投影（否则会把整片光挡掉）
+  group.add(beam);
+
+  return { group, ring, doors, shelf, beacon, strip, beam, cargo: [g, w, coaster, pillBody, lid] };
 }
 
 export function createRobot(sceneApi) {
-  const { group, ring, doors, shelf, beacon, strip, cargo } = buildRobot();
+  const { group, ring, doors, shelf, beacon, strip, beam, cargo } = buildRobot();
 
   /** 仅视觉状态（不是业务状态）：位置积分、朝向、开舱进度 */
   const view = {
@@ -369,6 +392,7 @@ export function createRobot(sceneApi) {
     openTarget: 0,
     facing: 0,
     pulse: 0,
+    sensing: 0, // 感应光束的淡入淡出（0→1）
   };
 
   /** 把 0→1 的开舱进度分配成「门先开、托盘后出」 */
@@ -403,19 +427,30 @@ export function createRobot(sceneApi) {
 
   /**
    * state 的纯函数（除视觉插值外不持有任何业务状态）
+   *
+   * 去哪，只由 state 决定（契约 §3.1.1）：
+   *   ① 有提示事件            → 开到人的跟前递药（开舱）
+   *   ② 没有提示但有落座点     → **感应到阿姨位置，开到她跟前待命**（v1.6）
+   *   ③ 都没有                → 回充电座
+   * 机器人自己**不判断**"她该不该吃药"、"要不要跟过去"——那些都在 state 里。
+   *
    * @param {object} state StateSnapshot
    * @param {number} dt 秒
    */
   function update(state, dt) {
     const carrying = Boolean(state.activeEventId);
     const location = state.presence.location;
-    const target = carrying ? sceneApi.getApproachPoint(location) : dock;
+    const seat = state.presence.seat || null;
+    const attending = Boolean(seat); // 位置感应：知道她在哪，过去待命
+    const nearby = carrying || attending;
+
+    const target = nearby ? sceneApi.getApproachPoint(location, seat) : dock;
 
     const arrived = stepTowards(target, dt);
 
-    // 到位后转身面对人（送货时），而不是继续朝着行进方向——否则永远是背影对着老人
-    if (arrived && carrying) {
-      const person = sceneApi.getWaypoint(location);
+    // 到位后转身面对人（送货 / 待命都是），而不是继续朝着行进方向——否则永远是背影对着老人
+    if (arrived && nearby) {
+      const person = seat || sceneApi.getWaypoint(location);
       if (person) {
         view.facing = Math.atan2(person.x - group.position.x, person.z - group.position.z);
       }
@@ -437,14 +472,41 @@ export function createRobot(sceneApi) {
     // 杯与药盒只在「有提示事件」时出现在托盘上；取走后（activeEventId 清空）消失
     for (const node of cargo) node.visible = carrying;
 
+    /* ── 感应光束：只在"知道她的位置、过去待命"时亮（递药时不开，免得抢戏）── */
+    const sensingTarget = attending && !carrying ? 1 : 0;
+    const rate = Math.max(0, dt) / 0.45;
+    view.sensing += Math.max(-rate, Math.min(rate, sensingTarget - view.sensing));
+    if (view.sensing > 0.01) {
+      const person = seat || sceneApi.getWaypoint(location);
+      const dx = person ? person.x - group.position.x : 0;
+      const dz = person ? person.z - group.position.z : 0;
+      const dist = Math.hypot(dx, dz);
+      beam.visible = true;
+      beam.scale.set(1, 1, Math.max(0.35, dist));
+      // 光束在机器人本地坐标系里要指向"她"：把世界方向转回本地（group 只绕 y 转）
+      beam.rotation.y = Math.atan2(dx, dz) - group.rotation.y;
+      beam.material.opacity = (0.028 + 0.03 * Math.abs(Math.sin(view.pulse * 2.6))) * view.sensing;
+    } else {
+      beam.visible = false;
+      beam.material.opacity = 0;
+    }
+
     // 提示时的发光脉冲（灯效与通道切换同步，不只靠颜色：HUD 同步换大字）
     view.pulse += dt;
     const attempts = state.activeEventId
       ? state.events.find((event) => event.id === state.activeEventId)?.attempts.length ?? 0
       : 0;
-    const base = carrying ? 0.85 + 0.45 * Math.sin(view.pulse * (attempts > 1 ? 9 : 4)) : 0.35;
+    const docked = !nearby && arrived;
+    let base;
+    if (carrying) base = 0.85 + 0.45 * Math.sin(view.pulse * (attempts > 1 ? 9 : 4));
+    else if (docked) base = 0.55 + 0.45 * Math.abs(Math.sin(view.pulse * 1.8)); // 回桩充电：慢呼吸
+    else base = 0.7 + 0.25 * Math.sin(view.pulse * 3.2); // 感应待命
     ring.traverse((node) => {
-      if (node.isMesh) node.material.emissiveIntensity = base;
+      if (!node.isMesh) return;
+      node.material.emissiveIntensity = base;
+      // 回桩充电时底盘灯偏青绿，一眼能看出"在充电"，而不是只靠位置
+      node.material.color.setHex(docked ? 0x53e0a6 : TEAL);
+      node.material.emissive.setHex(docked ? 0x53e0a6 : TEAL);
     });
     strip.material.emissiveIntensity = carrying ? 0.9 + 0.4 * Math.sin(view.pulse * 3) : 0.55;
     beacon.material.emissiveIntensity = carrying ? 0.9 : 0.25;

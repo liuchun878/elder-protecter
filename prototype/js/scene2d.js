@@ -36,6 +36,20 @@ const FURNITURE = [
   { x: -3.4, z: 0.2, w: 0.5, d: 0.5, color: '#8fbf8f', radius: 0.25 }, // 绿植
 ];
 
+/**
+ * 2D 降级下的可坐具（与 room.js 的 `userData.seat` 一一对应，改一处要同步另一处）。
+ * 契约 v1.6：2D 也必须能「点任意位置落座」，否则功能就不是一条不少。
+ */
+const SEATS_2D = [
+  { x0: 2.86, x1: 3.92, z0: 0.34, z1: 2.46, kind: 'sofa', surfaceY: 0.49, facing: -Math.PI / 2, lockX: 2.99, clampZ: [0.66, 2.14] },
+  { x0: 2.39, x1: 2.81, z0: -0.93, z1: -0.51, kind: 'chair', surfaceY: 0.47, facing: 0, lockX: 2.60, lockZ: -0.72 },
+  { x0: 1.73, x1: 2.15, z0: -2.13, z1: -1.71, kind: 'chair', surfaceY: 0.47, facing: 0.94, lockX: 1.94, lockZ: -1.92 },
+  { x0: 2.37, x1: 2.79, z0: -2.27, z1: -1.85, kind: 'chair', surfaceY: 0.47, facing: 0, lockX: 2.58, lockZ: -2.06 },
+  { x0: -3.80, x1: -2.10, z0: -2.60, z1: -0.50, kind: 'floor', surfaceY: 0, facing: Math.PI / 2, lockX: -2.02, clampZ: [-2.22, -0.95] },
+];
+
+const ROOM_ANCHOR = { x: 0.8, z: 0.6 };
+
 export function createScene2D({ container }) {
   const canvas = document.createElement('canvas');
   canvas.className = 'scene-canvas';
@@ -47,6 +61,8 @@ export function createScene2D({ container }) {
   let scale = 1;
   let offsetX = 0;
   let offsetY = 0;
+  let pickHandler = null;
+  const marker2d = { x: 0, z: 0, age: Infinity };
 
   function resize() {
     const width = container.clientWidth || window.innerWidth;
@@ -107,6 +123,41 @@ export function createScene2D({ container }) {
   window.addEventListener('resize', resizeListener);
   resize();
 
+  /* ── 点击落座（v1.6，契约 §3.1）：2D 也必须支持，否则"功能一条不少"不成立 ── */
+  const clampRoomX = (x) => Math.min(3.55, Math.max(-3.55, x));
+  const clampRoomZ = (z) => Math.min(2.5, Math.max(-2.55, z));
+  const facingTowardsRoom = (x, z) => Math.atan2(ROOM_ANCHOR.x - x, ROOM_ANCHOR.z - z);
+
+  function seatFromWorld(x, z) {
+    for (const s of SEATS_2D) {
+      if (x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) continue;
+      let sx = s.lockX !== undefined ? s.lockX : x;
+      let sz = s.lockZ !== undefined ? s.lockZ : z;
+      if (s.clampZ) sz = Math.min(s.clampZ[1], Math.max(s.clampZ[0], sz));
+      return { x: sx, z: sz, surfaceY: s.surfaceY, facing: s.facing, kind: s.kind };
+    }
+    const fx = clampRoomX(x);
+    const fz = clampRoomZ(z);
+    return { x: fx, z: fz, surfaceY: 0, facing: facingTowardsRoom(fx, fz), kind: 'floor' };
+  }
+
+  function pickAt(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    // 画布内的 CSS 像素 → 世界坐标（俯视图，等比）
+    const x = (clientX - rect.left - offsetX) / scale;
+    const z = (clientY - rect.top - offsetY) / scale;
+    if (x < -4.4 || x > 4.4 || z < -3.4 || z > 3.4) return null;
+    return seatFromWorld(x, z);
+  }
+
+  function onClick(event) {
+    if (!pickHandler) return;
+    const seat = pickAt(event.clientX, event.clientY);
+    if (seat) pickHandler(seat);
+  }
+  canvas.addEventListener('click', onClick);
+
   return {
     addActor(actor) {
       actors.set(actor.id, actor);
@@ -123,11 +174,41 @@ export function createScene2D({ container }) {
     getWaypoint(location) {
       return WAYPOINTS[location] || null;
     },
-    getApproachPoint(location) {
+    getApproachPoint(location, seat) {
+      if (seat && Number.isFinite(Number(seat.x)) && Number.isFinite(Number(seat.z))) {
+        return {
+          x: clampRoomX(Number(seat.x) + Math.sin(Number(seat.facing) || 0) * 0.95),
+          y: 0,
+          z: clampRoomZ(Number(seat.z) + Math.cos(Number(seat.facing) || 0) * 0.95),
+        };
+      }
       return APPROACH_POINTS[location] || DOCK;
+    },
+    getApproachFor(seat) {
+      return seat ? this.getApproachPoint(null, seat) : DOCK;
     },
     getDock() {
       return DOCK;
+    },
+    /* v1.6 新增的场景 API：2D 降级必须实现同一组函数（契约 §3.1） */
+    pick(clientX, clientY) {
+      return pickAt(clientX, clientY);
+    },
+    enablePick(fn) {
+      pickHandler = typeof fn === 'function' ? fn : null;
+      canvas.style.cursor = pickHandler ? 'crosshair' : '';
+    },
+    showPickMarker(seat) {
+      if (!seat) return;
+      marker2d.x = seat.x;
+      marker2d.z = seat.z;
+      marker2d.age = 0;
+    },
+    getActorPosition(actorId) {
+      const actor = actors.get(actorId);
+      if (!actor) return null;
+      const p = actor.object3D.position;
+      return { x: p.x, y: p.y, z: p.z };
     },
     setCameraMode(mode) {
       view.mode = mode;
@@ -157,7 +238,7 @@ export function createScene2D({ container }) {
     setShadows() {
       /* 2D 降级下无阴影概念 */
     },
-    render() {
+    render(state, dt = 0) {
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
       ctx.clearRect(0, 0, width, height);
@@ -174,6 +255,19 @@ export function createScene2D({ container }) {
 
       for (const actor of actors.values()) drawActor(actor);
 
+      // 点击落座标记：扩散淡出，与 3D 同义（纯视觉反馈）
+      if (marker2d.age < Infinity) {
+        marker2d.age += Math.max(0, dt);
+        const k = Math.min(1, marker2d.age / 0.9);
+        const [mx, my] = toScreen(marker2d.x, marker2d.z);
+        ctx.beginPath();
+        ctx.arc(mx, my, (0.22 + k * 0.34) * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(47,127,134,${0.9 * (1 - k)})`;
+        ctx.lineWidth = Math.max(2, 0.05 * scale);
+        ctx.stroke();
+        if (k >= 1) marker2d.age = Infinity;
+      }
+
       view.frames += 1;
       const now = performance.now();
       if (now - view.lastFpsAt >= 1000) {
@@ -187,6 +281,7 @@ export function createScene2D({ container }) {
     },
     dispose() {
       window.removeEventListener('resize', resizeListener);
+      canvas.removeEventListener('click', onClick);
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
     },
     kind: '2d',

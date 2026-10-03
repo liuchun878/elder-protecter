@@ -99,7 +99,20 @@ export function mountConsole(root, ctx) {
     posButtons.set(option.value, b);
   }
 
-  /* ── ③ 机位 ─────────────────────────────────────────────────────── */
+  /* ── ③ 点击落座 · 模拟位置感应（v1.6）────────────────────────────── */
+  const seatSec = section('点击落座 · 模拟位置感应');
+  seatSec.sec.appendChild(el('p', 'console__note',
+    '在画面上点任意位置：王阿姨走过去坐下，机器人随后感应到她的位置并移动过去。'
+    + '点沙发/餐椅会坐到坐具上，点地板就席地而坐。'));
+  seatSec.sec.appendChild(el('p', 'console__note',
+    '⚠️ 这是开关 / 点击输入，不是传感器：不采集摄像头画面、不做识别，也不宣称感知能力。'));
+  const seatRow2 = el('div', 'console__row');
+  seatSec.sec.appendChild(seatRow2);
+  const backBtn = button(seatRow2, '让机器人回充电桩', () => {
+    presence.clearSeat();
+  }, { title: '清除落座点：机器人回充电桩待命，王阿姨回到该房间的预设落位' });
+
+  /* ── ④ 机位 ─────────────────────────────────────────────────────── */
   const c = section('机位');
   const CAMS = [
     ['wide', '全景'], ['living', '客厅'], ['bedroom', '卧室'],
@@ -126,7 +139,7 @@ export function mountConsole(root, ctx) {
     orbitBtn.classList.toggle('console__button--on', on);
   }
 
-  /* ── ④ 场景 ─────────────────────────────────────────────────────── */
+  /* ── ⑤ 场景 ─────────────────────────────────────────────────────── */
   const sc = section('场景');
   sc.row.classList.add('console__row--wide');
   let shadowsOn = true;
@@ -142,7 +155,7 @@ export function mountConsole(root, ctx) {
     event.currentTarget.textContent = dusk ? '光照：黄昏' : '光照：正午';
   });
 
-  /* ── ⑤ 闭环命令 ─────────────────────────────────────────────────── */
+  /* ── ⑥ 闭环命令 ─────────────────────────────────────────────────── */
   const f = section('闭环');
   const confirmBtn = button(f.row, '替她点「已取走」', () => {
     const id = state().activeEventId;
@@ -152,6 +165,8 @@ export function mountConsole(root, ctx) {
 
   // 状态回显放在最上面：面板内容比一屏长时，操作者至少要能一直看到「现在是什么局面」
   const status = el('p', 'console__status', '');
+  const robotStatus = el('p', 'console__status console__status--sub', '');
+  body.insertBefore(robotStatus, body.firstChild);
   body.insertBefore(status, body.firstChild);
 
   /* ── 状态回显：让操作者知道现在是什么局面 ───────────────────────── */
@@ -164,13 +179,30 @@ export function mountConsole(root, ctx) {
     status.textContent = `${demo} · ${s.clock.acceleration}× · ${
       active ? `提示中：${(active.planName ?? active.name ?? '')} ${active.slotTime ?? ''}`.trim() : '当前无进行中的提示'}`;
 
+    // 机器人视角的回显：它"知道"她在哪、还差多远（只读场景与 state，不做任何业务判断）
+    const seat = s.presence.seat;
+    const me = scene.getActorPosition && scene.getActorPosition('robot');
+    const her = seat || (scene.getWaypoint ? scene.getWaypoint(s.presence.location) : null);
+    if (me && her && s.presence.home) {
+      const dist = Math.hypot(me.x - her.x, me.z - her.z);
+      let phase = '回充电桩';
+      if (s.activeEventId) phase = dist > 0.2 ? '送药中 · 前往阿姨' : '送药中 · 已到身边';
+      else if (seat) phase = dist > 0.2 ? '已收到位置 · 前往阿姨' : '已到阿姨身边待命';
+      else if (dist < 0.4) phase = '充电中（已回桩）';
+      robotStatus.textContent = `机器人：${phase} · 距王阿姨 ${dist.toFixed(1)} m · ${
+        seat ? `落座点 (${seat.x.toFixed(1)}, ${seat.z.toFixed(1)})` : '无落座点'}`;
+    } else {
+      robotStatus.textContent = `机器人：${me ? '待命' : '未挂载'} · ${seat ? '有落座点' : '无落座点'}`;
+    }
+
     for (const [value, b] of posButtons) {
-      b.classList.toggle('console__button--on', s.presence.location === value);
+      b.classList.toggle('console__button--on', s.presence.location === value && !seat);
     }
     for (const [mode, b] of camButtons) {
       b.classList.toggle('console__button--on', scene.getCameraMode() === mode);
     }
     confirmBtn.disabled = !s.activeEventId;
+    backBtn.disabled = !seat;
   }
 
   refresh();

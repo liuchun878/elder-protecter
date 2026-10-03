@@ -436,6 +436,43 @@ tasks:
     p1_note: "2026-10-03 提前交付 15 秒演示片 recordings/promo-15s.mp4 + 可复跑脚本 scripts/record-promo.mjs（?film=1 逐帧驱动，含家属端）；三场景录屏与预检仍待 M6"
     status: doing
 
+  # ═══ v1.6 · 点击落座 + 位置感应（模拟）+ 充电桩写实（契约 v1.6）═══
+  - id: H11
+    title: 契约 v1.6 + presence.seat（点击落座的数据与命令）
+    line: H
+    block: D2PM
+    milestone: M1
+    priority: P0
+    files: [契约-接口.md, prototype/js/store.js, prototype/js/presence.js, prototype/js/person.js]
+    depends_on: [H1]
+    acceptance: "presence.seat 为纯数据（structuredClone 不抛）；setSeat/clearSeat 生效且 location 仍落在四个枚举内；点到家具按座面高度反解坐姿、点到地板走 FLOOR_SIT；到点判定/安静时段/升级链路一律只读 location"
+    note: "只加字段与函数，未改任何已有字段名、签名或语义（契约 §0.3）。
+           位置来源仍然只有两处：控制台开关与点击落座，两者都标注「模拟位置输入」，不宣称感知能力。"
+    status: done
+  - id: R8
+    title: 机器人位置感应前往（读 state.presence.seat）+ 回桩充电态
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/robot.js]
+    depends_on: [R3, H11]
+    acceptance: "点任意位置后机器人直线趋近到人前约 0.95 m 并转身面对她；有提示事件时仍优先开舱递药；回桩时底盘灯转青绿并慢呼吸；仍是 state 的纯函数，无自有状态机"
+    note: "站位由 S 的 scene.getApproachPoint(location, seat) 给（会绕开家具），R 只负责走。"
+    status: done
+  - id: S12
+    title: 场景拾取 API（pick/enablePick/showPickMarker）+ 座位元数据 + 写实再一轮
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/scene3d.js, prototype/js/room.js, prototype/js/scene2d.js, prototype/js/textures.js, prototype/js/main.js, prototype/js/controls.js]
+    depends_on: [S11, H11]
+    acceptance: "画面上点任意位置都能落座（沙发/餐椅吸附到坐具、地板席地而坐、墙面沿法线推开后坐地板）；2D 降级同样支持；机器人站在不压家具的空位上；各向异性 + 粗糙度贴图 + 布纹绒面 + 窗光光柱；零外部请求、零控制台异常"
+    note: "写实再一轮：贴图各向异性 8×、程序化粗糙度贴图、织物 sheen、光柱（四边羽化、加法混合、不投影）、挂钟/拐杖/拖鞋/水壶/书堆等生活痕迹。"
+    cut_first: "光柱与织物 sheen → 只留各向异性与粗糙度贴图"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

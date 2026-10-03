@@ -765,6 +765,13 @@ body.view-family {
   color: var(--ink-soft);
 }
 
+/* 第二行回显（机器人视角：感应到谁、还有多远）——比主行弱一档 */
+.console__status--sub {
+  margin-top: -4px;
+  font-size: 12.5px;
+  border-style: dashed;
+}
+
 /* 自由视角的光标提示 */
 .scene-canvas.is-orbiting {
   cursor: grab;

@@ -13,7 +13,7 @@
  */
 
 import * as THREE from 'three';
-import { buildRoom, WAYPOINTS, APPROACH_POINTS, DOCK } from './room.js';
+import { buildRoom, WAYPOINTS, APPROACH_POINTS, DOCK, FURNITURE_BLOCK } from './room.js';
 import { buildEnvironmentScene } from './textures.js';
 
 /**
@@ -178,10 +178,150 @@ export function createScene3D({ container }) {
     backdrop.material.color.setHex(t.tint);
   }
 
-  scene.add(buildRoom());
+  const room = buildRoom();
+  scene.add(room);
   applyShadowFlags();
 
+  /** 充电桩上的灯（room.js 交回来的引用）——充电呼吸由本文件驱动，避免 R/S 互相 import */
+  const dockLights = (room.userData.dock && room.userData.dock.leds) || [];
+  let pulse = 0;
+
   const actors = new Map();
+
+  /* ── 可拾取物 / 单击落座（v1.6，契约 §3.1）────────────────────────
+   * 规则（顺序很重要）：
+   *   ① 命中带 `userData.seat` 的坐具 → 吸附到 spec 给的落点（沙发垫中间 / 椅子正中 / 床边）；
+   *   ② 命中**朝上的面**且高度在 [0.08, 0.62] → 坐到该表面上（茶几、矮凳、窗台…）；
+   *   ③ 其余（墙、竖直面、太高的家具）→ 沿水平法线推开一点，**坐到地板上**。
+   * 不拾取：透明面（窗纱）、自发光面（窗外天幕）、光柱、接触阴影贴片、相机标记。
+   */
+  const SEAT_MAX_Y = 0.62;
+  const SEAT_MIN_Y = 0.08;
+  const ROOM_ANCHOR = { x: 0.8, z: 0.6 };
+  const pickables = [];
+
+  /** 把落点夹回房间内，别让人坐到墙里去 */
+  const clampRoomX = (x) => Math.min(3.55, Math.max(-3.55, x));
+  const clampRoomZ = (z) => Math.min(2.5, Math.max(-2.55, z));
+
+  function refreshPickables() {
+    pickables.length = 0;
+    room.traverse((node) => {
+      if (!node.isMesh || node === marker) return;
+      if (node.userData.noShadow) return;
+      const mats = Array.isArray(node.material) ? node.material : [node.material];
+      if (mats.some((m) => m && m.transparent && m.opacity < 0.9)) return;
+      pickables.push(node);
+    });
+  }
+
+  /** 朝向：面向房间的空场中心（地板落点用；沙发/椅子有自己的朝向） */
+  function facingTowardsRoom(x, z) {
+    return Math.atan2(ROOM_ANCHOR.x - x, ROOM_ANCHOR.z - z);
+  }
+
+  function seatFromHit(hit) {    // ① 坐具元数据（向上找最近的一层）
+    for (let node = hit.object; node && node !== room; node = node.parent) {
+      const spec = node.userData && node.userData.seat;
+      if (!spec) continue;
+      let x = spec.lockX !== undefined ? spec.lockX : hit.point.x;
+      let z = spec.lockZ !== undefined ? spec.lockZ : hit.point.z;
+      if (spec.clampX) x = Math.min(spec.clampX[1], Math.max(spec.clampX[0], x));
+      if (spec.clampZ) z = Math.min(spec.clampZ[1], Math.max(spec.clampZ[0], z));
+      return { x, z, surfaceY: spec.surfaceY, facing: spec.facing, kind: spec.kind };
+    }
+
+    const normal = hit.face
+      ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize()
+      : new THREE.Vector3(0, 1, 0);
+    const y = hit.point.y;
+
+    // ② 朝上的面：直接坐上去
+    if (Math.abs(normal.y) > 0.6 && y >= SEAT_MIN_Y && y <= SEAT_MAX_Y) {
+      return {
+        x: clampRoomX(hit.point.x),
+        z: clampRoomZ(hit.point.z),
+        surfaceY: y,
+        facing: facingTowardsRoom(hit.point.x, hit.point.z),
+        kind: 'surface',
+      };
+    }
+
+    // ③ 墙面 / 太高的家具：沿水平法线推开，坐地板
+    const nx = normal.x;
+    const nz = normal.z;
+    const len = Math.hypot(nx, nz) || 1;
+    const x = clampRoomX(hit.point.x + (nx / len) * 0.34);
+    const z = clampRoomZ(hit.point.z + (nz / len) * 0.34);
+    return { x, z, surfaceY: 0, facing: facingTowardsRoom(x, z), kind: 'floor' };
+  }
+
+  const raycaster = new THREE.Raycaster();
+  const pointerNDC = new THREE.Vector2();
+
+  /** 机器人站在人的正前方多远（米）——递药与"跟到身边"用同一个距离 */
+  const STANDOFF = 0.95;
+  const ROBOT_RADIUS = 0.30;
+
+  /** 这个点能不能站机器人：在房间内，且不在任何家具占位里（各方向留出机身半径） */
+  function isFreeSpot(x, z) {
+    if (x < -3.5 || x > 3.5 || z < -2.5 || z > 2.5) return false;
+    for (const b of FURNITURE_BLOCK) {
+      if (x > b.x0 - ROBOT_RADIUS && x < b.x1 + ROBOT_RADIUS
+        && z > b.z0 - ROBOT_RADIUS && z < b.z1 + ROBOT_RADIUS) return false;
+    }
+    return true;
+  }
+
+  /**
+   * 落座点 → 机器人站位。
+   * 先试"人的正前方"，被家具占了就绕着她左右各偏 35°/70°/105°，最后才退回夹在房间里的正前方。
+   * 这里只做**站位选择**，不是路径规划（机器人仍是直线趋近，见 §5 降级表）。
+   */
+  function approachForSeat(seat) {
+    const facing = Number(seat.facing) || 0;
+    const sx = Number(seat.x);
+    const sz = Number(seat.z);
+    for (const offsetDeg of [0, 35, -35, 70, -70, 105, -105, 150, -150, 180]) {
+      const a = facing + (offsetDeg * Math.PI) / 180;
+      const x = sx + Math.sin(a) * STANDOFF;
+      const z = sz + Math.cos(a) * STANDOFF;
+      if (isFreeSpot(x, z)) return { x, y: 0, z };
+    }
+    return {
+      x: clampRoomX(sx + Math.sin(facing) * STANDOFF),
+      y: 0,
+      z: clampRoomZ(sz + Math.cos(facing) * STANDOFF),
+    };
+  }
+
+  function pickAt(clientX, clientY) {
+    const rect = dom.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointerNDC, camera);
+    const hits = raycaster.intersectObjects(pickables, false);
+    if (!hits.length) return null;
+    return seatFromHit(hits[0]);
+  }
+
+  /* ── 点击落座标记：一圈扩散淡出的环（纯视觉反馈）───────────────── */
+  const marker = new THREE.Mesh(
+    new THREE.RingGeometry(0.20, 0.28, 40),
+    new THREE.MeshBasicMaterial({
+      color: 0x53c9c0, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false,
+    }),
+  );
+  marker.name = 'pick-marker';
+  marker.rotation.x = -Math.PI / 2;
+  marker.position.y = 0.02;
+  marker.visible = false;
+  marker.userData.noShadow = true;
+  marker.renderOrder = 4;
+  scene.add(marker);
+  let markerAge = Infinity;
+  refreshPickables();
 
   /** 新加入场景的物体（房间/角色）都要有阴影标记 */
   function applyShadowFlags() {
@@ -241,7 +381,14 @@ export function createScene3D({ container }) {
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const dom = renderer.domElement;
 
+  /** 单击落座回调（v1.6）：只有"按下 → 抬起"位移很小才算点击，否则是拖拽旋转视角 */
+  let pickHandler = null;
+  const tap = { x: 0, y: 0, at: 0 };
+
   function onPointerDown(event) {
+    tap.x = event.clientX;
+    tap.y = event.clientY;
+    tap.at = performance.now();
     if (!orbit.enabled || event.button !== 0) return;
     orbit.dragging = true;
     orbit.lastX = event.clientX;
@@ -260,6 +407,14 @@ export function createScene3D({ container }) {
     applyOrbit();
   }
   function onPointerUp(event) {
+    // 先判「点击」：与拖拽互不影响（拖拽时位移大，自然不算点击）
+    if (pickHandler && event.button === 0) {
+      const moved = Math.hypot(event.clientX - tap.x, event.clientY - tap.y);
+      if (moved < 6 && performance.now() - tap.at < 400) {
+        const seat = pickAt(event.clientX, event.clientY);
+        if (seat) pickHandler(seat);
+      }
+    }
     if (!orbit.dragging) return;
     orbit.dragging = false;
     dom.classList.remove('is-dragging');
@@ -308,13 +463,52 @@ export function createScene3D({ container }) {
       return WAYPOINTS[location] || null;
     },
 
-    /** 取机器人停靠点（新增函数，契约 v1.2） */
-    getApproachPoint(location) {
+    /**
+     * 取机器人停靠点（契约 v1.2 / v1.6）
+     * @param {string} location 预设位置
+     * @param {object} [seat] 点击落座点（§2 presence.seat）——给了它就按落座点反算
+     */
+    getApproachPoint(location, seat) {
+      if (seat && Number.isFinite(Number(seat.x)) && Number.isFinite(Number(seat.z))) {
+        return approachForSeat(seat);
+      }
       return APPROACH_POINTS[location] || DOCK;
+    },
+
+    /** 点击落座点 → 机器人站位（人正前方 STANDOFF 米，夹回房间内） */
+    getApproachFor(seat) {
+      return approachForSeat(seat);
     },
 
     getDock() {
       return DOCK;
+    },
+
+    /** 屏幕坐标 → 落座点（契约 v1.6 §3.1） */
+    pick(clientX, clientY) {
+      return pickAt(clientX, clientY);
+    },
+
+    /** 注册单击回调（`null` 注销）。拍摄模式下由 main.js 保持不注册。 */
+    enablePick(fn) {
+      pickHandler = typeof fn === 'function' ? fn : null;
+      dom.style.cursor = pickHandler ? 'crosshair' : '';
+    },
+
+    /** 在落点闪一圈标记 */
+    showPickMarker(seat) {
+      if (!seat) return;
+      marker.position.set(seat.x, 0.02, seat.z);
+      marker.visible = true;
+      markerAge = 0;
+    },
+
+    /** 取角色当前世界坐标（只读，给控制台做"距离多远"的回显） */
+    getActorPosition(actorId) {
+      const actor = actors.get(actorId);
+      if (!actor) return null;
+      const p = actor.object3D.position;
+      return { x: p.x, y: p.y, z: p.z };
     },
 
     setCameraMode(mode) {
@@ -370,10 +564,10 @@ export function createScene3D({ container }) {
       renderer.shadowMap.enabled = on;
       sun.castShadow = on;
       scene.traverse((node) => {
-        if (node.isMesh) {
-          node.castShadow = on;
-          node.receiveShadow = on;
-        }
+        if (!node.isMesh) return;
+        // 自发光面（窗外天幕、窗纱、光柱、接触阴影贴片、相机标记）永远不投影
+        node.castShadow = on && !node.userData.noShadow;
+        node.receiveShadow = on;
       });
       // 每次重绘都要重编材质（阴影开关会改变 shader）
       scene.traverse((node) => {
@@ -384,8 +578,32 @@ export function createScene3D({ container }) {
       });
     },
 
-    /** 每帧由 main.js 调用（契约 §3.1：render(state)）。scene 只读 state。 */
-    render() {
+    /** 每帧由 main.js 调用（契约 §3.1：render(state, dt)）。scene 只读 state。 */
+    render(state, dt = 0) {
+      // ① 点击落座标记：0.9 秒内扩散淡出
+      if (marker.visible) {
+        markerAge += Math.max(0, dt);
+        const k = Math.min(1, markerAge / 0.9);
+        const s = 1 + k * 1.5;
+        marker.scale.set(s, s, 1);
+        marker.material.opacity = 0.85 * (1 - k);
+        if (k >= 1) marker.visible = false;
+      }
+
+      // ② 充电呼吸：机器人真的停在桩上、也没有提示事件时，桩上的充电灯才呼吸
+      //    （纯视觉推算，不新增业务状态；state 只读）
+      pulse += Math.max(0, dt);
+      const robot = actors.get('robot');
+      const docked = Boolean(
+        robot
+        && !state?.activeEventId
+        && !state?.presence?.seat
+        && Math.hypot(robot.object3D.position.x - DOCK.x, robot.object3D.position.z - DOCK.z) < 0.4,
+      );
+      for (const led of dockLights) {
+        led.material.emissiveIntensity = docked ? 0.75 + 0.85 * Math.abs(Math.sin(pulse * 1.8)) : 0.14;
+      }
+
       renderer.render(scene, camera);
       view.frames += 1;
       const now = performance.now();
@@ -424,4 +642,4 @@ export function createScene3D({ container }) {
   return api;
 }
 
-export const scene3d = { createScene3D, isWebGLAvailable, WAYPOINTS, APPROACH_POINTS, DOCK };
+export const scene3d = { createScene3D, isWebGLAvailable, WAYPOINTS, APPROACH_POINTS, DOCK, FURNITURE_BLOCK };
