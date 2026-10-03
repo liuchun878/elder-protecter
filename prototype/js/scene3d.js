@@ -113,16 +113,16 @@ export function createScene3D({ container }) {
 
   // 主光：从窗外（-z / -x 方向）斜射进来，暖色，负责全部接触阴影
   const sun = new THREE.DirectionalLight(0xffe0b4, 2.75);
-  sun.position.set(-4.6, 5.4, -7.2);
+  sun.position.set(-5.2, 3.55, -8.4); // 压低太阳：窗光会在地板上拉出一长条光斑
   sun.target.position.set(-0.2, 0.5, 0.4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -6.4;
-  sun.shadow.camera.right = 6.4;
-  sun.shadow.camera.top = 6.4;
-  sun.shadow.camera.bottom = -6.4;
+  sun.shadow.camera.left = -7.6;
+  sun.shadow.camera.right = 7.6;
+  sun.shadow.camera.top = 7.6;
+  sun.shadow.camera.bottom = -7.6;
   sun.shadow.camera.near = 1;
-  sun.shadow.camera.far = 26;
+  sun.shadow.camera.far = 34;
   sun.shadow.bias = -0.0012;
   sun.shadow.normalBias = 0.022;
   sun.shadow.radius = 2.2;

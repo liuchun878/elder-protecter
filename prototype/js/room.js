@@ -134,7 +134,7 @@ function put(parent, geo, mat, x, y, z) {
 /* ── 程序化贴图（repeat 统一 1×1，靠 UV 缩放控制密度） ─────────────── */
 
 const TEX = {
-  floor: woodFloor({ size: 512, planks: 8, repeat: [1, 1], seed: 11, tone: 0xd2b795 }),
+  floor: woodFloor({ size: 512, planks: 8, repeat: [1, 1], seed: 11, tone: 0xc2a47f }),
   wall: wallPaint({ size: 256, repeat: [1, 1], seed: 23, tone: 0xf3ede4 }),
   sofa: fabric({ size: 256, repeat: [1, 1], seed: 31, tone: 0x9299a0, weave: 3 }),
   sofaLit: fabric({ size: 256, repeat: [1, 1], seed: 33, tone: 0xa0a6ac, weave: 3 }),
@@ -153,7 +153,7 @@ const TEX = {
  * 木纹特意取高密度：`wood()` 的年轮对比本来就强，放大成大色块会变成斑马纹，
  * 缩到 6–7 mm 一条才像真实木料。
  */
-const U = { floor: 0.70, wall: 0.30, wood: 5.0, fabric: 3.0, rug: 2.6, stone: 0.95 };
+const U = { floor: 0.70, wall: 0.30, wood: 5.0, fabric: 3.0, rug: 1.55, stone: 0.95 };
 
 const M = {
   floor: new THREE.MeshStandardMaterial({ map: TEX.floor, roughness: 0.55, metalness: 0.02 }),
@@ -258,7 +258,9 @@ function buildWindow(g) {
   const cz = WIN.z - 0.02;
   // 窗外城市（贴图自带天空渐变 + 远景楼群，不加 repeat）
   // 高度必须压在后墙 2.7 m 以内，否则从俯视机位能看到天幕从墙顶冒出来
-  put(g, new THREE.PlaneGeometry(6.8, 2.9, 1, 1), M.city, 0, 1.20, WIN.z - 0.45);
+  const cityPane = put(g, new THREE.PlaneGeometry(6.8, 2.9, 1, 1), M.city, 0, 1.20, WIN.z - 0.45);
+  // ⚠️ 窗外天幕**必须不投影**：它是自发光面，让它投影等于把窗光整片挡死，室内永远没有光斑
+  cityPane.userData.noShadow = true;
 
   // 天蓝灰细框
   const barW = 0.06;
@@ -281,8 +283,10 @@ function buildWindow(g) {
 
   // 两侧薄纱窗帘（半透明，正弦褶皱；shadowSide 已设，不投影）
   const sheer = pleated(1.06, 2.34, 6);
-  put(g, sheer, M.sheer, -2.24, 1.28, WIN.z + 0.19);
-  put(g, sheer, M.sheer, 2.24, 1.28, WIN.z + 0.19);
+  const sheerL = put(g, sheer, M.sheer, -2.24, 1.28, WIN.z + 0.19);
+  const sheerR = put(g, sheer, M.sheer, 2.24, 1.28, WIN.z + 0.19);
+  sheerL.userData.noShadow = true; // 半透明纱不该投影，否则窗光被糊掉
+  sheerR.userData.noShadow = true;
 }
 
 /* ── 4. 客厅 ──────────────────────────────────────────────────────── */

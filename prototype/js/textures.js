@@ -203,22 +203,54 @@ export function fabric({ size = 256, repeat = [3, 3], seed = 31, tone = 0x9aa3ad
 
 /* ── 地毯：圈绒 ───────────────────────────────────────────────────── */
 
-export function rug({ size = 256, repeat = [4, 4], seed = 47, tone = 0x8fc6c9 } = {}) {
+export function rug({ size = 256, repeat = [1, 1], seed = 47, tone = 0xc6c2b7, border = true } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
+  const cloud = fbm(4, 3, rand);
   const [r, g, b] = shade(tone, 1);
-  ctx.fillStyle = rgb(r * 0.9, g * 0.9, b * 0.9);
-  ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < size * 26; i += 1) {
-    const x = rand() * size;
-    const y = rand() * size;
-    const k = 0.78 + rand() * 0.4;
-    ctx.strokeStyle = rgb(r * k, g * k, b * k);
-    ctx.lineWidth = 1 + rand() * 1.4;
-    ctx.beginPath();
-    ctx.arc(x, y, 1.6 + rand() * 2.4, 0, Math.PI * 2);
-    ctx.stroke();
+
+  // 底色：低频明暗（绒面被踩出来的深浅），不是密集小圆点
+  const img = ctx.createImageData(size, size);
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const k = 0.9 + (cloud(x / size, y / size) - 0.5) * 0.26;
+      const i = (y * size + x) * 4;
+      img.data[i] = r * k;
+      img.data[i + 1] = g * k;
+      img.data[i + 2] = b * k;
+      img.data[i + 3] = 255;
+    }
   }
+  ctx.putImageData(img, 0, 0);
+
+  // 织纹：45° 细斜纹（一深一浅成对，才有「织」的感觉）
+  for (let i = -size; i < size * 2; i += 4) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + size, size); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(i + 2, 0); ctx.lineTo(i + 2 + size, size); ctx.stroke();
+  }
+
+  // 绒面：稀疏、极低对比
+  for (let i = 0; i < size * 4; i += 1) {
+    const a = rand() * 0.05;
+    ctx.fillStyle = rand() > 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`;
+    ctx.fillRect(rand() * size, rand() * size, 1.6, 1.6);
+  }
+
+  // 包边：真实地毯都有一圈收边
+  if (border) {
+    const w = Math.max(4, Math.round(size * 0.035));
+    ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+    ctx.lineWidth = w;
+    ctx.strokeRect(w / 2, w / 2, size - w, size - w);
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.lineWidth = 1.6;
+    ctx.strokeRect(w + 2, w + 2, size - w * 2 - 4, size - w * 2 - 4);
+  }
+
   return finish(canvas, { repeat });
 }
 
