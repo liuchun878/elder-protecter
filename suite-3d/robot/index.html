@@ -214,10 +214,10 @@
   put(new T.BoxGeometry(0.024,0.004,0.024),pad,0.006,0.010,0.106,trayG);
   const gauze=put(new T.CylinderGeometry(0.014,0.014,0.026,18),pad,0.040,0.021,0.100,trayG);
   gauze.rotation.z=Math.PI/2;
-  // 舱内注水：细水流（只在注水阶段可见）
-  const sg=new T.CylinderGeometry(0.0032,0.0040,0.075,10);sg.translate(0,-0.0375,0);
-  const stream=new T.Mesh(sg,new T.MeshPhysicalMaterial({color:0xbfe3f2,roughness:.05,transparent:true,opacity:.8}));
-  stream.position.set(0,trayY+0.112,0.055);stream.visible=false;robot.add(stream);
+  // —— 注水：一道细水流，落在空杯正上方（无注水器）
+  const sg = new T.CylinderGeometry(0.0030,0.0042,0.080,10); sg.translate(0,-0.040,0);
+  const stream = new T.Mesh(sg, new T.MeshPhysicalMaterial({color:0xbfe3f2,roughness:.05,transparent:true,opacity:.85}));
+  stream.position.set(0.030, trayY+0.118, 0.272); stream.visible = false; robot.add(stream);
   // —— 老人的手
   const handG=new T.Group();robot.add(handG);handG.visible=false;
   (function(){put(new T.BoxGeometry(0.080,0.028,0.090),M.skin,0,0,0,handG);
@@ -226,9 +226,12 @@
     const w=put(new T.CylinderGeometry(0.034,0.040,0.16,16),M.sleeve,0,-0.004,0.108,handG);w.rotation.x=Math.PI/2;})();
   // —— 时序
   const STEPS=[
-    {n:'① 对开门开启',a:0.00,b:0.12},{n:'② 托盘推出',a:0.12,b:0.26},
-    {n:'③ 舱内注水',a:0.26,b:0.46},{n:'④ 递给老人',a:0.46,b:0.58},
-    {n:'⑤ 老人取药',a:0.58,b:0.74},{n:'⑥ 收回复位',a:0.88,b:1.00}];
+    {n:'① 对开门开启',a:0.00,b:0.10},
+    {n:'② 托盘推出（空杯）',a:0.10,b:0.24},
+    {n:'③ 给空杯注水',a:0.24,b:0.48},
+    {n:'④ 递给老人',a:0.48,b:0.60},
+    {n:'⑤ 老人取药',a:0.60,b:0.76},
+    {n:'⑥ 先收托盘·再关门',a:0.88,b:1.00}];
   const DUR=17.5;let t=17.5*0.24,playing=true,taken=false,forceTake=false;
   const ease=k=>k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
   const seg=(x,a,b)=>Math.max(0,Math.min(1,(x-a)/(b-a)));
@@ -238,10 +241,12 @@
   STEPS.forEach(s=>{const d=document.createElement('div');d.className='step';d.innerHTML='<i></i><span>'+s.n+'</span>';stepsEl.appendChild(d);});
   function update(k){
     const open=ease(seg(k,STEPS[0].a,STEPS[0].b)), close=ease(seg(k,STEPS[5].a,0.995));
-    const sw=open*(Math.PI/2)*(1-close);   // 门敞开到 90°
+    const trayBack=Math.min(1,close*1.60);           // 先收托盘
+    const doorClose=Math.max(0,(close-0.62)/0.38); // 托盘收完再关门
+    const sw=open*(Math.PI/2)*(1-doorClose);   // 门敞开到 90°
     doorL.rotation.y=-sw; doorR.rotation.y=sw;
     const out=ease(seg(k,STEPS[1].a,STEPS[1].b)), give=ease(seg(k,STEPS[3].a,STEPS[3].b)), back=ease(seg(k,STEPS[5].a,0.995));
-    const reach=(out*0.190+give*0.050)*(1-back);
+    const reach=(out*0.190+give*0.050)*(1-trayBack);
     trayG.position.set(0,trayY,0.030+reach);
     const fill=ease(seg(k,STEPS[2].a,STEPS[2].b));
     const pouring=fill>0.02&&fill<0.99&&give<0.05;
