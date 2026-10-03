@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>子女端提示 App · RHINE-LINK｜送药机器人 子女手机端</title>
+<style>
+/* ============================================================
+   莱茵生命（Rhine Lab）风 · 子女端 App
+   深色实验室底色 / 青色数据主色 / 琥珀警示 / 状态色语义
+   结构：总览 · 告警 · 用药 · 数据 · 设置
+   ============================================================ */
+:root{
+  --bg:#04090e;
+  --bg2:#07131b;
+  --bg3:#0b1c26;
+  --panel:rgba(10,26,35,.82);
+  --line:rgba(110,205,225,.20);
+  --line2:rgba(110,205,225,.42);
+  --cyan:#63d8e6;
+  --cyan-dim:#2f7f8e;
+  --cyan-deep:#123039;
+  --amber:#f0a92e;
+  --amber-deep:#4a3410;
+  --red:#ff5a55;
+  --green:#35d6a4;
+  --purple:#a68cff;
+  --warn:#f5c542;
+  --txt:#dcf1f6;
+  --dim:#7e9aa6;
+  --dim2:#54707c;
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;
+  --sans:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);
+  background:
+    radial-gradient(1100px 700px at 15% -5%,rgba(60,180,205,.13),transparent 60%),
+    radial-gradient(900px 600px at 95% 105%,rgba(240,169,46,.09),transparent 60%),
+    var(--bg);
+  color:var(--txt);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:900;opacity:.05;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.9) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input{font-family:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:rgba(99,216,230,.28);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+.mono{font-family:var(--mono)}
+
+/* ---------- 页面骨架 ---------- */
+.page{display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:26px 22px 40px;flex-wrap:wrap}
+.side{width:390px;max-width:100%;padding-top:8px}
+.side-brand{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.side-brand .hex{
+  width:38px;height:38px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--cyan-deep),rgba(4,9,14,.2));
+  border:1px solid var(--line2);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+  color:var(--cyan);font-family:var(--mono);font-size:15px;font-weight:700
+}
+.side-brand h1{font-size:17px;margin:0;letter-spacing:.16em;font-weight:700}
+.side-brand p{margin:3px 0 0;font-family:var(--mono);font-size:10.5px;color:var(--dim2);letter-spacing:.09em}
+.side-card{
+  border:1px solid var(--line);background:var(--panel);padding:14px 15px;margin-bottom:12px;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  position:relative
+}
+.side-card h3{margin:0 0 10px;font-size:12px;letter-spacing:.14em;color:var(--cyan);font-family:var(--mono);font-weight:600}
+.side-card h3::before{content:"// ";color:var(--cyan-dim)}
+.side-card p{margin:0 0 9px;font-size:12.3px;line-height:1.75;color:#adc6d0}
+.side-card p:last-child{margin-bottom:0}
+.side-card b{color:var(--cyan);font-weight:600}
+.side-card .warnline{color:var(--amber)}
+.kv{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:11px;padding:4px 0;border-bottom:1px dashed rgba(110,205,225,.13);color:var(--dim)}
+.kv:last-child{border-bottom:none}
+.kv b{color:#cfe9ef;font-weight:500}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--dim)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:6px;vertical-align:middle}
+
+/* ---------- 手机外框 ---------- */
+.device-wrap{position:sticky;top:22px}
+.device{
+  position:relative;width:414px;height:872px;border-radius:44px;padding:11px;
+  background:linear-gradient(150deg,#204450,#0a1a22 35%,#16333d);
+  box-shadow:0 0 0 1px rgba(110,205,225,.22),0 40px 90px rgba(0,0,0,.75),0 0 90px rgba(60,180,205,.1);
+}
+.device::after{
+  content:"";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);
+  width:110px;height:4px;border-radius:3px;background:rgba(110,205,225,.28)
+}
+.device-inner{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--bg2);display:flex;flex-direction:column}
+.device::before{
+  content:"";position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:24px;border-radius:0 0 16px 16px;
+  background:#0a1a22;z-index:60;pointer-events:none
+}
+
+/* ---------- 顶部状态条 ---------- */
+.statusbar{
+  flex:none;display:flex;justify-content:space-between;align-items:center;
+  padding:11px 20px 6px;font-family:var(--mono);font-size:11px;color:#9fc2cc;letter-spacing:.08em
+}
+.statusbar .sb-r{display:flex;gap:8px;align-items:center}
+.sig{display:flex;gap:2px;align-items:flex-end;height:9px}
+.sig i{width:2.5px;background:#9fc2cc;display:block}
+.sig i:nth-child(1){height:3px}.sig i:nth-child(2){height:5px}.sig i:nth-child(3){height:7px}.sig i:nth-child(4){height:9px;background:var(--cyan)}
+.batt{display:flex;align-items:center;gap:4px}
+.batt .cell{width:20px;height:10px;border:1px solid #9fc2cc;border-radius:2px;padding:1.5px}
+.batt .cell i{display:block;height:100%;width:76%;background:var(--green)}
+
+/* ---------- 应用头 ---------- */
+.appbar{
+  flex:none;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:6px 18px 12px;border-bottom:1px solid var(--line);position:relative
+}
+.appbar::after{content:"";position:absolute;left:18px;bottom:-1px;width:52px;height:1px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.ab-l{display:flex;align-items:center;gap:10px;min-width:0}
+.ab-l .hex{
+  width:32px;height:32px;flex:none;display:grid;place-items:center;color:var(--cyan);
+  background:linear-gradient(140deg,var(--cyan-deep),rgba(4,9,14,.3));border:1px solid var(--line2);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);font-family:var(--mono);font-size:12px;font-weight:700
+}
+.ab-t{min-width:0}
+.ab-t b{display:block;font-size:14.5px;letter-spacing:.14em;font-weight:700;white-space:nowrap}
+.ab-t span{display:block;font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.1em;margin-top:2px;white-space:nowrap}
+.icon-btn{
+  position:relative;width:36px;height:36px;flex:none;display:grid;place-items:center;
+  border:1px solid var(--line);background:rgba(10,26,35,.6);color:var(--dim);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)
+}
+.icon-btn:hover{color:var(--cyan);border-color:var(--line2)}
+.icon-btn.on{color:var(--amber);border-color:rgba(240,169,46,.5)}
+.dot-badge{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;
+  background:var(--red);color:#fff;font-family:var(--mono);font-size:9.5px;line-height:16px;text-align:center;font-weight:700;
+  box-shadow:0 0 10px rgba(255,90,85,.7)
+}
+
+/* ---------- 滚动区 ---------- */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px 20px;scroll-behavior:smooth}
+.panel{display:none}
+.panel.active{display:block;animation:fadein .26s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- 通用组件 ---------- */
+.sec-head{display:flex;align-items:center;gap:9px;margin:16px 0 9px}
+.sec-head:first-child{margin-top:0}
+.sec-head .bar{width:3px;height:13px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.sec-head b{font-size:11.5px;letter-spacing:.18em;color:var(--cyan);font-weight:600;font-family:var(--mono)}
+.sec-head span{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.08em}
+.card{
+  position:relative;border:1px solid var(--line);background:var(--panel);padding:13px;
+  clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px)
+}
+.card::after{
+  content:"";position:absolute;right:-1px;top:9px;width:1px;height:22px;background:var(--cyan);opacity:.55
+}
+.card + .card{margin-top:10px}
+.hair{height:1px;background:repeating-linear-gradient(90deg,var(--line) 0 5px,transparent 5px 10px);margin:9px 0}
+
+.tone-ok::after{background:var(--green)}
+.tone-warn::after{background:var(--amber)}
+.tone-emg::after{background:var(--red)}
+.tone-info::after{background:var(--purple)}
+
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  padding:3px 7px;border:1px solid var(--line2);color:var(--txt);background:rgba(99,216,230,.08);white-space:nowrap
+}
+.chip.ok{color:var(--green);border-color:rgba(53,214,164,.45);background:rgba(53,214,164,.09)}
+.chip.warn{color:var(--amber);border-color:rgba(240,169,46,.5);background:rgba(240,169,46,.1)}
+.chip.emg{color:var(--red);border-color:rgba(255,90,85,.5);background:rgba(255,90,85,.1)}
+.chip.info{color:var(--purple);border-color:rgba(166,140,255,.45);background:rgba(166,140,255,.09)}
+.chip.dim{color:var(--dim);border-color:var(--line);background:rgba(255,255,255,.02)}
+.blip{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;animation:bp 1.6s infinite}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.25}}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;padding:8px 12px;
+  border:1px solid var(--line2);color:var(--cyan);background:rgba(99,216,230,.07);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+  transition:.16s;white-space:nowrap
+}
+.btn:hover{background:rgba(99,216,230,.16)}
+.btn.solid{background:var(--cyan);color:#04141a;border-color:var(--cyan);font-weight:700}
+.btn.solid:hover{background:#8fe6f0}
+.btn.warn{color:var(--amber);border-color:rgba(240,169,46,.5);background:rgba(240,169,46,.09)}
+.btn.warn:hover{background:rgba(240,169,46,.18)}
+.btn.emg{color:#ffe6e5;border-color:rgba(255,90,85,.6);background:rgba(255,90,85,.16)}
+.btn.emg:hover{background:rgba(255,90,85,.28)}
+.btn[disabled]{opacity:.42;cursor:default}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+
+/* ---------- 总览：老人状态 ---------- */
+.elder{display:flex;gap:12px;align-items:center}
+.elder .avatar{
+  width:46px;height:46px;flex:none;display:grid;place-items:center;font-size:16px;font-weight:700;color:var(--cyan);
+  border:1px solid var(--line2);background:linear-gradient(150deg,var(--cyan-deep),rgba(8,20,26,.4));
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)
+}
+.elder .meta{min-width:0;flex:1}
+.elder .meta b{font-size:15px;letter-spacing:.06em}
+.elder .meta span{display:block;font-size:11px;color:var(--dim);margin-top:3px}
+.elder .meta em{font-style:normal;color:var(--cyan)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.stat{border:1px solid var(--line);background:rgba(6,18,24,.6);padding:9px 10px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--cyan);opacity:.5}
+.stat span{display:block;font-size:10px;color:var(--dim2);letter-spacing:.1em;font-family:var(--mono)}
+.stat b{display:block;font-family:var(--mono);font-size:16px;margin-top:5px;font-weight:600}
+.stat b small{font-size:10px;color:var(--dim);margin-left:3px;font-weight:400}
+.stat.warn b{color:var(--amber)}.stat.warn::before{background:var(--amber)}
+.stat.ok b{color:var(--green)}.stat.ok::before{background:var(--green)}
+
+/* 依从率环 */
+.adh{display:flex;gap:14px;align-items:center}
+.ring{position:relative;width:96px;height:96px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .val b{display:block;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--cyan);line-height:1}
+.ring .val span{display:block;font-family:var(--mono);font-size:9px;color:var(--dim2);letter-spacing:.1em;margin-top:4px}
+.adh-info{flex:1;min-width:0}
+.adh-info .row{display:flex;justify-content:space-between;font-size:11.5px;padding:4px 0;border-bottom:1px dashed rgba(110,205,225,.13);color:var(--dim)}
+.adh-info .row:last-child{border-bottom:none}
+.adh-info .row b{font-family:var(--mono);font-weight:600;color:#d8eef3}
+.adh-info .row b.ok{color:var(--green)}.adh-info .row b.warn{color:var(--amber)}.adh-info .row b.emg{color:var(--red)}
+
+/* ---------- 今日排程条 ---------- */
+.tl{display:flex;gap:7px;margin-top:4px}
+.tl .slot{
+  flex:1;border:1px solid var(--line);background:rgba(6,18,24,.55);padding:8px 6px;text-align:center;position:relative;overflow:hidden;min-width:0
+}
+.tl .slot em{display:block;font-family:var(--mono);font-size:10px;font-style:normal;color:var(--dim);letter-spacing:.06em}
+.tl .slot b{display:block;font-family:var(--mono);font-size:13px;margin-top:5px;font-weight:600}
+.tl .slot i{display:block;font-size:9.5px;color:var(--dim2);font-style:normal;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl .slot::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:2px;background:var(--dim2)}
+.tl .slot.ok::after{background:var(--green)}.tl .slot.ok b{color:var(--green)}
+.tl .slot.warn::after{background:var(--amber)}.tl .slot.warn b{color:var(--amber)}
+.tl .slot.emg::after{background:var(--red)}.tl .slot.emg b{color:var(--red)}
+.tl .slot.now{border-color:var(--line2);box-shadow:inset 0 0 22px rgba(99,216,230,.13)}
+
+/* ---------- 情景推送卡 ---------- */
+.sc-list{display:flex;flex-direction:column;gap:10px}
+.sc-card{text-align:left;width:100%;display:block;padding:0;transition:.18s;position:relative}
+.sc-card:hover{transform:translateY(-2px)}
+.sc-card .top{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(6,18,24,.5)}
+.sc-card .code{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim2)}
+.sc-card .name{font-size:13.5px;font-weight:600;letter-spacing:.04em}
+.sc-card .body{padding:11px 12px}
+.sc-card .sum{font-size:12.2px;line-height:1.65;color:#b6ced6;margin:0}
+.sc-card .foot{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line);background:rgba(6,18,24,.35)}
+.sc-card .foot .time{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:.06em}
+.sc-card .foot .go{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:.1em}
+.sc-card.paused{opacity:.62}
+.sc-card.paused .top{background:rgba(120,120,120,.06)}
+
+/* ---------- 告警流 ---------- */
+.feed-head{display:flex;gap:6px;margin-bottom:10px}
+.feed-head .btn{flex:1}
+.record{border-left:2px solid var(--cyan-dim);padding:0 0 12px 12px;position:relative}
+.record:last-child{padding-bottom:2px}
+.record::before{content:"";position:absolute;left:-4.5px;top:5px;width:7px;height:7px;transform:rotate(45deg);background:var(--bg2);border:1px solid var(--cyan)}
+.record.warn{border-color:var(--amber)}.record.warn::before{border-color:var(--amber);background:var(--amber)}
+.record.emg{border-color:var(--red)}.record.emg::before{border-color:var(--red);background:var(--red)}
+.record.info{border-color:var(--purple)}.record.info::before{border-color:var(--purple);background:var(--purple)}
+.record .rh{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.record .rh time{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.06em}
+.record .rh .kind{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.1em}
+.record .rb{font-size:12.4px;line-height:1.6;color:#c2d8df}
+.record .rm{margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.65}
+.record .rm i{color:var(--cyan-dim);font-style:normal}
+
+/* ---------- 用药记录 ---------- */
+.week{display:flex;gap:6px;margin-bottom:4px}
+.wday{
+  flex:1;border:1px solid var(--line);background:rgba(6,18,24,.5);padding:8px 3px 6px;text-align:center;min-width:0;transition:.15s
+}
+.wday span{display:block;font-size:10px;color:var(--dim);letter-spacing:.06em}
+.wday b{display:block;font-family:var(--mono);font-size:11.5px;margin-top:3px;font-weight:600}
+.wday em{display:block;font-family:var(--mono);font-size:9px;font-style:normal;color:var(--dim2);margin-top:3px}
+.wday.sel{border-color:var(--cyan);background:rgba(99,216,230,.12);box-shadow:inset 0 0 18px rgba(99,216,230,.14)}
+.wday.today b{color:var(--cyan)}
+.wday.alert em{color:var(--red)}
+.spark{display:flex;align-items:flex-end;gap:6px;height:58px;margin:12px 0 4px;padding:0 2px}
+.spark .b{flex:1;position:relative;background:linear-gradient(180deg,rgba(99,216,230,.75),rgba(99,216,230,.14));min-height:3px}
+.spark .b.low{background:linear-gradient(180deg,rgba(240,169,46,.85),rgba(240,169,46,.14))}
+.spark .b.zero{background:linear-gradient(180deg,rgba(255,90,85,.85),rgba(255,90,85,.14))}
+.spark .b i{position:absolute;bottom:-16px;left:0;width:100%;text-align:center;font-family:var(--mono);font-size:9px;font-style:normal;color:var(--dim2)}
+.dose{border:1px solid var(--line);background:var(--panel);padding:11px 12px;margin-top:9px;position:relative}
+.dose::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--dim2)}
+.dose.ok::before{background:var(--green)}
+.dose.warn::before{background:var(--amber)}
+.dose.emg::before{background:var(--red)}
+.dose .dh{display:flex;align-items:center;gap:8px}
+.dose .dh .tt{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.06em}
+.dose .dh .nm{font-size:11.5px;color:var(--dim)}
+.dose .dh .st{margin-left:auto}
+.dose .grid{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:9px;font-size:11.5px}
+.dose .grid dt{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:.06em}
+.dose .grid dd{margin:0;color:#c6dce3;line-height:1.55}
+.note{
+  margin-top:9px;padding:7px 9px;border-left:2px solid var(--amber);background:rgba(240,169,46,.07);
+  font-size:11.3px;line-height:1.6;color:#e3cfa2
+}
+.note.ok{border-color:var(--green);background:rgba(53,214,164,.06);color:#a9e2cd}
+.note.emg{border-color:var(--red);background:rgba(255,90,85,.07);color:#f0b6b4}
+
+/* ---------- 表单 / 数据 ---------- */
+.field{margin-bottom:12px}
+.field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim2);margin-bottom:5px}
+.input{
+  width:100%;background:rgba(4,12,17,.75);border:1px solid var(--line);color:var(--txt);
+  padding:9px 10px;font-size:12.5px;font-family:var(--mono);letter-spacing:.04em
+}
+.input:focus{outline:none;border-color:var(--line2);box-shadow:0 0 0 2px rgba(99,216,230,.1)}
+.input::placeholder{color:var(--dim2)}
+.range{width:100%;accent-color:var(--cyan);height:18px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{
+  flex:1;min-width:64px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:8px 6px;
+  border:1px solid var(--line);color:var(--dim);background:rgba(6,18,24,.5);transition:.15s
+}
+.seg button.on{color:var(--cyan);border-color:var(--line2);background:rgba(99,216,230,.12)}
+.switch-line{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(110,205,225,.13)}
+.switch-line:last-child{border-bottom:none}
+.switch-line .txt{flex:1;min-width:0}
+.switch-line .txt b{display:block;font-size:12.3px;font-weight:500}
+.switch-line .txt span{display:block;font-size:10.5px;color:var(--dim2);margin-top:2px;line-height:1.5}
+.toggle{width:40px;height:20px;flex:none;border:1px solid var(--line2);background:rgba(4,12,17,.7);position:relative;transition:.18s}
+.toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--dim2);transition:.18s}
+.toggle.on{background:rgba(99,216,230,.22);border-color:var(--cyan)}
+.toggle.on i{left:22px;background:var(--cyan);box-shadow:0 0 9px var(--cyan)}
+.hexgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:4px}
+.hexgrid .hx{
+  aspect-ratio:1;border:1px solid var(--line);background:rgba(6,18,24,.55);display:grid;place-content:center;text-align:center;gap:1px
+}
+.hexgrid .hx span{font-family:var(--mono);font-size:9px;color:var(--dim2);letter-spacing:.06em}
+.hexgrid .hx b{font-family:var(--mono);font-size:13px;font-weight:600}
+.med-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed rgba(110,205,225,.13)}
+.med-row:last-child{border-bottom:none}
+.med-row .lv{width:4px;height:30px;flex:none;background:var(--cyan)}
+.med-row .lv.low{background:var(--amber)}
+.med-row .lv.out{background:var(--red)}
+.med-row .info{flex:1;min-width:0}
+.med-row .info b{display:block;font-size:12.5px;font-weight:600}
+.med-row .info span{display:block;font-family:var(--mono);font-size:10px;color:var(--dim2);margin-top:3px;letter-spacing:.05em}
+.med-row .num{font-family:var(--mono);font-size:11.5px;text-align:right;white-space:nowrap}
+.med-row .num b{display:block;font-size:14px}
+.med-row .num.low b{color:var(--amber)}
+.med-row .num.out b{color:var(--red)}
+
+/* ---------- 底部导航 ---------- */
+.tabbar{
+  flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(6,16,22,.94),rgba(4,10,14,.99));position:relative
+}
+.tabbar::before{content:"";position:absolute;top:-1px;left:0;width:20%;height:1px;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transition:transform .25s;transform:translateX(0)}
+.tabbar[data-i="1"]::before{transform:translateX(100%)}
+.tabbar[data-i="2"]::before{transform:translateX(200%)}
+.tabbar[data-i="3"]::before{transform:translateX(300%)}
+.tabbar[data-i="4"]::before{transform:translateX(400%)}
+.nav{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 12px;color:var(--dim2);position:relative;transition:.16s}
+.nav svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.nav span{font-size:9.5px;letter-spacing:.08em}
+.nav.on{color:var(--amber)}
+.nav.on svg{filter:drop-shadow(0 0 5px rgba(240,169,46,.6))}
+.nav .nb{
+  position:absolute;top:5px;right:50%;margin-right:-22px;min-width:15px;height:15px;border-radius:8px;
+  background:var(--red);color:#fff;font-family:var(--mono);font-size:9px;line-height:15px;text-align:center;font-weight:700
+}
+
+/* ---------- 全屏紧急弹窗 ---------- */
+.emg-overlay{
+  position:fixed;inset:0;z-index:1200;display:none;place-items:center;padding:24px;
+  background:radial-gradient(circle at 50% 45%,rgba(70,6,6,.72),rgba(2,5,8,.95));
+  backdrop-filter:blur(3px)
+}
+.emg-overlay.on{display:grid;animation:fadein .2s ease}
+.emg-box{
+  width:100%;max-width:420px;border:1px solid rgba(255,90,85,.55);background:linear-gradient(160deg,rgba(28,8,10,.97),rgba(6,12,16,.98));
+  box-shadow:0 0 60px rgba(255,60,60,.28),inset 0 0 40px rgba(255,90,85,.06);position:relative;
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  animation:shake .5s ease
+}
+@keyframes shake{0%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}100%{transform:translateX(0)}}
+.emg-top{display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid rgba(255,90,85,.3);background:rgba(255,90,85,.1)}
+.emg-top .tag{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:#ffb3b0}
+.emg-top .pulse{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 12px var(--red);animation:bp 1s infinite}
+.emg-body{padding:16px 15px}
+.emg-body h2{margin:0 0 4px;font-size:19px;letter-spacing:.06em}
+.emg-body .sub{font-family:var(--mono);font-size:10.5px;color:#e8a4a1;letter-spacing:.08em;margin-bottom:12px}
+.emg-q{
+  border:1px solid rgba(255,90,85,.3);background:rgba(255,90,85,.07);padding:11px 12px;font-size:13px;
+  line-height:1.7;color:#ffd9d7;margin-bottom:12px
+}
+.emg-kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11.5px;margin-bottom:14px}
+.emg-kv dt{font-family:var(--mono);font-size:10px;color:#bf7d7b;letter-spacing:.06em}
+.emg-kv dd{margin:0;color:#f0d6d5}
+.emg-acts{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.emg-acts .btn{padding:11px 8px;font-size:11.5px;justify-content:center}
+.emg-foot{margin-top:12px;font-family:var(--mono);font-size:9.5px;color:#9a6f6e;line-height:1.7;letter-spacing:.04em;text-align:center}
+
+/* ---------- 手机推送横幅 ---------- */
+.banner-wrap{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1300;width:calc(100% - 32px);max-width:372px;
+  pointer-events:none;display:flex;flex-direction:column;gap:8px
+}
+.banner{
+  pointer-events:auto;border:1px solid var(--line2);background:linear-gradient(160deg,rgba(9,24,32,.97),rgba(4,10,14,.97));
+  box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 30px rgba(99,216,230,.12);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+  animation:drop .32s cubic-bezier(.2,.9,.3,1.3)
+}
+@keyframes drop{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
+.banner.out{animation:up .26s ease forwards}
+@keyframes up{to{opacity:0;transform:translateY(-18px)}}
+.banner.warn{border-color:rgba(240,169,46,.5)}
+.banner.emg{border-color:rgba(255,90,85,.6);box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 34px rgba(255,90,85,.3)}
+.banner .bt{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.banner.emg .bt{border-color:rgba(255,90,85,.3);background:rgba(255,90,85,.1)}
+.banner.warn .bt{border-color:rgba(240,169,46,.3);background:rgba(240,169,46,.08)}
+.banner .bt .src{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--dim)}
+.banner .bt .now{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim2)}
+.banner .bb{padding:10px 12px}
+.banner .bb b{display:block;font-size:13px;margin-bottom:5px;letter-spacing:.03em}
+.banner .bb p{margin:0;font-size:11.8px;line-height:1.6;color:#b9d2da}
+.banner .bact{display:flex;gap:7px;padding:0 12px 11px}
+.banner .bact .btn{font-size:10px;padding:6px 10px}
+
+/* ---------- 情景详情抽屉 ---------- */
+.drawer{
+  position:absolute;inset:0;z-index:80;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#061119,#040c11 40%,#040c11);
+  transform:translateY(101%);transition:transform .34s cubic-bezier(.3,.85,.25,1)
+}
+.drawer.open{transform:none}
+.dr-head{flex:none;display:flex;align-items:center;gap:10px;padding:14px 15px 12px;border-bottom:1px solid var(--line);position:relative}
+.dr-head::after{content:"";position:absolute;left:15px;bottom:-1px;width:44px;height:1px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.dr-head .bk{width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid var(--line);color:var(--dim)}
+.dr-head .bk:hover{color:var(--cyan);border-color:var(--line2)}
+.dr-head .tt{min-width:0;flex:1}
+.dr-head .tt b{display:block;font-size:14px;letter-spacing:.06em}
+.dr-head .tt span{display:block;font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.1em;margin-top:3px}
+.dr-body{flex:1;overflow-y:auto;padding:14px 15px 26px}
+.dr-sec{margin-bottom:16px}
+.dr-sec > h4{
+  display:flex;align-items:center;gap:8px;margin:0 0 9px;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.16em;color:var(--cyan);font-weight:600
+}
+.dr-sec > h4 .n{
+  width:17px;height:17px;flex:none;display:grid;place-items:center;font-size:9px;color:var(--bg);
+  background:var(--cyan);font-weight:700
+}
+.lead{font-size:12.4px;line-height:1.75;color:#b3ccd4;margin:0}
+.lead b{color:#e2f3f7}
+
+/* 手机推送样式（核心） */
+.push{
+  border:1px solid var(--line2);background:linear-gradient(170deg,rgba(10,26,35,.92),rgba(5,13,18,.92));
+  box-shadow:inset 0 0 30px rgba(99,216,230,.05)
+}
+.push.warn{border-color:rgba(240,169,46,.5);box-shadow:inset 0 0 30px rgba(240,169,46,.06)}
+.push.emg{border-color:rgba(255,90,85,.5);box-shadow:inset 0 0 30px rgba(255,90,85,.08)}
+.push-h{display:flex;align-items:center;gap:7px;padding:8px 11px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.push.warn .push-h{border-color:rgba(240,169,46,.28)}
+.push.emg .push-h{border-color:rgba(255,90,85,.32)}
+.push-h .app{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--dim)}
+.push-h .tag{margin-left:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--amber)}
+.push.emg .push-h .tag{color:var(--red)}
+.push-b{padding:12px 12px 13px}
+.push-b .ttl{font-size:14px;font-weight:700;letter-spacing:.03em;margin-bottom:7px}
+.push-b .msg{font-size:13.2px;line-height:1.8;color:#dceef3;position:relative;padding-left:12px}
+.push-b .msg::before{content:"";position:absolute;left:0;top:.55em;width:3px;height:11px;background:var(--cyan)}
+.push.warn .push-b .msg::before{background:var(--amber)}
+.push.emg .push-b .msg::before{background:var(--red)}
+.push-b .msg em{font-style:normal;color:var(--amber);font-weight:600}
+.push-b .msg i{font-style:normal;font-family:var(--mono);color:var(--cyan);letter-spacing:.04em}
+.push-b .reason{
+  margin-top:10px;padding:8px 10px;border-left:2px solid var(--red);background:rgba(255,90,85,.08);
+  font-size:11.8px;line-height:1.7;color:#f2c3c1
+}
+.push-b .reason b{color:#ff9b97}
+.push-f{display:flex;gap:8px;padding:9px 11px;border-top:1px solid var(--line);background:rgba(0,0,0,.2)}
+.push-f .btn{font-size:10px;padding:6px 10px}
+
+/* 数据行 / 闭环 / 时间轴 */
+.dl{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:11.6px}
+.dl dt{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:.06em;white-space:nowrap}
+.dl dd{margin:0;color:#cfe4ea;line-height:1.6}
+.dl dd .hi{color:var(--cyan);font-family:var(--mono)}
+.dl dd .wr{color:var(--amber);font-family:var(--mono)}
+.dl dd .dg{color:var(--red);font-family:var(--mono)}
+
+.chain{position:relative;padding-left:18px}
+.chain::before{content:"";position:absolute;left:5px;top:5px;bottom:5px;width:1px;background:repeating-linear-gradient(180deg,var(--line2) 0 4px,transparent 4px 8px)}
+.chain .step{position:relative;padding-bottom:11px}
+.chain .step:last-child{padding-bottom:0}
+.chain .step::before{
+  content:"";position:absolute;left:-18px;top:3px;width:9px;height:9px;transform:rotate(45deg);
+  background:var(--bg2);border:1px solid var(--cyan-dim)
+}
+.chain .step.ok::before{background:var(--green);border-color:var(--green)}
+.chain .step.hot::before{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px var(--amber)}
+.chain .step b{display:block;font-size:11.8px;font-weight:600;letter-spacing:.02em}
+.chain .step span{display:block;font-size:11.2px;color:var(--dim);line-height:1.6;margin-top:3px}
+.chain .step em{font-style:normal;font-family:var(--mono);font-size:9.5px;color:var(--dim2);margin-left:6px;letter-spacing:.06em}
+
+.tier{border:1px solid var(--line);background:rgba(6,18,24,.5);padding:10px 11px;margin-bottom:8px}
+.tier.hot{border-color:rgba(240,169,46,.4);background:rgba(240,169,46,.05)}
+.tier.done{border-color:rgba(53,214,164,.3);background:rgba(53,214,164,.04)}
+.tier .th{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.tier .th b{font-size:12.3px}
+.tier .th .tm{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim2)}
+.tier p{margin:0;font-size:11.5px;line-height:1.7;color:#b3ccd4}
+.tier p em{font-style:normal;color:var(--cyan);font-family:var(--mono)}
+
+.mod-list{display:flex;flex-direction:column;gap:7px}
+.mod{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:rgba(6,18,24,.5);padding:9px 10px}
+.mod .mk{width:22px;height:22px;flex:none;display:grid;place-items:center;font-family:var(--mono);font-size:10px;border:1px solid var(--line2);color:var(--cyan)}
+.mod.dim .mk{border-color:var(--line);color:var(--dim2)}
+.mod .mt{flex:1;min-width:0}
+.mod .mt b{display:block;font-size:12px;font-weight:600}
+.mod .mt span{display:block;font-size:10.5px;color:var(--dim2);margin-top:2px;line-height:1.5}
+.mod .ms{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--green);white-space:nowrap}
+.mod.dim .ms{color:var(--dim2)}
+.mod .ms.warn{color:var(--amber)}
+.mod .ms.emg{color:var(--red)}
+
+.note-box{
+  border:1px solid rgba(240,169,46,.34);background:rgba(240,169,46,.06);padding:10px 11px;
+  font-size:11.5px;line-height:1.75;color:#e6d3aa
+}
+.note-box b{color:var(--amber)}
+.caption{font-family:var(--mono);font-size:9.5px;color:var(--dim2);line-height:1.7;letter-spacing:.04em;margin-top:8px}
+.sig-block{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:.06em;line-height:1.8;margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);z-index:1400;
+  border:1px solid var(--line2);background:rgba(6,18,24,.96);padding:10px 14px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.06em;color:var(--cyan);opacity:0;transition:.24s;pointer-events:none;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)
+}
+.toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:900px){
+  .page{padding:14px 10px 30px;gap:18px}
+  .side{display:none}
+  .device-wrap{position:static}
+  .device{width:min(414px,100%);height:min(872px,88vh)}
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- ================= 左：手机 ================= -->
+  <div class="device-wrap">
+  <div class="device">
+    <div class="device-inner">
+
+      <!-- 状态条 -->
+      <div class="statusbar">
+        <div class="mono" id="sbClock">--:--</div>
+        <div class="sb-r">
+          <div class="sig"><i></i><i></i><i></i><i></i></div>
+          <div class="mono">5G</div>
+          <div class="batt"><div class="cell"><i></i></div><div class="mono" id="sbBatt">76%</div></div>
+        </div>
+      </div>
+
+      <!-- 应用头 -->
+      <div class="appbar">
+        <div class="ab-l">
+          <div class="hex">药</div>
+          <div class="ab-t">
+            <b>子女端提示</b>
+            <span id="abSub">RHINE-LINK / 王阿姨 · suite-3d</span>
+          </div>
+        </div>
+        <button class="icon-btn" id="liveBtn" title="实时通道 / 演示推送">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="3.2"/>
+          </svg>
+          <i class="dot-badge" id="liveCount">7</i>
+        </button>
+        <button class="icon-btn" id="emgBtn" title="应急广播演示">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l9 16H3z"/><path d="M12 9v5M12 17h.01"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 滚动内容 -->
+      <div class="scroll" id="scroll">
+
+        <!-- ========== 总览 ========== -->
+        <section class="panel active" id="pane-overview">
+          <div class="card" id="elderCard"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>用药依从 / 7D</b><span id="adhRange"></span></div>
+          <div class="card">
+            <div class="adh">
+              <div class="ring" id="ringWrap"></div>
+              <div class="adh-info" id="adhInfo"></div>
+            </div>
+            <div class="spark" id="sparkWrap"></div>
+            <div class="caption" id="adhCaption"></div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>今日排程 / 3 次</b><span id="todayLabel"></span></div>
+          <div class="tl" id="tlWrap"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>当前情景 / 6 类</b><span>点击查看推送详情</span></div>
+          <div class="sc-list" id="scGrid"></div>
+
+          <div class="note-box" style="margin-top:12px">
+            <b>演示数据声明</b>：王阿姨是虚构人物；本端展示的是<b>事件状态</b>与<b>脱敏数值</b>，
+            不含摄像头画面与影像外传（仅本地判定取药动作）。机器人不是医疗器械，
+            不提供诊断、不建议加药或停药。
+          </div>
+        </section>
+
+        <!-- ========== 告警 ========== -->
+        <section class="panel" id="pane-alerts">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>待处理 / 需子女确认</b><span id="alertCount"></span></div>
+          <div id="alertList"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>事件流 / 今日</b><span>时间倒序</span></div>
+          <div class="feed-head">
+            <button class="btn on" data-filter="all">全部</button>
+            <button class="btn" data-filter="warn">异常</button>
+            <button class="btn" data-filter="emg">紧急</button>
+          </div>
+          <div id="feedList"></div>
+        </section>
+
+        <!-- ========== 用药 ========== -->
+        <section class="panel" id="pane-meds">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>近一周服药记录</b><span id="medRange"></span></div>
+          <div class="week" id="weekWrap"></div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="adh" style="gap:12px">
+              <div class="ring" id="ringWrap2" style="width:82px;height:82px"></div>
+              <div class="adh-info" id="weekSummary"></div>
+            </div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>逐次明细</b><span id="doseCount"></span></div>
+          <div class="field" style="margin-bottom:10px">
+            <input class="input" id="medSearch" placeholder="筛选：日期 / 药名 / 状态（如 漏服、舒适、菜）" />
+          </div>
+          <div class="seg" style="margin-bottom:10px">
+            <button class="on" data-state="all">全部</button>
+            <button data-state="按时">按时</button>
+            <button data-state="延迟">延迟</button>
+            <button data-state="未服">未服</button>
+            <button data-state="异常">含异常</button>
+          </div>
+          <div id="doseList"></div>
+        </section>
+
+        <!-- ========== 数据 ========== -->
+        <section class="panel" id="pane-data">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>药品库存 / 药盒</b><span>余量不足 1 天提前 24h 提醒</span></div>
+          <div class="card" id="medStock"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>设备与感知 / 自检</b><span id="dataStamp"></span></div>
+          <div class="card" id="deviceCard"></div>
+          <div class="card" id="sensorCard" style="margin-top:10px"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>用药记录导出</b><span>用于就医说明</span></div>
+          <div class="card">
+            <p class="lead" style="margin-bottom:10px">
+              异常事件可附带<b>近一周用药记录</b>（药名 / 剂量 / 实际时间 / 状态 / 备注）一并推送，
+              便于就医时说明。导出内容不含影像。
+            </p>
+            <div class="btn-row" style="margin-top:0">
+              <button class="btn solid" id="copyBtn">复制近一周记录</button>
+              <button class="btn" id="csvBtn">导出 CSV</button>
+            </div>
+            <div class="caption" id="copyHint">格式：CSV / 字段：日期,时间,状态,药名,剂量,备注</div>
+          </div>
+        </section>
+
+        <!-- ========== 设置 ========== -->
+        <section class="panel" id="pane-settings">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>推送通道</b><span>二级 / 三级升级才打扰</span></div>
+          <div class="card" id="pushSettings"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>阈值 / 可配置</b><span>与机器人行为设定同步</span></div>
+          <div class="card" id="thrSettings"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>关联对象</b><span>RHINE-LINK 设备</span></div>
+          <div class="card" id="linkSettings"></div>
+
+          <div class="note-box" style="margin-top:12px">
+            本地兜底：<b>断网/断电</b>时排程在机器人本地照常执行，恢复后补推事件；
+            摄像头画面<b>不上传云端</b>，仅在本地用于「药片消失 + 杯子放回」判定。
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 底部导航 -->
+      <nav class="tabbar" id="tabbar" data-i="0">
+        <button class="nav on" data-tab="overview">
+          <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zM14 20h6v-9h-6zM4 20h6v-4H4zM14 8h6V4h-6z"/></svg>
+          <span>总览</span>
+        </button>
+        <button class="nav" data-tab="alerts">
+          <svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 9v4M12 16h.01"/></svg>
+          <span>告警</span>
+          <i class="nb" id="navBadge">5</i>
+        </button>
+        <button class="nav" data-tab="meds">
+          <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M8 7V5.5A1.5 1.5 0 019.5 4h5A1.5 1.5 0 0116 5.5V7M12 11v5M9.5 13.5h5"/></svg>
+          <span>用药</span>
+        </button>
+        <button class="nav" data-tab="data">
+          <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+          <span>数据</span>
+        </button>
+        <button class="nav" data-tab="settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+          <span>设置</span>
+        </button>
+      </nav>
+
+      <!-- 情景详情抽屉（覆盖整个屏幕内部） -->
+      <div class="drawer" id="drawer">
+        <div class="dr-head">
+          <button class="bk" id="drBack">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <div class="tt"><b id="drTitle">情景</b><span id="drSub">SCENE</span></div>
+          <div id="drChip"></div>
+        </div>
+        <div class="dr-body" id="drBody"></div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <!-- ================= 右：说明 ================= -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="hex">RL</div>
+      <div>
+        <h1>RHINE-LINK · 子女端提示</h1>
+        <p>FAMILY ALERT APP / v1.0 / 演示用</p>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>这个界面是什么</h3>
+      <p>送药机器人系统的<b>子女手机端</b>。机器人负责「找到人 → 送到手边 → 确认吃下」，
+      这一端负责<b>让子女安心</b>：接住 6 类情景的推送，并能回看<b>近一周服药记录</b>。</p>
+      <p>所有事件<b>只推状态、不推画面</b>——摄像头画面不出户，仅本地判定取药动作。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>六类情景推送</h3>
+      <div class="kv"><span>01 常规场景</span><b>按时服药 · 正常</b></div>
+      <div class="kv"><span>02 睡眠状态</span><b>延迟服药 · 三级唤醒</b></div>
+      <div class="kv"><span>03 厨/卫/阳台</span><b>门口语音 · 自行取药</b></div>
+      <div class="kv"><span>04 疑似跌倒</span><b>紧急播报 · 强弹窗</b></div>
+      <div class="kv"><span>05 服药后不适</span><b>紧急播报 · 附用药记录</b></div>
+      <div class="kv"><span>06 无法送达</span><b>设备故障 · 任务降级</b></div>
+    </div>
+
+    <div class="side-card">
+      <h3>怎么玩</h3>
+      <p>① 点<b>总览</b>里的情景卡 → 打开详情，里面有「手机上实际收到的推送」+ 触发判据 + 机器人行为闭环。</p>
+      <p>② 点右上角<b>◎ 图标</b> → 依次下发 6 条演示推送；点<b>⚠ 图标</b> → 防跌倒/不适的强制弹窗（可直接回拨）。</p>
+      <p>③ <b>告警</b>页可处理「需子女确认」的两条；<b>用药</b>页可切日期、看逐次明细与延迟原因。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>与既有设定的对齐</h3>
+      <p>阈值与文案取自《机器人行为设定》与《具体情景分析》：
+      提醒间隔 <b>2 min</b>、未取走超时 <b>10 min</b>（收回药片直接报废）、
+      厨房门外 <b>600 mm</b>、卫生间门外 <b>800 mm</b>、阳台<b>不驶入</b>、
+      与人距离 <b>200 mm</b>、停稳 <b>2 s</b>、水杯 <b>60%</b>、取药判定<b>只靠摄像头</b>。</p>
+      <p class="warnline">冲突项按情景分析：阳台与卫生间「不进入、只在门口」；三级唤醒参数做成可配置。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>图例</h3>
+      <div class="legend">
+        <span><i style="background:var(--green)"></i>按时 / 已服</span>
+        <span><i style="background:var(--amber)"></i>延迟 / 升级中</span>
+        <span><i style="background:var(--red)"></i>未服 / 紧急</span>
+        <span><i style="background:var(--purple)"></i>记录性事件</span>
+        <span><i style="background:var(--dim2)"></i>无数据</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 全屏紧急弹窗 -->
+<div class="emg-overlay" id="emgOverlay">
+  <div class="emg-box">
+    <div class="emg-top">
+      <i class="pulse"></i>
+      <span class="tag" id="emgTag">EMERGENCY BROADCAST / 强制弹窗</span>
+      <span class="mono" style="margin-left:auto;font-size:10px;color:#e8a4a1" id="emgTime">--:--</span>
+    </div>
+    <div class="emg-body">
+      <h2 id="emgTitle">紧急情况</h2>
+      <div class="sub" id="emgSub">RHINE-LINK · 子女端提示</div>
+      <div class="emg-q" id="emgMsg">—</div>
+      <dl class="emg-kv" id="emgKv"></dl>
+      <div class="emg-acts">
+        <button class="btn emg" id="emgCall">一键回拨 王阿姨</button>
+        <button class="btn warn" id="emgRobot">接通机器人扬声器</button>
+        <button class="btn" id="emgCommunity">通知社区 / 邻居</button>
+        <button class="btn" id="emgClose">稍后处理 · 记录留痕</button>
+      </div>
+      <div class="emg-foot">机器人不是医疗器械 · 不提供诊断 · 不做加药/停药建议<br>摄像头画面不上传云端，本弹窗仅含事件状态与脱敏数值</div>
+    </div>
+  </div>
+</div>
+
+<div class="banner-wrap" id="bannerWrap"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  /* ================= 基础设定 ================= */
+  var DATA = {
+    elder: {
+      name:"王阿姨", age:"72 岁", note:"独居 · 子女同城不同住",
+      cond:"高血压 + 轻度记忆力减退", habit:"起居：07:30 起床 / 午后小睡 / 21:30 就寝",
+      home:"suite-3d 户型（13.4 × 10.6 m）",
+      now:"客厅 · 沙发（看电视）"
+    },
+    meds:[
+      {name:"苯磺酸氨氯地平片", dose:"5 mg × 1 片", when:"早餐后", left:11, cap:14, exp:"2027-04"},
+      {name:"阿托伐他汀钙片",   dose:"20 mg × 1 片", when:"晚餐后", left:6,  cap:14, exp:"2026-12"},
+      {name:"碳酸钙 D3 片",      dose:"1 片",        when:"早餐后", left:2,  cap:14, exp:"2027-01"}
+    ],
+    device:{
+      robotId:"RHINE-AGV-P-1", robotState:"回充电桩待命", dock:"客厅充电桩（电视柜旁靠墙）",
+      battery:"82%", water:"78%", net:"家用 Wi-Fi 正常", tray:"升降 520→760 mm",
+      load:"3 格已装药 · 核对通过", waste:"废弃药片仓 1/8", ver:"v1.1 / 2026-10-03"
+    },
+    sensors:{ vision:"本地判定（画面上云：否）", radar:"毫米波（高度 / 静止时长）", bed:"床垫压力传感垫", ir:"红外（位置确认）", cam:"私域不启用" },
+    scene:{ id:"AT-01", now:"客厅 · 沙发", robot:"正在送药中", distance:"0.9 m" },
+    // 今日排程
+    schedule:[
+      { key:"08:00", state:"ok",   text:"已服" },
+      { key:"12:30", state:"warn", text:"延迟 19 min" },
+      { key:"18:30", state:"emg",  text:"待处理" }
+    ],
+    week:[
+      { d:"周一", date:"09-28", slots:["ok","ok","ok"] },
+      { d:"周二", date:"09-29", slots:["ok","ok","ok"] },
+      { d:"周三", date:"09-30", slots:["ok","warn","ok"], note:"延迟 12 min" },
+      { d:"周四", date:"10-01", slots:["ok","ok","ok"] },
+      { d:"周五", date:"10-02", slots:["ok","warn","ok"], note:"延迟 26 min" },
+      { d:"周六", date:"10-03", slots:["ok","ok","emg"], note:"晚间未服 · 设备卡困" },
+      { d:"周日", date:"10-04", slots:["ok","warn","emg"], today:true, note:"中午延迟 · 晚间卡困" }
+    ],
+    // 逐次明细：d = 星期索引，t = 时段索引
+    records:[
+      { d:0,t:0,time:"08:02",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"餐厅 · 餐桌旁",note:"药片消失 + 杯子放回（仅摄像头判定）",ev:"记录已同步子女端" },
+      { d:0,t:1,time:"12:33",state:"按时",meds:"—",where:"客厅 · 沙发旁",note:"非服药时段，仅位置巡检",ev:"无" },
+      { d:0,t:2,time:"18:31",state:"按时",meds:"阿托伐他汀钙片 20 mg",where:"客厅 · 沙发旁",note:"餐后半小时，药理时间窗内",ev:"已推送「按时服药」" },
+      { d:1,t:0,time:"08:04",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"卧室 · 床边",note:"刚起床，餐板自动升高至 760 mm",ev:"已推送" },
+      { d:1,t:1,time:"12:29",state:"按时",meds:"—",where:"餐厅 · 餐桌旁",note:"午餐前，仅进食提醒",ev:"无" },
+      { d:1,t:2,time:"18:28",state:"按时",meds:"阿托伐他汀钙片 20 mg",where:"餐厅 · 餐桌旁",note:"按要求停稳 2 s 后开隔离板",ev:"已推送" },
+      { d:2,t:0,time:"08:05",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"客厅 · 沙发旁",note:"—",ev:"已推送" },
+      { d:2,t:1,time:"12:42",state:"延迟",meds:"—",where:"客厅 · 沙发旁",note:"延迟 12 min",ev:"已推送「延迟服药」，并附原因：午睡未醒",reason:"睡眠判定命中，三级唤醒第二级后自然醒" },
+      { d:2,t:2,time:"18:30",state:"按时",meds:"阿托伐他汀钙片 20 mg",where:"厨房门口 600 mm",note:"不进厨房，门口语音提示后出来取药",ev:"已推送" },
+      { d:3,t:0,time:"08:01",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"餐厅 · 餐桌旁",note:"—",ev:"已推送" },
+      { d:3,t:1,time:"12:31",state:"按时",meds:"—",where:"客厅 · 沙发旁",note:"—",ev:"无" },
+      { d:3,t:2,time:"18:33",state:"按时",meds:"阿托伐他汀钙片 20 mg",where:"客厅 · 沙发旁",note:"—",ev:"已推送" },
+      { d:4,t:0,time:"08:06",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"卧室 · 床边",note:"起床偏慢，未触发睡眠分支",ev:"已推送" },
+      { d:4,t:1,time:"12:56",state:"延迟",meds:"—",where:"客厅 · 沙发旁",note:"延迟 26 min",ev:"已推送「延迟服药 · 原因：等待起床」",reason:"午睡 22 min 后自然醒，未升级到第三级" },
+      { d:4,t:2,time:"18:30",state:"按时",meds:"阿托伐他汀钙片 20 mg",where:"客厅 · 沙发旁",note:"—",ev:"已推送" },
+      { d:5,t:0,time:"08:03",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"餐厅 · 餐桌旁",note:"—",ev:"已推送" },
+      { d:5,t:1,time:"12:30",state:"按时",meds:"—",where:"阳台门口",note:"阳台属狭小区域，停门口不驶入",ev:"已推送" },
+      { d:5,t:2,time:"—",state:"未服",meds:"阿托伐他汀钙片 20 mg",where:"客厅 · 沙发−茶几间隙（卡困点）",note:"设备卡困，未送达；任务降级为客厅音箱播报",ev:"已推送「设备故障」",reason:"位置长时间不变 + 机械结构异常，2 次脱困失败" },
+      { d:6,t:0,time:"08:02",state:"按时",meds:"氨氯地平片 5 mg + 碳酸钙 D3 片 1 片",where:"客厅 · 沙发旁",note:"晚间卡困事件未复发",ev:"已推送" },
+      { d:6,t:1,time:"12:49",state:"延迟",meds:"—",where:"卫生间门外 800 mm",note:"延迟 19 min",ev:"已推送「延迟服药」，已提醒子女",reason:"用户位于卫生间，机器人在门外语音等待" },
+      { d:6,t:2,time:"—",state:"未服",meds:"阿托伐他汀钙片 20 mg",where:"客厅 · 沙发−茶几间隙",note:"10 min 未取走 → 收回药片与水（药片直接报废）",ev:"已推送「未取走 + 设备故障」",reason:"位置长时间不变 + 机械结构异常，2 次脱困失败",emg:true }
+    ],
+    feed:[
+      {time:"21:14",kind:"EMERGENCY",tone:"emg",title:"疑似跌倒，已自行站起（自述「有点疼」）",
+       meta:["SPOT 雷达：高度骤降 <i>3.2 s</i>，静止 <i>31 s</i>","机器人停于 1.5 m 外询问，未接触、未搬动","已回拨通话 <i>03:12</i> · 事件已留痕"]},
+      {time:"19:02",kind:"POST-DOSE",tone:"emg",title:"服药后不适：语音识别到「有点难受」",
+       meta:["取药确认后 12 min 触发，双条件判定","已附上近一周用药记录，便于就医说明","机器人留在身边，通话已接通"]},
+      {time:"18:30",kind:"TASK-DEGRADE",tone:"warn",title:"设备卡困 → 任务降级为音箱播报",
+       meta:["位置长时间不变 + 机械结构异常，2 次脱困失败","客厅音箱播报：「王阿姨，六点半了，该吃药了，药在客厅机器人托盘上」","已推送「设备故障」，卡困位置：沙发−茶几间隙"]},
+      {time:"18:26",kind:"SELF-CHECK",tone:"info",title:"送药自检通过：药已装 / 水量 78% / 电量 82% / 网络正常",meta:["餐板升降 520→760 mm（按手臂高度自动匹配）"]},
+      {time:"12:49",kind:"DELAY",tone:"warn",title:"延迟服药 19 min · 原因：用户位于卫生间",
+       meta:["机器人停于卫生间门外 <i>800 mm</i>，不进入、不录像","门口语音提示，取药后完成「已送达」记录"]},
+      {time:"12:30",kind:"SPATIAL",tone:"info",title:"阳台/厨房/卫生间准入规则生效",meta:["厨房门外 600 mm ｜ 卫生间门外 800 mm ｜ 阳台门口不驶入"]},
+      {time:"08:02",kind:"DOSE",tone:"ok",title:"08:02 王阿姨已按时服晨药：氨氯地平片 ✓ 碳酸钙 D3 片 ✓",
+       meta:["判定条件：药片消失 + 杯子放回（仅摄像头）","机器人已返回充电桩待命"]}
+    ]
+  };
+
+  /* ================= 六类情景 ================= */
+  var SCENES = [
+    {
+      id:"S1", code:"SCENE-01", name:"常规场景", tone:"ok", status:"正常", statusTone:"ok",
+      time:"08:02", date:"2026-10-04（周日）",
+      summary:"自检通过 → 按设定路线开到沙发旁 → 餐板升到「手一放就够到」 → 停稳 2 s 开隔板 → 取药取水 → 空杯放回 → 回充电桩。",
+      banner:{ tone:"", title:"08:02 王阿姨已服药",
+        body:"氨氯地平片 5 mg ✓ ｜ 碳酸钙 D3 片 1 片 ✓　在客厅沙发旁按时服下，机器人已回充电桩待命。" },
+      panel:{
+        trigger:["到点排程触发（08:00 早餐后 · 氨氯地平 + 碳酸钙 D3）","位置：客厅 · 沙发（看电视）","自检四项：药已装 / 水量 78% / 电量 82% / 网络正常"],
+        robot:["路线：固定预设路线，底部测距绕障后回归原路线","机体运动靠近，维持与人体 200 mm；餐板按手臂高度升到 760 mm","停稳 2 s → 开隔离板 → 出药 1 份 + 出水至 60%","判定「药片消失 + 杯子放回」（仅摄像头，不用重量传感器）","记录「日期/时间/王阿姨已服药」→ 关闭 → 返回充电桩"],
+        push:{ label:"已服", text:"08:02 王阿姨已按时服药：氨氯地平片 5 mg ✓ ｜ 碳酸钙 D3 片 1 片 ✓" },
+        data:[["与人距离","0.20 m（基准：人体，闭环维持）"],["餐板高度","520 → 760 mm（自动匹配手臂高度）"],["停稳静置","2.0 s 后开隔离板"],["取药判定","药片消失 + 杯子放回 · 仅摄像头"],["位置","客厅 · 沙发旁｜视线无遮挡"],["任务耗时","2 min 41 s"]],
+        notes:["常规场景是唯一「不需要子女介入」的推送——它的价值是<b>每天一次的确定性</b>。"],
+        caption:"判定不做全身拍摄：进入卧室时视野仅限手部区域。"
+      }
+    },
+    {
+      id:"S2", code:"SCENE-02", name:"用户处于睡眠状态", tone:"warn", status:"升级至第二级", statusTone:"warn",
+      time:"12:49", date:"2026-10-04（周日）",
+      summary:"床垫压力平稳 → 判睡眠 → 暂不进门，启动三级唤醒：门外每 3 min 提示 → 床头灯 1 min 渐亮至 50% → 进房床边唤醒并同步告知子女。",
+      banner:{ tone:"warn", title:"12:49 延迟服药 19 min",
+        body:"原因：等待起床。三级唤醒在第二级（床头灯渐亮）后自然醒，已服午药。" },
+      panel:{
+        trigger:["床垫压力传感垫：压力平稳 <span class='hi'>12 min</span>，呼吸节律 <span class='hi'>14 次/min</span>，体动指数 <span class='hi'>0.3</span>","结论：判定「睡眠状态」→ <b>直接执行睡眠分支，不进入标准交互流程</b>","机器人暂不进门，停在门外待命"],
+        tiers:[
+          {n:"第一级", t:"12:30", txt:"门外语音提示，每 3 min 一次；连续 3 次无应答", state:"done"},
+          {n:"第二级", t:"12:42", txt:"床头灯 0% → 50%，用 1 分钟慢慢亮起；配合定向语音提示", state:"hot"},
+          {n:"第三级", t:"（未触发）", txt:"进房到床边唤醒，同时同步告知子女", state:"off"}
+        ],
+        push:{ label:"延迟 · 原因", text:"12:49 王阿姨已服午药（延迟 19 分钟）", reason:"等待起床" },
+        data:[["睡眠判据","压力平稳 12 min + 呼吸 14 次/min + 体动 0.3"],["唤醒等级","第二级（床头灯渐亮 50%）"],["唤醒结果","12 min 后自然醒，进入标准交互流程"],["延迟时长","19 min（12:30 → 12:49）"],["是否打扰子女","否（未升级到第三级）"]],
+        notes:["<b>延迟也是一种数据</b>：只报「已完成」会让人怀疑，给出「延迟 + 为什么晚」才建立信任。","第三级参数（时段 / 亮度）做成可配置项，不写死。"],
+        caption:"阈值 E 待定：睡眠判定的压力平稳时长与呼吸节律需定量。"
+      }
+    },
+    {
+      id:"S3", code:"SCENE-03", name:"卫生间 / 厨房 / 阳台", tone:"warn", status:"门口等待", statusTone:"warn",
+      time:"12:49", date:"2026-10-04（周日）",
+      summary:"检测到用药时间用户处在特殊区域 → 机器人只在门口播语音，不进入、不录像；老人自行出来取药后完成记录并推送。",
+      banner:{ tone:"warn", title:"12:49 门口取药提醒",
+        body:"王阿姨在卫生间（私人区域）。机器人停于门外 800 mm，仅门口语音提示，不进入、不录像；取药后已完成记录。" },
+      panel:{
+        trigger:["位置：卫生间（私人区域）｜红外 + 毫米波确认","厨房按「忙乱区域」、阳台按「狭小区域（过门石 15 mm）」同类处理"],
+        rows:[
+          {t:"卫生间（私人区域）", s:"门口 800 mm · 不进入", tone:"emg"},
+          {t:"厨房（忙乱区域）",   s:"门外侧面 600 mm · 不堵门轴", tone:""},
+          {t:"阳台（狭小区域）",   s:"门口停靠 · 不驶入", tone:"warn"}
+        ],
+        push:{ label:"已取药", text:"12:49 王阿姨在卫生间门口取药并服下（机器人未进入私人区域）" },
+        data:[["停靠距离","卫生间门外 800 mm ｜ 厨房门外 600 mm ｜ 阳台门口"],["摄像头","私域不启用 · 画面不上云"],["取药验证","私密区不做验证，仅记「已送达 / 未取走」"],["等待时长","18 s（老人自行出来取药）"]],
+        notes:["隐私优先：<b>不进入、不靠近、不拍摄</b>，机器人只做门口的声音提醒。","代价是私密区拿不到「药片消失」判定——所以这一格的状态是「已送达」，而不是「已确认服下」。"],
+        caption:"该区域内不执行标准取药验证，这是设定中明确接受的取舍。"
+      }
+    },
+    {
+      id:"S4", code:"SCENE-04", name:"疑似跌倒 / 身体不适", tone:"emg", status:"紧急 · 已接通", statusTone:"emg",
+      time:"21:14", date:"2026-10-03（周六）",
+      summary:"呼救语音 / 雷达高度骤降 + 长时间不动 → 自启动靠近询问 → 有回应则原地等待站起后回充电区；无回应 → 子女手机强制弹窗紧急播报。",
+      banner:{ tone:"emg", title:"⚠ 紧急播报：疑似跌倒",
+        body:"21:14 客厅检测到高度骤降 + 静止 31 s。机器人已靠近询问，王阿姨自述「有点疼」——建议立即回拨。" },
+      emergency:{
+        tag:"EMERGENCY BROADCAST / 强制弹窗", title:"疑似跌倒 · 需立即确认",
+        sub:"2026-10-03 21:14 · 客厅 · 沙发−茶几间隙",
+        msg:"检测到呼救语音 / 高度骤降（3.2 s 内下降 0.9 m）+ 长时间不动（31 s）。机器人已在 1.5 m 外语音询问，王阿姨回应「有点疼」。",
+        kv:[["事件时间","2026-10-03 21:14"],["位置","客厅 · 沙发−茶几间隙"],["感知","毫米波高度骤降 + 静止 31 s + 呼救语音"],["老人回应","已回应：有点疼（未搬动老人）"],["影像","未上传任何画面"],["留痕","已记录事件，等待子女决策"]]
+      },
+      panel:{
+        trigger:["呼救语音识别命中，或毫米波检测到<b>高度骤降 + 长时间不动（&gt; 30 s）</b>","触发后机器人自启动靠近"],
+        chain:[
+          {t:"靠近询问", d:"停于 1.5 m 外，语音询问「需要帮忙吗」；<b>不接触、不搬动老人</b>", tone:"hot"},
+          {t:"情况 A：回应没事", d:"原地等待老人站起 → 判定恢复活动 → 取消升级，但仍记录事件，返回充电区", tone:"ok"},
+          {t:"情况 B：无回应", d:"语音加大 + 子女手机<b>强制弹窗紧急播报</b>；授信后可一键视频 / 呼叫邻居", tone:"hot"}
+        ],
+        push:{ label:"紧急", text:"21:14 检测到可能跌倒，老人已自行站起，自述「有点疼」" },
+        data:[["高度骤降","3.2 s 内下降约 0.90 m"],["静止时长","31 s（阈值 > 30 s）"],["机器人距离","1.5 m 外询问"],["子女操作","已回拨通话 03:12｜未通知社区"],["留痕","已记录，轻度事件也留痕"]],
+        notes:["<b>双条件才升级</b>：算法判定 + 人的确认（摆手 / 按屏幕按钮），避免误报把子女的信任耗光。","不接触、不搬动老人——避免二次伤害。"],
+        caption:"机器人不是医疗器械：只做「发现 + 通知」，不做诊断。"
+      }
+    },
+    {
+      id:"S5", code:"SCENE-05", name:"服药后发现不适", tone:"emg", status:"紧急 · 已回拨", statusTone:"emg",
+      time:"19:02", date:"2026-10-04（周日）",
+      summary:"服药后持续监测语音：出现「难受」等表达 → 子女端紧急播报，并同时附上近一周的用药记录，便于就医说明。",
+      banner:{ tone:"emg", title:"⚠ 紧急播报：服药后不适",
+        body:"19:02 语音识别到「有点难受」（取药确认后 12 min）。已附上近一周用药记录，建议立即回拨。" },
+      emergency:{
+        tag:"EMERGENCY BROADCAST / 附用药记录", title:"服药后不适 · 需立即确认",
+        sub:"2026-10-04 19:02 · 客厅 · 沙发",
+        msg:"取药确认后 12 分钟，持续语音监测识别到「有点难受」。已随事件附上近一周用药记录（药名 / 剂量 / 实际时间 / 状态）。",
+        kv:[["事件时间","2026-10-04 19:02"],["触发链路","取药确认 → 12 min 语音监测"],["老人表述","有点难受"],["随附数据","近一周用药记录 21 条"],["影像","未上传任何画面"],["留痕","已记录事件，机器人留在身边"]]
+      },
+      panel:{
+        trigger:["取药确认后持续语音监测","识别到「难受 / 不舒服 / 头晕」等表达 → 双条件判定（算法 + 老人主观确认）","或老人主动按屏幕上「很难受」按钮"],
+        push:{ label:"紧急 · 附记录", text:"19:02 王阿姨服药后自述不适（「有点难受」）", reason:"已附上近一周用药记录 21 条，便于就医说明" },
+        data:[["触发时间","取药确认后 12 min"],["当前用药","阿托伐他汀钙片 20 mg"],["随附记录","近一周 21 条（含 2 次延迟、2 次未服）"],["子女操作","已回拨通话，机器人留在身边"],["边界","不做医学诊断、不建议加药 / 停药"]],
+        meds:[["氨氯地平片 5 mg","早餐后 · 08:00–08:06","7/7"],["碳酸钙 D3 片 1 片","早餐后 · 08:00–08:06","7/7"],["阿托伐他汀钙片 20 mg","晚餐后 · 18:28–18:33","5/7"]],
+        notes:["用药记录<b>随事件同送</b>：就医时能直接说清「吃了什么、什么时候吃的」。","不做诊断，也不替子女决定是否停药。"],
+        caption:"异常事件与用药记录绑定推送，是本端的核心设计。"
+      }
+    },
+    {
+      id:"S6", code:"SCENE-06", name:"机器人无法正常送达", tone:"emg", status:"任务降级 · 待处理", statusTone:"emg",
+      time:"18:30", date:"2026-10-04（周日）",
+      summary:"位置长时间不变 + 机械结构异常 → 先自行脱困，两次失败判定「无法自行脱困」→ 任务降级：改为音箱播报，同时给子女推「设备故障」。",
+      banner:{ tone:"emg", title:"设备故障 · 任务降级",
+        body:"18:30 机器人卡困（2 次脱困失败）。已降级为客厅音箱播报提醒，卡困位置：沙发−茶几间隙。" },
+      panel:{
+        trigger:["位置长时间不变（<span class='hi'>18 s</span>）","机械结构异常：轮子原地打滑 + 激光雷达视野受阻"],
+        chain:[
+          {t:"第一次脱困尝试", d:"反打轮 + 后退 0.4 m 回归原路线", tone:""},
+          {t:"第二次脱困尝试", d:"切换绕行路径；再次失败 → 判定「无法自行脱困」", tone:"hot"},
+          {t:"任务降级", d:"提醒改由<b>客厅音箱播报</b>；并给子女推一条「设备故障」", tone:"hot"},
+          {t:"人工兜底", d:"老人按屏幕「我拿到了」→ 记录「已服药（来源：人工确认）」，闭环不因故障丢失", tone:"ok"}
+        ],
+        push:{ label:"设备故障", text:"18:30 机器人无法送达（卡困），已降级为音箱播报提醒", reason:"卡困位置：客厅 沙发−茶几间隙" },
+        data:[["卡困位置","客厅 · 沙发−茶几间隙（间隙 450 mm 约束）"],["触发判据","位置 18 s 不变 + 轮子打滑"],["降级动作","客厅音箱播报：「王阿姨，六点半了，该吃药了，药在客厅机器人托盘上」"],["药品处置","若 10 min 未取走 → 收回药片与水，药片直接报废"],["维护","已回报修：卡困点 + 时间 + 电量"]],
+        notes:["<b>设备失败 ≠ 提醒失败</b>：降级路径保证「提醒」这件事仍然发生。","收回的药片直接报废，不再使用；动作留痕（时间 + 药品 + 原因）。"],
+        caption:"该情景同时解释了「周六晚间未服」这一条记录的成因。"
+      }
+    }
+  ];
+
+  /* ================= 状态 ================= */
+  var ST = {
+    tab:"overview",
+    selDay:6,
+    medFilter:"all",
+    medQuery:"",
+    feedFilter:"all",
+    resolved:{},     // 情景 id -> true
+    weekSummaryHTML:""
+  };
+  var TONE2CHIP = { ok:"ok", warn:"warn", emg:"emg", info:"info", "":"dim" };
+
+  /* ================= 总览 ================= */
+  function renderElder(){
+    var e = DATA.elder;
+    var pend = pendingScenes().length;
+    $("#elderCard").innerHTML =
+      '<div class="elder">'+
+        '<div class="avatar">王</div>'+
+        '<div class="meta">'+
+          '<b>'+esc(e.name)+'　<span class="mono" style="font-size:11px;color:var(--dim)">'+esc(e.age)+'</span></b>'+
+          '<span>'+esc(e.cond)+'</span>'+
+          '<span>现在位置：<em>'+esc(e.now)+'</em></span>'+
+        '</div>'+
+        '<span class="chip ok"><i class="blip"></i>在线</span>'+
+      '</div>'+
+      '<div class="stat-grid">'+
+        '<div class="stat ok"><span>今日已服</span><b>2<small>/3</small></b></div>'+
+        '<div class="stat warn"><span>今日延迟</span><b>1<small>次</small></b></div>'+
+        '<div class="stat"><span>近 7 日依从</span><b>81<small>%</small></b></div>'+
+        '<div class="stat '+((pend>0)?"emg":"ok")+'"><span>待处理告警</span><b>'+pend+'<small>条</small></b></div>'+
+      '</div>'+
+      '<div class="hair"></div>'+
+      '<div class="dl">'+
+        '<dt>HOME</dt><dd>'+esc(e.home)+'　<span class="mono" style="color:var(--dim2)">suite-3d</span></dd>'+
+        '<dt>ROBOT</dt><dd>'+esc(DATA.device.robotId)+'　'+esc(DATA.device.robotState)+'</dd>'+
+        '<dt>SCENE</dt><dd>'+esc(DATA.scene.id)+'　'+esc(DATA.scene.now)+'　'+esc(DATA.scene.robot)+'　距离 '+esc(DATA.scene.distance)+'</dd>'+
+      '</div>';
+  }
+
+  function ringSVG(p, color){
+    var r=41, c=2*Math.PI*r, off=c*(1-p);
+    return '<svg width="96" height="96" viewBox="0 0 96 96">'+
+      '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="rgba(110,205,225,.14)" stroke-width="6"/>'+
+      '<circle cx="48" cy="48" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="6" stroke-linecap="round" '+
+        'stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/>'+
+      '</svg>';
+  }
+
+  function stats(){
+    var ok=0,warn=0,miss=0,total=0;
+    DATA.records.forEach(function(r){ total++; if(r.state==="按时")ok++; else if(r.state==="延迟")warn++; else miss++; });
+    return {ok:ok,warn:warn,miss:miss,total:total,p: total? ok/total : 0};
+  }
+
+  function renderAdherence(){
+    var s = stats();
+    var pct = Math.round(s.p*100);
+    $("#ringWrap").innerHTML = ringSVG(s.p,"var(--cyan)")+
+      '<div class="val"><b>'+pct+'%</b><span>按时率</span></div>';
+    $("#ringWrap2").innerHTML = ringSVG(s.p,"var(--cyan)")+
+      '<div class="val"><b style="font-size:19px">'+pct+'%</b><span>7D</span></div>';
+    $("#adhInfo").innerHTML =
+      '<div class="row"><span>按时服用</span><b class="ok">'+s.ok+' 次</b></div>'+
+      '<div class="row"><span>延迟服用</span><b class="warn">'+s.warn+' 次</b></div>'+
+      '<div class="row"><span>未服用</span><b class="emg">'+s.miss+' 次</b></div>'+
+      '<div class="row"><span>记录总数</span><b>'+s.total+' 条</b></div>';
+    $("#adhRange").textContent = "2026-09-28 → 10-04";
+    $("#adhCaption").innerHTML = "口径：以「药片消失 + 杯子放回」的完成时刻计；延迟 = 实际服药 − 计划时段超过 15 min。"+
+      "<br>周六晚间 1 次未服由设备卡困导致，非老人漏服。";
+
+    // sparkline
+    var max = Math.max.apply(null, DATA.week.map(function(w){return w.slots.length;}));
+    $("#sparkWrap").innerHTML = DATA.week.map(function(w,i){
+      var g = w.slots.filter(function(x){return x==="ok";}).length;
+      var cls = g===3 ? "" : (g>=2 ? "low" : "zero");
+      return '<div class="b '+cls+'" style="height:'+Math.max(12,(g/max*100))+'%"><i>'+g+'/3</i></div>';
+    }).join("");
+  }
+
+  function renderSchedule(){
+    var map = {ok:"ok",warn:"warn",emg:"emg"};
+    $("#todayLabel").textContent = "2026-10-04";
+    $("#tlWrap").innerHTML = DATA.schedule.map(function(s,i){
+      return '<div class="slot '+(map[s.state]||"")+(i===2?" now":"")+'">'+
+        '<em>'+esc(s.key)+'</em><b>'+esc(s.text)+'</b><i>'+(i===0?"早餐后":i===1?"午间":"晚餐后")+'</i></div>';
+    }).join("");
+  }
+
+  function scStatus(s){
+    if(ST.resolved[s.id]) return {label:"已处理", tone:"ok"};
+    return {label:s.status, tone:s.statusTone};
+  }
+
+  function renderScenes(){
+    $("#scGrid").innerHTML = SCENES.map(function(s){
+      var st = scStatus(s);
+      return '<button class="sc-card card tone-'+s.tone+'" data-scene="'+s.id+'">'+
+        '<div class="top">'+
+          '<span class="chip '+TONE2CHIP[st.tone]+'">'+(st.tone==="ok"?"":"<i class='blip'></i>")+esc(st.label)+'</span>'+
+          '<span class="code">'+esc(s.code)+'</span>'+
+          '<span class="name" style="margin-left:auto">'+esc(s.name)+'</span>'+
+        '</div>'+
+        '<div class="body"><p class="sum">'+esc(s.summary)+'</p></div>'+
+        '<div class="foot"><span class="time">'+esc(s.date)+' '+esc(s.time)+'</span>'+
+          '<span class="go">查看推送详情 ›</span></div>'+
+      '</button>';
+    }).join("");
+
+    $("#pushSettings").innerHTML = SCENES.map(function(s,i){
+      var st = scStatus(s);
+      return '<div class="switch-line">'+
+        '<span class="chip '+TONE2CHIP[st.tone]+'">'+esc(st.label)+'</span>'+
+        '<div class="txt"><b>'+esc(s.code)+'　'+esc(s.name)+'</b><span>'+esc(s.banner.title)+'</span></div>'+
+        '<button class="toggle '+(i<2?"":"on")+'" data-tg="'+i+'"><i></i></button>'+
+      '</div>';
+    }).join("");
+  }
+
+  /* ================= 告警页 ================= */
+  function pendingScenes(){
+    return SCENES.filter(function(s){ return s.tone==="emg" && !ST.resolved[s.id]; });
+  }
+  function alertTotal(){ return pendingScenes().length + 3; }
+
+  function renderAlerts(){
+    var list = pendingScenes();
+    $("#alertCount").textContent = list.length + " 条未处理";
+    $("#navBadge").textContent = list.length;
+    $("#navBadge").style.display = list.length ? "" : "none";
+    $("#liveCount").textContent = 6;
+
+    $("#alertList").innerHTML = list.length ? list.map(function(s){
+      return '<div class="card tone-'+s.tone+'" style="margin-bottom:10px">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<span class="chip emg"><i class="blip"></i>待处理</span>'+
+          '<span class="code mono" style="font-size:10px;color:var(--dim2);letter-spacing:.12em">'+esc(s.id)+'</span>'+
+          '<span class="mono" style="margin-left:auto;font-size:10px;color:var(--dim2)">'+esc(s.date)+' '+esc(s.time)+'</span>'+
+        '</div>'+
+        '<div style="font-size:13px;font-weight:600;margin:9px 0 5px">'+esc(s.name)+'</div>'+
+        '<p class="sum" style="font-size:12.2px;line-height:1.65;color:#b6ced6;margin:0">'+esc(s.banner.body)+'</p>'+
+        '<div class="btn-row">'+
+          '<button class="btn solid" data-resolve="'+s.id+'">标记已处理</button>'+
+          '<button class="btn" data-scene="'+s.id+'">查看推送详情</button>'+
+          '<button class="btn warn" data-call="'+s.id+'">回拨通话</button>'+
+        '</div>'+
+      '</div>';
+    }).join("") : '<div class="card tone-ok"><div style="display:flex;align-items:center;gap:8px"><span class="chip ok">全部已处理</span></div>'+
+      '<p class="lead" style="margin-top:9px">当前没有待子女确认的事件。常规场景与一级唤醒不会打扰到你。</p></div>';
+  }
+
+  function renderFeed(){
+    var rows = DATA.feed.filter(function(f){
+      if(ST.feedFilter==="all") return true;
+      return f.tone===ST.feedFilter;
+    });
+    $("#feedList").innerHTML = rows.map(function(f){
+      return '<div class="record '+f.tone+'">'+
+        '<div class="rh"><time>'+esc(f.time)+'</time><span class="kind">'+esc(f.kind)+'</span></div>'+
+        '<div class="rb">'+esc(f.title)+'</div>'+
+        '<div class="rm">'+f.meta.map(function(m){return "· "+m;}).join("<br>")+'</div>'+
+      '</div>';
+    }).join("") || '<p class="lead">该筛选下没有事件。</p>';
+  }
+
+  /* ================= 用药页 ================= */
+  function renderWeek(){
+    $("#weekWrap").innerHTML = DATA.week.map(function(w,i){
+      var hasAlert = w.slots.indexOf("emg")>=0;
+      return '<button class="wday'+(i===ST.selDay?" sel":"")+(w.today?" today":"")+(hasAlert?" alert":"")+'" data-day="'+i+'">'+
+        '<span>'+esc(w.d)+'</span>'+
+        '<b class="mono">'+esc(w.date)+'</b>'+
+        '<em>'+(w.note? esc(w.note.split(" ")[0]) : w.slots.filter(function(x){return x==="ok";}).length+"/3")+'</em>'+
+      '</button>';
+    }).join("");
+    $("#medRange").textContent = "2026-09-28 → 10-04";
+  }
+
+  function renderWeekSummary(){
+    var s = stats();
+    $("#weekSummary").innerHTML =
+      '<div class="row"><span>按时 / 延迟 / 未服</span><b><span style="color:var(--green)">'+s.ok+'</span> / <span style="color:var(--amber)">'+s.warn+'</span> / <span style="color:var(--red)">'+s.miss+'</span></b></div>'+
+      '<div class="row"><span>异常事件</span><b class="emg">4 次</b></div>'+
+      '<div class="row"><span>设备故障导致</span><b class="warn">2 次</b></div>'+
+      '<div class="row"><span>数据来源</span><b style="font-size:10.5px">摄像头判定 + 人工确认</b></div>';
+  }
+
+  function doseState(r){
+    if(r.state==="未服") return "emg";
+    if(r.state==="延迟") return "warn";
+    return "ok";
+  }
+
+  function renderDoses(){
+    var w = DATA.week[ST.selDay];
+    var rows = DATA.records.filter(function(r){ return r.d===ST.selDay; });
+    var q = ST.medQuery.trim();
+    if(q){
+      rows = DATA.records.filter(function(r){
+        var hay = (DATA.week[r.d].d+" "+DATA.week[r.d].date+" "+r.time+" "+r.state+" "+r.meds+" "+(r.where||"")+" "+(r.note||"")+" "+(r.reason||"")).toLowerCase();
+        return hay.indexOf(q.toLowerCase())>=0;
+      });
+    }
+    if(ST.medFilter!=="all"){
+      rows = rows.filter(function(r){
+        if(ST.medFilter==="异常") return r.state!=="按时";
+        if(ST.medFilter==="未服") return r.state==="未服";
+        return r.state===ST.medFilter;
+      });
+    }
+    $("#doseCount").textContent = (q? "筛选命中 ":"")+rows.length+" 条";
+    $("#doseList").innerHTML = rows.map(function(r){
+      var wd = DATA.week[r.d], tone = doseState(r);
+      var slotName = ["08:00 早餐后","12:30 午间","18:30 晚餐后"][r.t];
+      return '<div class="dose '+tone+'">'+
+        '<div class="dh">'+
+          '<span class="tt">'+esc(r.time)+'</span>'+
+          '<span class="nm">'+esc(wd.d)+' '+esc(wd.date)+' · '+esc(slotName)+'</span>'+
+          '<span class="st chip '+(tone==="ok"?"ok":tone==="warn"?"warn":"emg")+'">'+esc(r.state)+'</span>'+
+        '</div>'+
+        '<dl class="grid">'+
+          '<dt>用药</dt><dd>'+esc(r.meds)+'</dd>'+
+          '<dt>位置</dt><dd>'+esc(r.where)+'</dd>'+
+          '<dt>判定</dt><dd>'+esc(r.note)+'</dd>'+
+        '</dl>'+
+        (r.reason? '<div class="note'+(tone==="emg"?" emg":"")+'"><b>原因</b>：'+esc(r.reason)+'</div>':"")+
+        '<div class="sr" style="display:none">'+esc(r.ev)+'</div>'+
+      '</div>';
+    }).join("") || '<p class="lead">该筛选下没有记录。</p>';
+    return {w:w, rows:rows};
+  }
+
+  /* ================= 数据 / 设置 ================= */
+  function renderData(){
+    $("#dataStamp").textContent = "自检 2026-10-04 21:20";
+    $("#medStock").innerHTML = DATA.meds.map(function(m){
+      var ratio = m.left/m.cap;
+      var cls = ratio<=0.2? "out" : ratio<=0.5? "low" : "";
+      var tag = ratio<=0.2? "余量不足 1 天 · 已提前 24h 提醒" : ratio<=0.5? "余量偏低" : "余量充足";
+      return '<div class="med-row">'+
+        '<div class="lv '+cls+'"></div>'+
+        '<div class="info"><b>'+esc(m.name)+'</b><span>'+esc(m.dose)+'　'+esc(m.when)+'</span>'+
+          '<span>有效期 '+esc(m.exp)+'　'+tag+'</span></div>'+
+        '<div class="num '+cls+'"><b>'+m.left+'</b><span style="font-size:10px;color:var(--dim2)">/'+m.cap+' 格</span></div>'+
+      '</div>';
+    }).join("");
+
+    var d = DATA.device;
+    $("#deviceCard").innerHTML =
+      '<div class="dl">'+
+        '<dt>ROBOT</dt><dd>'+esc(d.robotId)+'　<span class="hi">'+esc(d.robotState)+'</span></dd>'+
+        '<dt>DOCK</dt><dd>'+esc(d.dock)+'</dd>'+
+        '<dt>电池</dt><dd><span class="hi">'+esc(d.battery)+'</span>　水量 <span class="hi">'+esc(d.water)+'</span></dd>'+
+        '<dt>网络</dt><dd>'+esc(d.net)+'　（本地排程可离线执行）</dd>'+
+        '<dt>药盒</dt><dd>'+esc(d.load)+'</dd>'+
+        '<dt>餐板</dt><dd>'+esc(d.tray)+'（覆盖坐姿～站姿 700–1100 mm）</dd>'+
+        '<dt>废弃仓</dt><dd><span class="wr">'+esc(d.waste)+'</span>　收回药片直接报废</dd>'+
+        '<dt>版本</dt><dd>'+esc(d.ver)+'</dd>'+
+      '</div>';
+    $("#sensorCard").innerHTML =
+      '<div class="mod-list">'+
+        '<div class="mod"><div class="mk">V</div><div class="mt"><b>视觉 / 取药判定</b><span>'+esc(DATA.sensors.vision)+'</span></div><div class="ms">正常</div></div>'+
+        '<div class="mod"><div class="mk">R</div><div class="mt"><b>毫米波雷达</b><span>'+esc(DATA.sensors.radar)+'</span></div><div class="ms">正常</div></div>'+
+        '<div class="mod"><div class="mk">B</div><div class="mt"><b>床垫压力传感垫</b><span>'+esc(DATA.sensors.bed)+'</span></div><div class="ms">正常</div></div>'+
+        '<div class="mod"><div class="mk">I</div><div class="mt"><b>红外位置确认</b><span>'+esc(DATA.sensors.ir)+'</span></div><div class="ms">正常</div></div>'+
+        '<div class="mod dim"><div class="mk">C</div><div class="mt"><b>私域摄像头</b><span>'+esc(DATA.sensors.cam)+'　不进入、不拍摄</span></div><div class="ms warn">已禁用</div></div>'+
+      '</div>';
+  }
+
+  function renderSettings(){
+    $("#thrSettings").innerHTML =
+      '<div class="field"><label>1 · 提醒间隔 / 语音提示（分钟）</label>'+
+        '<input class="input" id="thInterval" value="2" />'+
+        '<div class="caption">设定值：2 min（每 2 分钟一次语音提示）</div></div>'+
+      '<div class="field"><label>2 · 未取走超时（分钟）→ 收回药片与水 + 上报</label>'+
+        '<input class="input" id="thTimeout" value="10" />'+
+        '<div class="caption">设定值：10 min；收回药片直接报废，并留痕</div></div>'+
+      '<div class="field"><label>3 · 唤醒升级：门外提示次数 / 间隔（分钟）</label>'+
+        '<div class="seg"><button data-wake="3">3 次 · 3 min</button><button class="on" data-wake="3">3 次 · 5 min</button><button data-wake="1">1 次 · 10 min</button></div>'+
+        '<div class="caption" style="margin-top:6px">第一级门外提示 · 第二级床头灯 1 min 渐亮至 50% · 第三级进房床边 + 同步子女</div></div>'+
+      '<div class="field"><label>4 · 跌倒判据：静止时长阈值（秒）</label>'+
+        '<input class="input" id="thFall" value="30" />'+
+        '<div class="caption">高度骤降 + 静止超过该值触发；本端只接收「已触发」结果</div></div>'+
+      '<div class="field"><label>5 · 与人目标距离（闭环维持 / mm）</label>'+
+        '<input class="input" id="thDist" value="200" />'+
+        '<div class="caption">距离靠机体运动维持；餐板前伸 350–400 mm 补足到「手一放就够到」</div></div>'+
+      '<div class="field" style="margin-bottom:0"><label>6 · 水杯停止水位</label>'+
+        '<input class="input" id="thWater" value="60" />'+
+        '<div class="caption">满 60% 自动停止（对应毫升数待定，见待确认项 B）</div></div>';
+
+    $("#linkSettings").innerHTML =
+      '<div class="switch-line"><div class="txt"><b>王阿姨</b><span>72 岁 · suite-3d · 主账号（本人）</span></div><span class="chip ok">已绑定</span></div>'+
+      '<div class="switch-line"><div class="txt"><b>'+esc(DATA.device.robotId)+'</b><span>居家送药机器人 · 客厅充电桩</span></div><span class="chip ok">在线</span></div>'+
+      '<div class="switch-line"><div class="txt"><b>客厅音箱</b><span>降级播报通道（设备故障时使用）</span></div><span class="chip">可用</span></div>'+
+      '<div class="switch-line"><div class="txt"><b>床垫压力传感垫</b><span>卧室 · 睡眠分支判据</span></div><span class="chip ok">在线</span></div>'+
+      '<div class="switch-line"><div class="txt"><b>药盒（3 格）</b><span>装药核对：逐格核对引导</span></div><span class="chip warn">碳酸钙 D3 余 2 格</span></div>';
+  }
+
+  /* ================= 情景详情 ================= */
+  function pushBlock(p, tone){
+    var label = p.label || "推送";
+    return '<div class="push '+(tone||"")+'">'+
+      '<div class="push-h"><span class="app">子女端提示</span><span class="tag">'+esc(label)+'</span></div>'+
+      '<div class="push-b">'+
+        '<div class="ttl">微信服务通知 / 订阅消息</div>'+
+        '<div class="msg">'+p.text.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/(\d{2}:\d{2})/g,"<i>$1</i>")+'</div>'+
+        (p.reason? '<div class="reason"><b>原因：</b>'+esc(p.reason)+'</div>':"")+
+      '</div>'+
+      '<div class="push-f">'+
+        '<span class="mono" style="font-size:9.5px;color:var(--dim2);align-self:center">只推状态 · 不推画面</span>'+
+        '<button class="btn" style="margin-left:auto" data-fake="1">复现此推送</button>'+
+      '</div>'+
+    '</div>';
+  }
+
+  var CUR = "S1";
+  function byId(id){ return SCENES.filter(function(x){ return x.id===id; })[0]; }
+
+  function renderDrawer(id){
+    var s = byId(id);
+    if(!s) return;
+    CUR = id;
+    var st = scStatus(s);
+    $("#drTitle").textContent = s.name;
+    $("#drSub").textContent = s.code + " / " + s.date + " " + s.time;
+    $("#drChip").innerHTML = '<span class="chip '+TONE2CHIP[st.tone]+'">'+esc(st.label)+'</span>';
+    var p = s.panel, h = [];
+
+    h.push('<div class="dr-sec"><h4><i class="n">01</i>情景概述</h4>'+
+      '<p class="lead">'+esc(s.summary)+'</p></div>');
+
+    h.push('<div class="dr-sec"><h4><i class="n">02</i>触发条件 / 判据</h4><div class="chain">'+
+      p.trigger.map(function(t){ return '<div class="step"><span style="color:#b3ccd4;font-size:11.6px;line-height:1.65">'+t+'</span></div>'; }).join("")+
+      '</div></div>');
+
+    if(p.tiers){
+      h.push('<div class="dr-sec"><h4><i class="n">03</i>三级唤醒 / 升级链路</h4>'+
+        p.tiers.map(function(t){
+          var cls = t.state==="hot"?"hot":t.state==="done"?"done":"";
+          return '<div class="tier '+cls+'"><div class="th"><b>'+esc(t.n)+'</b>'+
+            '<span class="tm">'+esc(t.t)+'</span></div><p>'+esc(t.txt)+'</p></div>';
+        }).join("")+'</div>');
+    }
+    if(p.chain){
+      h.push('<div class="dr-sec"><h4><i class="n">03</i>行为链路</h4><div class="chain">'+
+        p.chain.map(function(c){
+          var cls = c.tone==="hot"?"hot":c.tone==="ok"?"ok":"";
+          return '<div class="step '+cls+'"><b>'+esc(c.t)+'</b><span>'+c.d+'</span></div>';
+        }).join("")+'</div></div>');
+    }
+    if(p.rows){
+      h.push('<div class="dr-sec"><h4><i class="n">04</i>准入规则</h4><div class="mod-list">'+
+        p.rows.map(function(r){
+          return '<div class="mod"><div class="mk">准入</div><div class="mt"><b>'+esc(r.t)+'</b><span>'+esc(r.s)+'</span></div>'+
+            '<div class="ms '+(r.tone||"")+'">'+(r.tone==="emg"?"禁止进入":r.tone==="warn"?"不驶入":"门外待命")+'</div></div>';
+        }).join("")+'</div></div>');
+    }
+
+    h.push('<div class="dr-sec"><h4><i class="n">05</i>机器人侧行为闭环</h4><div class="chain">'+
+      (p.robot||["见触发判据与准入规则"]).map(function(r,i){
+        return '<div class="step '+(i===(p.robot||[]).length-1?"ok":"")+'"><b>STEP '+String(i+1).padStart(2,"0")+'</b><span>'+esc(r)+'</span></div>';
+      }).join("")+'</div></div>');
+
+    h.push('<div class="dr-sec"><h4><i class="n">06</i>手机上收到的推送</h4>'+
+      pushBlock(s.banner, s.tone==="ok"?"":s.tone)+
+      '<div class="caption">这一条即子女端推送内容；点「复现此推送」可在手机顶部看到横幅动效。</div></div>');
+
+    if(p.meds){
+      h.push('<div class="dr-sec"><h4><i class="n">07</i>随事件附上的近一周用药记录</h4><div class="card">'+
+        p.meds.map(function(m){
+          return '<div class="mod"><div class="mk">药</div><div class="mt"><b>'+esc(m[0])+'</b><span>'+esc(m[1])+'</span></div><div class="ms">'+esc(m[2])+'</div></div>';
+        }).join("")+'</div>'+
+        '<div class="btn-row"><button class="btn solid" data-goto="meds">打开完整记录 ›</button></div></div>');
+    }
+
+    h.push('<div class="dr-sec"><h4><i class="n">'+(p.meds?"08":"07")+'</i>数据 / 数值面板</h4><div class="card"><dl class="dl">'+
+      p.data.map(function(d){ return '<dt>'+esc(d[0])+'</dt><dd>'+d[1]+'</dd>'; }).join("")+
+      '</dl></div></div>');
+
+    h.push('<div class="dr-sec"><h4><i class="n">'+(p.meds?"09":"08")+'</i>设计意图</h4>'+
+      (p.notes||[]).map(function(n){ return '<div class="note-box" style="margin-bottom:8px">'+n+'</div>'; }).join("")+
+      '<div class="sig-block">'+esc(p.caption||"")+'<br>— RHINE-LINK / '+esc(s.code)+' —</div></div>');
+
+    if(s.emergency){
+      h.push('<div class="dr-sec"><h4><i class="n">!</i>紧急播报</h4>'+
+        '<div class="btn-row" style="margin-top:0"><button class="btn emg" data-emg="'+s.id+'">预览强制弹窗（手机全屏）</button></div></div>');
+    }
+
+    $("#drBody").innerHTML = h.join("");
+    $("#drBody").scrollTop = 0;
+    $("#drawer").classList.add("open");
+  }
+
+  /* ================= 横幅 / 弹窗 / toast ================= */
+  var bannerTimer = null;
+  function showBanner(sc){
+    var b = sc.banner;
+    var el = document.createElement("div");
+    el.className = "banner " + (b.tone||"");
+    el.innerHTML =
+      '<div class="bt"><span class="src">子女端提示</span>'+
+        '<span class="chip '+TONE2CHIP[b.tone||""]+'">'+esc(sc.name)+'</span>'+
+        '<span class="now">'+esc(sc.time)+'</span></div>'+
+      '<div class="bb"><b>'+esc(b.title)+'</b><p>'+esc(b.body)+'</p></div>'+
+      '<div class="bact">'+
+        '<button class="btn solid" data-banner-open="'+sc.id+'">查看详情</button>'+
+        '<button class="btn" data-banner-close="1">知道了</button>'+
+      '</div>';
+    $("#bannerWrap").appendChild(el);
+    setTimeout(function(){
+      if(el.parentNode){ el.classList.add("out"); setTimeout(function(){ el.parentNode && el.parentNode.removeChild(el); },260); }
+    }, 7000);
+    while($("#bannerWrap").children.length>2){ $("#bannerWrap").removeChild($("#bannerWrap").firstChild); }
+  }
+
+  function showEmergency(sc){
+    var e = sc.emergency || SCENES[3].emergency;
+    $("#emgTag").textContent = e.tag;
+    $("#emgTitle").textContent = e.title;
+    $("#emgSub").textContent = e.sub;
+    $("#emgMsg").textContent = e.msg;
+    $("#emgTime").textContent = sc.time;
+    $("#emgKv").innerHTML = e.kv.map(function(k){ return '<dt>'+esc(k[0])+'</dt><dd>'+esc(k[1])+'</dd>'; }).join("");
+    $("#emgOverlay").classList.add("on");
+  }
+
+  var toastTimer=null;
+  function toast(msg){
+    var t = $("#toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 2200);
+  }
+
+  /* ================= 交互绑定 ================= */
+  function setTab(name){
+    ST.tab = name;
+    $$(".panel").forEach(function(p){ p.classList.remove("active"); });
+    var pane = $("#pane-"+name); pane && pane.classList.add("active");
+    $$(".nav").forEach(function(n){ n.classList.toggle("on", n.getAttribute("data-tab")===name); });
+    var order = ["overview","alerts","meds","data","settings"];
+    $("#tabbar").setAttribute("data-i", order.indexOf(name));
+    $("#scroll").scrollTop = 0;
+  }
+
+  function bind(){
+    $$(".nav").forEach(function(n){
+      n.addEventListener("click", function(){ setTab(n.getAttribute("data-tab")); });
+    });
+
+    // 总览情景卡 / 告警按钮（事件委托）
+    document.addEventListener("click", function(ev){
+      var t = ev.target.closest ? ev.target.closest("[data-scene],[data-resolve],[data-call],[data-fake],[data-banner-open],[data-banner-close],[data-emg],[data-goto],[data-day],[data-state],[data-filter],[data-tg],[data-wake]") : null;
+      if(!t) return;
+      var v;
+
+      if((v=t.getAttribute("data-scene"))){
+        var sc = SCENES.filter(function(x){return x.id===v;})[0];
+        if(sc && sc.emergency && t.classList.contains("btn")) { /* 紧急预览按钮 */ }
+        renderDrawer(v); return;
+      }
+      if((v=t.getAttribute("data-resolve"))){
+        ST.resolved[v]=true; renderAlerts(); renderScenes();
+        var sc2 = SCENES.filter(function(x){return x.id===v;})[0];
+        toast("已标记处理：" + (sc2?sc2.name:v) + " · 记录留痕");
+        return;
+      }
+      if((v=t.getAttribute("data-call"))){
+        var s3 = SCENES.filter(function(x){return x.id===v;})[0];
+        toast("正在回拨 王阿姨…（"+(s3?s3.name:"")+"）");
+        return;
+      }
+      if(t.getAttribute("data-fake")){
+        var sc4 = byId(CUR) || SCENES[0];
+        closeDrawer(); setTimeout(function(){ showBanner(sc4); }, 180);
+        toast("已复现推送：" + sc4.banner.title);
+        return;
+      }
+      if((v=t.getAttribute("data-banner-open"))){
+        var sc5 = SCENES.filter(function(x){return x.id===v;})[0];
+        if(sc5){ setTab(sc5.tone==="ok"?"overview":"alerts"); renderDrawer(v); }
+        return;
+      }
+      if(t.getAttribute("data-banner-close")){
+        var b = t.closest(".banner"); if(b){ b.classList.add("out"); setTimeout(function(){ b.parentNode&&b.parentNode.removeChild(b); },260); }
+        return;
+      }
+      if((v=t.getAttribute("data-emg"))){
+        var sc6 = SCENES.filter(function(x){return x.id===v;})[0];
+        if(sc6) showEmergency(sc6);
+        return;
+      }
+      if((v=t.getAttribute("data-goto"))){
+        closeDrawer(); setTab(v);
+        return;
+      }
+      if((v=t.getAttribute("data-day"))){
+        ST.selDay = parseInt(v,10); renderWeek(); renderDoses(); return;
+      }
+      if((v=t.getAttribute("data-state"))){
+        ST.medFilter = v;
+        $$("[data-state]").forEach(function(b){ b.classList.toggle("on", b===t); });
+        renderDoses(); return;
+      }
+      if((v=t.getAttribute("data-filter"))){
+        ST.feedFilter = v;
+        $$("[data-filter]").forEach(function(b){ b.classList.toggle("on", b===t); });
+        renderFeed(); return;
+      }
+      if((v=t.getAttribute("data-tg"))){
+        t.classList.toggle("on");
+        toast("推送开关已"+(t.classList.contains("on")?"开启":"关闭"));
+        return;
+      }
+      if((v=t.getAttribute("data-wake"))){
+        $$("[data-wake]").forEach(function(b){ b.classList.toggle("on", b===t); });
+        toast("唤醒升级参数已更新");
+        return;
+      }
+    });
+
+    // 抽屉
+    $("#drBack").addEventListener("click", closeDrawer);
+    function closeDrawer(){ $("#drawer").classList.remove("open"); }
+
+    // 顶部：实时通道 → 逐条演示推送
+    var idx = 0;
+    $("#liveBtn").addEventListener("click", function(){
+      var order = ["S1","S2","S3","S6","S4","S5"];
+      var sc = SCENES.filter(function(x){return x.id===order[idx%order.length];})[0];
+      idx++;
+      $("#liveBtn").classList.add("on");
+      setTimeout(function(){ $("#liveBtn").classList.remove("on"); }, 700);
+      if(sc.emergency) showEmergency(sc); else showBanner(sc);
+    });
+
+    // 顶部：紧急广播演示
+    $("#emgBtn").addEventListener("click", function(){ showEmergency(SCENES[3]); });
+
+    // 紧急弹窗按钮
+    $("#emgClose").addEventListener("click", function(){ $("#emgOverlay").classList.remove("on"); toast("已记录留痕 · 稍后处理"); });
+    $("#emgCall").addEventListener("click", function(){ toast("正在回拨 王阿姨…（通话已接通）"); });
+    $("#emgRobot").addEventListener("click", function(){ toast("已接通机器人扬声器 · 现场收音中"); });
+    $("#emgCommunity").addEventListener("click", function(){ toast("已通知社区联络人（短信 + 电话）"); });
+    $("#emgOverlay").addEventListener("click", function(e){ if(e.target===$("#emgOverlay")) $("#emgOverlay").classList.remove("on"); });
+
+    // 用药搜索
+    $("#medSearch").addEventListener("input", function(){ ST.medQuery = this.value; renderDoses(); });
+
+    // 导出
+    function csv(){
+      var head = "日期,星期,时段,时间,状态,药名/剂量,位置,备注,原因\n";
+      var body = DATA.records.map(function(r){
+        var w = DATA.week[r.d];
+        var slot = ["08:00","12:30","18:30"][r.t];
+        return [w.date,w.d,slot,r.time,r.state,r.meds,r.where,r.note,r.reason||""].map(function(x){
+          return '"'+String(x).replace(/"/g,'""')+'"';
+        }).join(",");
+      }).join("\n");
+      return head+body;
+    }
+    $("#copyBtn").addEventListener("click", function(){
+      var text = csv();
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ toast("近一周记录已复制（21 条）"); },
+          function(){ toast("复制被浏览器拦截 · 请用导出 CSV"); });
+      } else { toast("当前环境不支持复制 · 请用导出 CSV"); }
+    });
+    $("#csvBtn").addEventListener("click", function(){
+      var blob = new Blob(["\ufeff"+csv()], {type:"text/csv;charset=utf-8"});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "王阿姨_近一周用药记录_2026-10-04.csv";
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 400);
+      toast("已导出 CSV（含时间与原因）");
+    });
+  }
+
+  /* ================= 初始化 ================= */
+  function clock(){
+    var d = new Date();
+    var p = function(n){ return String(n).padStart(2,"0"); };
+    $("#sbClock").textContent = p(d.getHours())+":"+p(d.getMinutes());
+  }
+
+  function init(){
+    renderElder();
+    renderAdherence();
+    renderSchedule();
+    renderScenes();
+    renderAlerts();
+    renderFeed();
+    renderWeek();
+    renderWeekSummary();
+    renderDoses();
+    renderData();
+    renderSettings();
+    bind();
+    clock(); setInterval(clock, 20000);
+
+    // 首屏 2.6s 后自动演示一条「常规场景」推送
+    setTimeout(function(){ showBanner(SCENES[0]); }, 2600);
+  }
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>
+</body>
+</html>
