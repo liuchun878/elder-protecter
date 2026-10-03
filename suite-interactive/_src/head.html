@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>套房 3D 交互预览 · 王阿姨 + 送药机器人</title>
+<style>
+  :root{
+    --ink:#1d1f22; --ink-2:#616870; --line:rgba(20,22,25,.10); --line-2:rgba(20,22,25,.16);
+    --panel:rgba(252,251,249,.90); --accent:#1d1f22; --amber:#d98a24;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#d9d6d1;
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;color:var(--ink);
+    -webkit-font-smoothing:antialiased}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* ---------- 左侧控制台 ---------- */
+  .panel{position:fixed;top:16px;left:16px;width:264px;padding:15px 15px 13px;z-index:4;
+    background:var(--panel);backdrop-filter:blur(14px) saturate(1.1);
+    border:1px solid var(--line);border-radius:14px;
+    box-shadow:0 18px 40px -24px rgba(20,22,25,.45), 0 2px 6px rgba(20,22,25,.06);
+    user-select:none}
+  .panel h1{margin:0 0 3px;font-size:15px;font-weight:600;letter-spacing:.02em}
+  .panel .sub{font-size:11px;color:var(--ink-2);line-height:1.55;margin-bottom:2px}
+  .cap{font-size:10.5px;letter-spacing:.10em;color:var(--ink-2);margin:13px 0 6px}
+  .note{font-size:11px;line-height:1.62;color:var(--ink-2)}
+  .note b{color:var(--ink);font-weight:600}
+  button{font:inherit;font-size:11.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:9px;padding:7px 6px;cursor:pointer;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    transition:background .18s,border-color .18s,transform .18s}
+  button:hover{background:#f4f1ec;border-color:var(--line-2)}
+  button:active{transform:translateY(1px)}
+  button.on{background:var(--accent);color:#fbfaf8;border-color:var(--accent)}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .g4 button{font-size:10.5px;padding:7px 2px;letter-spacing:-.02em}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:5px}
+  .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-bottom:5px}
+  .status{margin-top:13px;padding:8px 9px;border:1px solid var(--line);border-radius:9px;
+    background:rgba(255,255,255,.62);font-size:10.5px;line-height:1.62;color:var(--ink)}
+  .status i{font-style:normal;color:var(--ink-2)}
+  .status .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#8fbf6a;margin-right:5px;
+    vertical-align:middle;transition:background .4s}
+  .status.serve .dot{background:var(--amber)}
+
+  /* ---------- 底部免责条 ---------- */
+  .disclaimer{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:4;
+    padding:7px 16px;border-radius:999px;background:rgba(252,251,249,.88);backdrop-filter:blur(10px);
+    border:1px solid var(--line);box-shadow:0 12px 30px -20px rgba(20,22,25,.5);
+    font-size:11px;color:#4a5056;white-space:nowrap;user-select:none}
+
+  /* ---------- 载入 ---------- */
+  #boot{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:9;
+    background:#dedbd6;transition:opacity .6s;font-size:12px;color:var(--ink-2);letter-spacing:.1em}
+  #boot.off{opacity:0;pointer-events:none}
+  @media (max-width:720px){ .panel{width:214px;padding:12px} .disclaimer{font-size:10px;padding:6px 10px} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<aside class="panel" aria-label="控制台">
+  <h1>套房 3D 交互预览</h1>
+  <div class="sub">suite-3d 户型（13.4 × 10.6 m）· 王阿姨（虚构人物）· 送药机器人 · 客厅充电桩</div>
+
+  <div class="cap">操作</div>
+  <div class="note">左键拖动旋转 · 滚轮缩放 · <b>点画面任意位置 → 王阿姨走过去坐下，机器人随后感应到位置并移动过去。</b></div>
+
+  <div class="cap">王阿姨的位置（模拟输入）</div>
+  <div class="g4" id="places"></div>
+
+  <div class="cap">机位</div>
+  <div class="g3" id="views"></div>
+  <div class="g3" id="views2"></div>
+
+  <div class="cap">场景</div>
+  <div class="g2" id="sceneBtns"></div>
+
+  <div class="status" id="status"><span class="dot"></span><span id="statusTxt">王阿姨：客厅 · 机器人：回充电桩待命 · 距离 — m</span></div>
+</aside>
+
+<div class="disclaimer">王阿姨是虚构人物 · 取药 ≠ 服药 · 位置为点击/开关模拟，不是传感器 · 非医疗用途</div>
+
+<div id="boot">正在构建场景 …</div>
+
+<script src="vendor/three.min.js"></script>
+<script>
