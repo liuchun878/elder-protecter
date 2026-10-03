@@ -37,7 +37,7 @@
 |---|---|---|---|
 | R | `prototype/index.html` | 46 | 挂载点 `#scene` / `#hud` / `#family` / `#debug` / `#banner` + import map；内联 data URI favicon（避免 `/favicon.ico` 404） |
 | R | `prototype/css/hud.css` | 610 | 适老化硬数值落地：正文 14.6:1、主色 4.8:1、最大字号 44px、点击目标 ≥60×60、行距 1.45 |
-| R | `prototype/js/robot.js` | 164 | 圆柱底盘 + 方盒机身 + 药盘 + 发光环 + 屏幕脸；`update(state, dt)` 是 state 的纯函数 |
+| R | `prototype/js/robot.js` | 369 | **按真实样机 UNNC-AGV 复刻**：四根 2020 型材立柱 + 400×400 三层铝板 + 两个 Ø154 差速驱动轮（MD36 电机 + 联轴器）+ 两个 Ø38 万向轮 + P761S 电池 + 底部发光带 + 方形升降药盘；仍是 state 的纯函数 |
 | R | `prototype/js/hud.js` | 243 | 长者端大字面板、药格灯（颜色 + 文字双编码）、一键确认、防重复 |
 | R | `prototype/js/audio.js` | 108 | `speechSynthesis`（zh-CN，rate 0.85）+ 静默降级 + **520 Hz 低频提示音**（WebAudio 合成，无音频资产） |
 | S | `prototype/js/scene3d.js` | 193 | 渲染循环 / 固定等距斜俯视 + 药盘特写两机位 / 光照 / WebGL 检测 / 场景 API；阴影默认关、pixelRatio ≤2 |
@@ -59,7 +59,7 @@
 | S | `recordings/promo-15s.mp4` | — | 15.0s · 1600×900 · 24fps · 1.9 MB：待机→出发→送达→取走确认→返航→**家属端**→收尾卡 |
 | 公共 | `LICENSE` / `THIRD-PARTY.md` | — | MIT 与第三方许可核查（P1 加入，与计划附录 A/C 一致） |
 
-**合计**：20 个源文件 · 4,501 行（不含 vendored 依赖与 mp4）。
+**合计**：20 个源文件 · 4,645 行（不含 vendored 依赖与 mp4）。
 
 ## 自测记录（跑了什么、看到什么）
 
@@ -89,6 +89,10 @@
 | 20 | **人形重建后重渲染**：`node scripts/record-promo.mjs` 360 帧 → 1.93 MB mp4，渲染期零控制台异常 | ✅ 2026-10-03 |
 | 21 | 人形姿态核对（无头 Chrome 多机位截图）：客厅坐 / 卧室躺（头落在枕头上）/ 餐椅坐 / 行走中 | ✅ 四态均无悬空与穿模 |
 | 22 | 人形不破坏 0 级降级：`scene2d.js` 下仍只读 `object3D.position/visible`，2D 里人形照常显示 | ✅ |
+| 23 | **机器人按真实样机复刻**：解析 `unnc-sophicar/UNNC-AGV-P-1.STEP` 装配体（逐级放置矩阵展开 + OpenCASCADE 细分）量出真实尺寸，`robot.js` 按同一组数字重搭 | ✅ 尺寸写在文件头注释里 |
+| 24 | 机器人造型核对（无头 Chrome 多机位）：整体 / 正面 / 侧面 / 底盘 / 药盘特写 / 全景 六档 | ✅ 无穿模；药盒与水杯都落在盘内 |
+| 25 | 机器人行为未变：仍是 `state` 的纯函数，药盘抬升 0.6s、发光脉冲、药盒/水杯随事件显隐 | ✅ 契约 §1.1 不变 |
+| 26 | 两处模型重建后重渲染：360 帧 → 2.09 MB mp4，渲染期零控制台异常 | ✅ |
 
 **关于"断网刷新"的口径**：本项目用 `localhost` 静态服务器，DevTools 的 Offline 会连本地请求一并掐断，因此
 "刷新仍可用"在**这台服务器的语义下**不成立；成立的是更实质的两条：**运行期零外部请求** + **加载完成后断网仍可交互与落库**。

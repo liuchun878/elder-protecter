@@ -258,14 +258,17 @@ tasks:
     acceptance: "留出 #scene 与 #hud；对比度 ≥4.5:1；点击目标 ≥60×60；100% 缩放不裁切"
     status: done
   - id: R2
-    title: robot.js 本体（底盘 + 机身 + 药盘 + 发光环）+ 状态可视化
+    title: robot.js 本体（按真实样机 UNNC-AGV 复刻）+ 状态可视化
     line: R
     block: D1PM
     milestone: M1
     priority: P0
     files: [prototype/js/robot.js]
     depends_on: [R1]
-    acceptance: "robot.update(state, dt) 是 state 的纯函数；按 activeEventId 切换状态"
+    acceptance: "robot.update(state, dt) 是 state 的纯函数；按 activeEventId 切换状态；外观与 unnc-sophicar/UNNC-AGV-P-1.STEP 量出的尺寸一致（442×402×807 mm，立柱 ±0.1345、驱动轮 x=±0.198、顶板 0.800）"
+    note: "v2 复刻：解析 STEP 装配体的逐级放置矩阵（并交叉用 OpenCASCADE 细分复核）量出真实尺寸，
+           改成四立柱 + 三层铝板 + 差速驱动轮 + 万向轮 + P761S 电池 + 底部发光带 + 方形升降药盘。
+           仍然只用 Box/Cylinder/Sphere/Torus，不落任何 CAD 文件或网格（红线不变）。"
     cut_first: "发光环与细节 → 单个方块（功能不受影响）"
     status: done
   - id: R3
