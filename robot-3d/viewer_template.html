@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>送药机器人 · 3D 模型（立柜式）</title>
+<style>
+  :root{ --ink:#1b1d20; --ink2:#6a7178; --line:rgba(20,22,25,.10); }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#e8e5e0;color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif}
+  canvas{display:block}
+  .panel{position:fixed;top:16px;left:16px;width:262px;padding:15px 16px;border-radius:14px;
+    background:rgba(252,251,249,.9);backdrop-filter:blur(14px);border:1px solid var(--line);
+    box-shadow:0 18px 40px -24px rgba(20,22,25,.45);user-select:none;max-height:calc(100% - 32px);overflow:auto}
+  .panel h1{margin:0 0 2px;font-size:15px;font-weight:600}
+  .panel .sub{font-size:11px;color:var(--ink2);line-height:1.55;margin-bottom:6px}
+  .cap{font-size:10.5px;letter-spacing:.14em;color:var(--ink2);text-transform:uppercase;margin:13px 0 7px}
+  button{font:inherit;font-size:12px;color:var(--ink);background:#fff;border:1px solid var(--line);
+    border-radius:9px;padding:7px 8px;cursor:pointer}
+  button:hover{background:#f4f1ec}
+  button.on{background:#1d1f22;color:#fbfaf8;border-color:#1d1f22}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .btns.three{grid-template-columns:1fr 1fr 1fr}
+  .row{display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--ink2);margin:9px 0 0}
+  input[type=range]{flex:1;accent-color:#1d1f22}
+  .dim{font-size:11.5px;line-height:1.85;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .dim b{color:var(--ink);font-weight:600}
+  .hint{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:10.5px;color:var(--ink2);line-height:1.6}
+  .scale{position:fixed;right:22px;bottom:20px;font-size:10.5px;color:#3b4046;text-align:center;user-select:none}
+  .scale i{display:block;height:9px;border-left:1px solid #3b4046;border-right:1px solid #3b4046;
+    border-bottom:1px solid #3b4046;margin-bottom:3px}
+  .tag{position:fixed;right:22px;top:18px;font-size:10.5px;color:var(--ink2);text-align:right;line-height:1.7}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div class="panel">
+  <h1>送药机器人 · 立柜式</h1>
+  <div class="sub">按你给的照片重建：白色方立柱机身 + 正面黑色玻璃屏 + 顶部木拉手 + 不锈钢立柱摄像头</div>
+
+  <div class="cap">视角</div>
+  <div class="btns">
+    <button data-view="hero" class="on">正面 3/4</button>
+    <button data-view="front">正视图</button>
+    <button data-view="side">侧视图</button>
+    <button data-view="back">背视图</button>
+    <button data-view="top">俯视</button>
+    <button data-view="low">低角度</button>
+  </div>
+
+  <div class="cap">屏幕画面</div>
+  <div class="btns three" id="screens"></div>
+
+  <div class="cap">显示</div>
+  <div class="btns">
+    <button id="explodeBtn">分解视图</button>
+    <button id="wireBtn">线框</button>
+    <button id="spinBtn">自动旋转</button>
+    <button id="dimBtn">标注</button>
+  </div>
+  <div class="row"><span>分解</span><input id="explode" type="range" min="0" max="100" value="0" /></div>
+  <div class="row"><span>环境光</span><input id="expo" type="range" min="40" max="170" value="100" /></div>
+
+  <div class="cap">尺寸（米）</div>
+  <div class="dim" id="dimBox"></div>
+  <div class="hint"><b>左键拖拽</b> 旋转 · <b>滚轮</b> 缩放 · <b>右键 / Shift 拖拽</b> 平移 · <b>双击</b> 复位</div>
+</div>
+
+<div class="tag">
+  robot.glb · 单位 m · Y 轴向上<br />三角面 <span id="tri">–</span> · 部件 <span id="partN">–</span>
+</div>
+<div class="scale"><i id="scaleBar"></i><span id="scaleTxt">1 m</span></div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+window.ROBOT_SCENE = /*__SCENE_JSON__*/null;
+</script>
+<script>
+(function () {
+  'use strict';
+  const T = THREE;
+  const S = window.ROBOT_SCENE;
+  const app = document.getElementById('app');
+
+  // ---------- 渲染器 ----------
+  const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+  renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+  renderer.outputColorSpace = T.SRGBColorSpace;
+  app.appendChild(renderer.domElement);
+
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(32, innerWidth / innerHeight, 0.01, 80);
+
+  // 背景渐变
+  (function () {
+    const c = document.createElement('canvas'); c.width = 8; c.height = 256;
+    const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#f6f4f0'); g.addColorStop(.58, '#e7e3dd'); g.addColorStop(1, '#c9c3ba');
+    x.fillStyle = g; x.fillRect(0, 0, 8, 256);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; scene.background = t;
+  })();
+
+  // 灯光
+  scene.add(new T.HemisphereLight(0xeef3f8, 0xb3a390, 0.95));
+  const key = new T.DirectionalLight(0xfff4e6, 2.35);
+  key.position.set(1.4, 2.8, 2.0); key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  const sc = key.shadow.camera; sc.left = -1.1; sc.right = 1.1; sc.top = 1.9; sc.bottom = -0.2; sc.near = .1; sc.far = 9;
+  key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02; key.shadow.radius = 2.6;
+  scene.add(key);
+  const fill = new T.DirectionalLight(0xdce8f5, 0.55); fill.position.set(-1.8, 1.5, 0.9); scene.add(fill);
+  const rim = new T.DirectionalLight(0xffffff, 0.35); rim.position.set(-0.8, 2.2, -2.0); scene.add(rim);
+
+  // 地面
+  const floor = new T.Mesh(new T.CircleGeometry(8, 72), new T.MeshStandardMaterial({ color: 0xdedad4, roughness: .95 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  const soft = new T.Mesh(new T.CircleGeometry(0.9, 64), new T.MeshBasicMaterial({
+    color: 0x2a2b2d, transparent: true, opacity: .13, depthWrite: false
+  }));
+  soft.rotation.x = -Math.PI / 2; soft.position.y = 0.0015; scene.add(soft);
+
+  // 环境反射
+  const pm = new T.PMREMGenerator(renderer);
+  (function () {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+    const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#ece9e3'); g.addColorStop(1, '#a29a8f');
+    x.fillStyle = g; x.fillRect(0, 0, 512, 256);
+    const s = x.createRadialGradient(360, 54, 4, 360, 54, 170);
+    s.addColorStop(0, 'rgba(255,247,228,.95)'); s.addColorStop(1, 'rgba(255,247,228,0)');
+    x.fillStyle = s; x.fillRect(0, 0, 512, 256);
+    const t = new T.CanvasTexture(c); t.mapping = T.EquirectangularReflectionMapping; t.colorSpace = T.SRGBColorSpace;
+    scene.environment = pm.fromEquirectangular(t).texture;
+  })();
+
+  // ---------- 材质 ----------
+  function texFromDataURL(url) {
+    const t = new T.Texture();
+    t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8;
+    const img = new Image();
+    img.onload = function () { t.image = img; t.needsUpdate = true; };
+    img.src = url;
+    return t;
+  }
+  const textures = {};
+  Object.keys(S.textures || {}).forEach(function (k) {
+    textures[k] = texFromDataURL(S.textures[k].dataurl);
+  });
+  const mats = S.materials.map(function (m) {
+    const opt = {
+      color: new T.Color(m.color[0], m.color[1], m.color[2]),
+      roughness: m.roughness, metalness: m.metalness,
+      side: m.doubleSided ? T.DoubleSide : T.FrontSide
+    };
+    if (m.emissive && (m.emissive[0] || m.emissive[1] || m.emissive[2]))
+      opt.emissive = new T.Color(m.emissive[0], m.emissive[1], m.emissive[2]);
+    if (m.alpha < 1) { opt.transparent = true; opt.opacity = m.alpha; }
+    const mm = new T.MeshStandardMaterial(opt);
+    mm.userData.base = { color: mm.color.clone(), emissive: mm.emissive ? mm.emissive.clone() : null };
+    mm.userData.name = m.name;
+    return mm;
+  });
+  const screenMats = {};   // screenName -> material
+  Object.keys(S.screens || {}).forEach(function (name) {
+    const m = new T.MeshStandardMaterial({
+      color: 0xffffff, roughness: .3, metalness: 0,
+      map: textures['tex_screen_' + name], emissive: new T.Color(0.34, 0.38, 0.44),
+      emissiveMap: textures['tex_screen_' + name], emissiveIntensity: 1.0, side: T.DoubleSide
+    });
+    screenMats[name] = m;
+  });
+
+  // ---------- 由几何表建 THREE 几何 ----------
+  const geoCache = S.geoms.map(function (g) {
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(g.p, 3));
+    geo.setAttribute('normal', new T.Float32BufferAttribute(g.n, 3));
+    if (g.uv && g.uv.length) geo.setAttribute('uv', new T.Float32BufferAttribute(g.uv, 2));
+    geo.setIndex(g.i);
+    geo.computeBoundingSphere();
+    return geo;
+  });
+
+  // ---------- 装配 ----------
+  const root = new T.Group(); scene.add(root);
+  const nodeObjs = [];
+  let triCount = 0;
+  S.nodes.forEach(function (n) {
+    const holder = new T.Group();
+    holder.position.set(n.t[0], n.t[1], n.t[2]);
+    if (n.rx || n.ry || n.rz) holder.rotation.set(
+      (n.rx || 0) * Math.PI / 180, (n.ry || 0) * Math.PI / 180, (n.rz || 0) * Math.PI / 180);
+    holder.name = n.name;
+    if (n.geo !== null && n.geo !== undefined) {
+      const mat = n.tex ? screenMats[n.screen] : mats[n.mat];
+      const mesh = new T.Mesh(geoCache[n.geo], mat);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      mesh.userData.matName = n.tex ? '屏幕画面' : S.materials[n.mat].name;
+      holder.add(mesh);
+      triCount += S.geoms[n.geo].i.length / 3;
+    }
+    nodeObjs.push(holder);
+  });
+  S.nodes.forEach(function (n, i) {
+    (n.ch || []).forEach(function (c) { nodeObjs[i].add(nodeObjs[c]); });
+  });
+  S.root.forEach(function (i) { root.add(nodeObjs[i]); });
+  document.getElementById('tri').textContent = triCount.toLocaleString();
+  document.getElementById('partN').textContent = S.nodes.length;
+
+  // 机位与尺寸：把整机放到以 y 轴为轴的居中位置
+  const box = new T.Box3().setFromObject(root);
+  const size = box.getSize(new T.Vector3());
+  const center = box.getCenter(new T.Vector3());
+  const H = size.y, W = Math.max(size.x, size.z);
+  const cx = center.x, cz = center.z;
+
+  document.getElementById('dimBox').innerHTML =
+    '整机高度 <b>' + H.toFixed(3) + '</b> m<br>' +
+    '机身宽度 <b>' + size.x.toFixed(3) + '</b> m<br>' +
+    '机身厚度 <b>' + size.z.toFixed(3) + '</b> m<br>' +
+    '最大占地直径 <b>' + W.toFixed(3) + '</b> m';
+
+  // ---------- 标注（尺寸线） ----------
+  const dimGroup = new T.Group(); dimGroup.visible = false; scene.add(dimGroup);
+  function dimLine(a, b, text) {
+    const g = new T.BufferGeometry().setFromPoints([a, b]);
+    const line = new T.Line(g, new T.LineDashedMaterial({ color: 0x3b4046, dashSize: .02, gapSize: .014 }));
+    line.computeLineDistances(); dimGroup.add(line);
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+    const x = cv.getContext('2d'); x.fillStyle = 'rgba(255,255,255,.86)';
+    x.fillRect(0, 0, 256, 64); x.fillStyle = '#1b1d20'; x.font = '600 30px "PingFang SC",sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 34);
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(cv), transparent: true, depthTest: false }));
+    sp.position.copy(a.clone().add(b).multiplyScalar(.5)); sp.scale.set(.19, .048, 1);
+    dimGroup.add(sp);
+  }
+  const yTop = box.max.y, yBot = box.min.y;
+  const xMin = box.min.x, xMax = box.max.x, zMin = box.min.z, zMax = box.max.z;
+  dimLine(new T.Vector3(xMax + .06, yBot, zMax), new T.Vector3(xMax + .06, yTop, zMax), H.toFixed(2) + ' m');
+  dimLine(new T.Vector3(xMin, yBot, zMax + .06), new T.Vector3(xMax, yBot, zMax + .06), size.x.toFixed(2) + ' m');
+  dimLine(new T.Vector3(xMax + .02, yBot, zMin), new T.Vector3(xMax + .02, yBot, zMax), size.z.toFixed(2) + ' m');
+
+  // ---------- 分解视图 ----------
+  const basePos = nodeObjs.map(function (o) { return o.position.clone(); });
+  const updir = nodeObjs.map(function (o) {
+    const p = o.position.clone(); p.y -= 0.66;              // 相对机身中心
+    if (p.length() < 1e-4) p.set(0, 1, 0);
+    return p.normalize();
+  });
+  function applyExplode(k) {
+    nodeObjs.forEach(function (o, i) {
+      o.position.copy(basePos[i]).addScaledVector(updir[i], k * 0.34);
+    });
+  }
+
+  // ---------- 相机控制 ----------
+  const cam = { tx: cx, ty: H * 0.52, tz: cz, r: 2.15, th: 0.46, ph: 1.30,
+                dth: 0.46, dph: 1.30, dr: 2.15, auto: false };
+  const VIEWS = {
+    hero:  { th: 0.46, ph: 1.30, r: 2.15, ty: 0.52 },
+    front: { th: 0.00, ph: 1.40, r: 1.95, ty: 0.56 },
+    side:  { th: 1.57, ph: 1.42, r: 1.95, ty: 0.55 },
+    back:  { th: 3.14, ph: 1.36, r: 2.05, ty: 0.55 },
+    top:   { th: 0.30, ph: 0.24, r: 2.05, ty: 0.66 },
+    low:   { th: 0.42, ph: 1.62, r: 1.80, ty: 0.72 }
+  };
+  function setView(v) {
+    const q = VIEWS[v] || VIEWS.hero;
+    cam.dth = q.th; cam.dph = q.ph; cam.dr = q.r;
+    cam.tx = cx; cam.tz = cz;
+    cam.ty = q.ty * H;
+  }
+  let drag = null, lx = 0, ly = 0;
+  const dom = renderer.domElement;
+  dom.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  dom.addEventListener('pointerdown', function (e) {
+    drag = (e.button === 2 || e.shiftKey) ? 'pan' : 'orbit';
+    lx = e.clientX; ly = e.clientY;
+    try { dom.setPointerCapture(e.pointerId); } catch (x) {}
+    cam.auto = false; syncSpin();
+  });
+  dom.addEventListener('pointerup', function (e) {
+    drag = null; try { dom.releasePointerCapture(e.pointerId); } catch (x) {}
+  });
+  dom.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+    if (drag === 'orbit') {
+      cam.dth -= dx * 0.007;
+      cam.dph = Math.max(0.12, Math.min(Math.PI / 2 + 0.30, cam.dph - dy * 0.006));
+    } else {
+      cam.tx -= dx * cam.dr * 0.0016;
+      cam.ty = Math.max(0.05, Math.min(H * 1.4, cam.ty + dy * cam.dr * 0.0016));
+    }
+  });
+  dom.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    cam.dr = Math.max(0.55, Math.min(9, cam.dr * (1 + Math.sign(e.deltaY) * 0.09)));
+  }, { passive: false });
+  dom.addEventListener('dblclick', function () { setView('hero'); });
+
+  // ---------- 界面 ----------
+  const q = function (s) { return document.querySelector(s); };
+  document.querySelectorAll('[data-view]').forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll('[data-view]').forEach(function (o) { o.classList.remove('on'); });
+      b.classList.add('on'); setView(b.dataset.view);
+    };
+  });
+  const screenBox = document.getElementById('screens');
+  Object.keys(S.screens || {}).forEach(function (k) {
+    const b = document.createElement('button');
+    b.textContent = { logo: '待机', eyes: '注视', green: '完成', off: '熄屏' }[k] || k;
+    b.title = S.screens[k];
+    b.className = (k === S.defaultScreen) ? 'on' : '';
+    b.onclick = function () {
+      screenBox.querySelectorAll('button').forEach(function (o) { o.classList.remove('on'); });
+      b.classList.add('on');
+      nodeObjs.forEach(function (o) {
+        o.traverse(function (c) { if (c.isMesh && c.userData.matName === '屏幕画面') c.material = screenMats[k]; });
+      });
+    };
+    screenBox.appendChild(b);
+  });
+  let spin = false;
+  const spinBtn = document.getElementById('spinBtn');
+  spinBtn.onclick = function () { cam.auto = !cam.auto; syncSpin(); };
+  function syncSpin() { spinBtn.classList.toggle('on', cam.auto); }
+  let wire = false;
+  document.getElementById('wireBtn').onclick = function () {
+    wire = !wire; this.classList.toggle('on', wire);
+    Object.keys(mats).forEach(function (k) { mats[k].wireframe = wire; });
+    Object.keys(screenMats).forEach(function (k) { screenMats[k].wireframe = wire; });
+  };
+  const exSlider = document.getElementById('explode');
+  let explodeOn = false;
+  exSlider.oninput = function () { applyExplode(exSlider.value / 100); };
+  document.getElementById('explodeBtn').onclick = function () {
+    explodeOn = !explodeOn; this.classList.toggle('on', explodeOn);
+    const k = explodeOn ? 0.55 : 0;
+    exSlider.value = String(k * 100);
+    applyExplode(k);
+    if (explodeOn) setView('hero');
+  };
+  document.getElementById('dimBtn').onclick = function () {
+    dimGroup.visible = !dimGroup.visible; this.classList.toggle('on', dimGroup.visible);
+  };
+  document.getElementById('expo').oninput = function () {
+    renderer.toneMappingExposure = this.value / 100;
+  };
+
+  // 比例尺
+  (function () {
+    const vFov = camera.fov * Math.PI / 180;
+    const h = 2 * Math.tan(vFov / 2) * cam.dr;
+    const pxPerM = innerHeight / h;
+    document.getElementById('scaleBar').style.width = pxPerM.toFixed(0) + 'px';
+    document.getElementById('scaleTxt').textContent = '1 m（约 ' + pxPerM.toFixed(0) + ' px）';
+  })();
+
+  // ---------- 主循环 ----------
+  const clock = new T.Clock();
+  function tick() {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    if (cam.auto) cam.dth += dt * 0.32;
+    const k = Math.min(1, dt * 7);
+    cam.th += (cam.dth - cam.th) * k;
+    cam.ph += (cam.dph - cam.ph) * k;
+    cam.r += (cam.dr - cam.r) * k;
+    const sp = Math.sin(cam.ph);
+    camera.position.set(cam.tx + cam.r * sp * Math.sin(cam.th),
+                        cam.ty + cam.r * Math.cos(cam.ph),
+                        cam.tz + cam.r * sp * Math.cos(cam.th));
+    camera.lookAt(cam.tx, cam.ty, cam.tz);
+    soft.position.set(cx, 0.0015, cz);
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+  addEventListener('resize', function () {
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+  setView('hero');
+  cam.th = cam.dth; cam.ph = cam.dph; cam.r = cam.dr;
+  tick();
+
+  // 供截图脚本调用
+  window.ROBOT = {
+    scene: scene, camera: camera, renderer: renderer, root: root,
+    views: VIEWS, cam: cam,
+    setView: function (v) { setView(v); cam.th = cam.dth; cam.ph = cam.dph; cam.r = cam.dr; },
+    view: function (o) {
+      if (o.th !== undefined) cam.dth = o.th;
+      if (o.ph !== undefined) cam.dph = o.ph;
+      if (o.r !== undefined) cam.dr = o.r;
+      if (o.ty !== undefined) cam.ty = o.ty * H;
+      cam.th = cam.dth; cam.ph = cam.dph; cam.r = cam.dr;
+    },
+    screen: function (k) { screenMats[k] && nodeObjs.forEach(function (o) { o.traverse(function (c) { if (c.isMesh && c.userData.matName === '屏幕画面') c.material = screenMats[k]; }); }); },
+    explode: function (k) { applyExplode(k); },
+    reset: function () {
+      applyExplode(0);
+      nodeObjs.forEach(function (o) { o.visible = true; });
+      screenMats[S.defaultScreen] && nodeObjs.forEach(function (o) { o.traverse(function (c) { if (c.isMesh && c.userData.matName === '屏幕画面') c.material = screenMats[S.defaultScreen]; }); });
+      dimGroup.visible = false;
+      document.getElementById('explode').value = '0';
+      return true;
+    },
+    dims: function (v) { dimGroup.visible = (v === undefined) ? !dimGroup.visible : !!v; return dimGroup.visible; },
+    hide: function (name, v) {
+      S.nodes.forEach(function (n, i) { if (n.name === name) nodeObjs[i].visible = (v === undefined) ? !nodeObjs[i].visible : !!v; });
+      return S.nodes.filter(function (n, i) { return n.name === name; }).map(function (n, j) { return n.name; });
+    },
+    size: { h: H, w: size.x, d: size.z },
+    tri: triCount
+  };
+})();
+</script>
+</body>
+</html>
