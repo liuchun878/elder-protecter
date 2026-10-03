@@ -9,6 +9,20 @@
 
 ---
 
+### 命名：交互场景页更名为「保卫老人.html」（v1.13）
+
+用户口径：**「可以帮我将文件命名为：保卫老人吗」**。
+
+- `prototype/保卫老人.html` 成为**唯一实现**（原 `suite.html` 由 `git mv` 改名，历史保留）；
+- 页面 `<title>` → **保卫老人 · 送药机器人 3D 交互演示（套房）**，左上角面板标题 → **保卫老人**；
+- 另留 `prototype/suite.html` 作**一跳别名**（`meta refresh` + `location.replace`），**不是第二份实现** ——
+  避免旧链接、文档与本地脚本失效；已在 README / `prototype/AGENTS.md` 注明；
+- 全仓库文档引用（`README` / `STATUS` / `CHANGELOG` / `契约-接口.md` / `plan/tasks.yaml` / `AGENTS.md` ×2 /
+  分支开发记录）统一改成新名字。
+
+实测：`http://localhost:8000/保卫老人.html` 与旧链接 `http://localhost:8000/suite.html` 都返回 200，
+两者最终都停在 `保卫老人.html`（标题与面板均为「保卫老人」），机器人正常挂载、**零控制台异常**。
+
 ## `feat/r-robot3d-details`（**尚未打 tag**）— 2026-10-03 — 机器人借 robot-3d 的细节：大黑屏四态 + 木拉手 + 腰线 + 万向轮结构（v1.12）
 
 > 用户口径：**「将机器人改进一下，使用这个 <链接>」**。给的链接是仓库里的杂项提交
@@ -59,7 +73,7 @@
 > ④ 的来源是他仓库里的 `suite-3d/robot/voice/p1..p3.mp3`（三个提交：吃药提醒 / 鼓励 / 留言给子女手机，**男孩童声**）
 > 与 HEAD 版 `suite-3d/robot/index.html` 里的语音实现。
 >
-> ⚠️ **归属**：S（`scene3d.js`、`suite-textures.js`、`suite.html`、`controls.js`）+ R（`robot.js`、`hud.css`、`audio.js`、`hud.js`、`main.js`、`assets/voice/**`）+ 契约。
+> ⚠️ **归属**：S（`scene3d.js`、`suite-textures.js`、`保卫老人.html`、`controls.js`）+ R（`robot.js`、`hud.css`、`audio.js`、`hud.js`、`main.js`、`assets/voice/**`）+ 契约。
 
 ### ① 夜晚档（S · 契约 v1.11）
 
@@ -252,10 +266,10 @@
 ## `feat/s-clickable-suite`（**尚未打 tag**）— 2026-10-03 — 点哪看哪 + 走位真正接上 navgrid
 
 > 用户口径：「根据这些场景制作一个可以点击的 3D 场景网页」。
-> 页面（`prototype/suite.html`）本来就在、点击链路也是通的，这一轮补的是**点击之后看不看得见**与
+> 页面（`prototype/保卫老人.html`）本来就在、点击链路也是通的，这一轮补的是**点击之后看不看得见**与
 > **走过去像不像话**这两件"点得动但不成立"的事。
 >
-> ⚠️ **归属**：S（`scene3d.js`、`scene2d.js`、`suite.html`）+ H（`person.js`、`契约-接口.md`）。
+> ⚠️ **归属**：S（`scene3d.js`、`scene2d.js`、`保卫老人.html`）+ H（`person.js`、`契约-接口.md`）。
 
 ### ① 点哪看哪：点击后自动取景（S · 契约 v1.9）
 
@@ -271,7 +285,7 @@
 用户一拖拽 / 一点机位按钮，动画立刻交还控制权。
 
 - **默认关**（`scene.setAutoFrame(false)`）：主演示 `index.html` 与拍摄模式的固定构图**一行不变**；
-  预览台 `suite.html` 自己打开，并多一个「取景：跟随点击 / 手动」按钮。
+  预览台 `保卫老人.html` 自己打开，并多一个「取景：跟随点击 / 手动」按钮。
 - 这同时把 `S15`（"客厅补一个对着沙发的机位"）**从 cut 变成可交付**：不再需要新建预设 ——
   机位是**按落座点算出来的**，18 组候选扫描找不到的构图，用"跟着点走"绕过去了；既有 6 个预设一字未动。
 
@@ -325,7 +339,7 @@
 > ③ 按用户给的参考图把机器人从「方舱机身」改成「**蛋形机身 + 顶部平板屏**」。
 >
 > ⚠️ **归属**：跨 S（`room.js`、`scene3d.js`、`scene2d.js`、`suite-textures.js`、`navgrid.js`、
-> `suite.html`、`main.js`、`controls.js`）与 H（`契约-接口.md`、`presence.js`、`person.js`）
+> `保卫老人.html`、`main.js`、`controls.js`）与 H（`契约-接口.md`、`presence.js`、`person.js`）
 > 与 R（`robot.js`）。由队长应要求统一改，**合入 `main` 前需三线 owner 分别 review**。
 
 ### ① 户型：suite-3d 套房（S）
@@ -370,7 +384,7 @@
 
 - `person.js` 的落位改到套房：客厅**沙发**（座垫顶 0.50）、**卧室 B 床上（躺，床头朝东）**、
   **餐区北侧餐椅**（座面顶 0.47）；走路改成沿 `findPath` 折线（去卧室要绕走廊、过门洞）。
-- 新增 **`prototype/suite.html`（室内预览台）**：与主演示同一份模块，可自由视角、
+- 新增 **`prototype/保卫老人.html`（室内预览台）**：与主演示同一份模块，可自由视角、
   机位预设、日光/黄昏、导航网格开关；**点画面任意位置 → 王阿姨走过去坐下 → 机器人感应到位置并移动过去**；
   不挂长者端与家属端，专门用来看户型与造型。
 
@@ -383,7 +397,7 @@
 | 3 | `.preview/fallback2d-seat.mjs`（屏蔽 WebGL） | 全部通过：2D 用**同一份导航网格**（free 4861 一致），点床 → 坐床沿、点沙发 → 坐垫；机器人 8.61 → 0.00 m（同样绕路） |
 | 4 | `.preview/uitest.mjs` | 交互控制台 12 项全过，零控制台异常 |
 | 5 | `.preview/netcheck.mjs` | 52 个请求全部指向 `127.0.0.1:8000`，**零外部请求**（含家属端） |
-| 6 | 主演示 `index.html` | 零控制台异常；3D 场景正常；`suite.html` 同样零异常 |
+| 6 | 主演示 `index.html` | 零控制台异常；3D 场景正常；`保卫老人.html` 同样零异常 |
 | 7 | 连通性自测（flood fill） | 从充电桩可达 4525/4861 个可走格（93%）；修掉三处"家具堵门"后从 1877 提升到 4050+ |
 
 > **已知取舍**：① 起居室北带被餐桌椅 + 书房墙分成两块，进出要走"起居 → 卧室B → 北走廊 → 起居西侧"这条绕行路线 ——

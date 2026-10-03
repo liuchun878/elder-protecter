@@ -18,7 +18,7 @@
 ## ① v1.9 · 点哪看哪 + 走位真正接上 navgrid
 
 **用户口径**：「根据这些场景制作一个**可以点击的 3D 场景网页**」。
-页面（`prototype/suite.html`）本来就在、点击链路也通 —— 这一轮补的是「点击之后**看不看得见**」与
+页面（`prototype/保卫老人.html`）本来就在、点击链路也通 —— 这一轮补的是「点击之后**看不看得见**」与
 「走过去**像不像话**」这两件"点得动但不成立"的事。
 
 ### 改了什么
@@ -28,7 +28,7 @@
 | `prototype/js/scene3d.js` | 新增 `scene.focusSeat(seat)`：从落座点**正面**往外找机位（正面 → 左右 35°/70°/105°/145°/180°，距离 2.4/3.0/3.6/1.9 m），取第一个同时满足 ①在户型内 ②视线上**不隔墙**（门洞放行）③**不陷在家具里** 的位置；0.85 s easeInOut 平滑飞过去；找不到返回 `null`（保留原机位，**不硬凑**）。新增 `setAutoFrame/isAutoFrame/getFocusPose/isCameraMoving`；用户一拖拽 / 一切机位立刻交还控制权 |
 | `prototype/js/person.js` | 走位从**两点一线**改成**沿 `findPath` 折线**（契约 §3.1.1 v1.7 早就这么要求，实现一直没做）：落座点在家具内部 → 终点拆两段「折线走到坐具外入口点 + 最后一段落座收尾」；短于 1.2 m 不走折线；`findPath` 末节点离目标 >0.12 m 时补一段收尾 |
 | `prototype/js/scene2d.js` | 补 `focusSeat/getFocusPose/isCameraMoving/setAutoFrame/isAutoFrame` 空实现（2D 俯视本来就把整户画在一屏，不需要"点哪看哪"） |
-| `prototype/suite.html` | 打开自动取景 + 新增「取景：跟随点击 / 手动」按钮；操作说明改写 |
+| `prototype/保卫老人.html` | 打开自动取景 + 新增「取景：跟随点击 / 手动」按钮；操作说明改写 |
 | `契约-接口.md` | §3.1 新增 `focusSeat / setAutoFrame / isAutoFrame / getFocusPose / isCameraMoving`；§3.1.1 补「落座点在家具内部怎么办（入口点 + 收尾）」 |
 
 ### 关键决策与踩坑
@@ -180,7 +180,7 @@
 **新增文件**（前几轮 + 本分支）：
 
 ```
-prototype/suite.html                 室内预览台（可点击 3D 场景；v1.9 起"点哪看哪"）
+prototype/保卫老人.html                 室内预览台（可点击 3D 场景；v1.9 起"点哪看哪"）
 prototype/js/navgrid.js              可通行网格 + A*（纯数学）
 prototype/js/suite-textures.js       套房程序化贴图（含 v1.11 的夜空 skyCanvas(seed,'night')）
 prototype/js/asset-loader.js         外部 .glb 归一化加载器（S14）
@@ -215,7 +215,7 @@ scripts/make-test-glb.py             .glb 接入自测夹具
 ```bash
 cd prototype && python3 -m http.server 8000     # 端口别用 19387（DSH 界面）
 # 主屏：      http://localhost:8000/
-# 室内预览台： http://localhost:8000/suite.html   ← "可以点击的 3D 场景网页"
+# 室内预览台： http://localhost:8000/保卫老人.html   ← "可以点击的 3D 场景网页"
 # 副屏：      http://localhost:8000/?view=family
 # 逐帧可复现： http://localhost:8000/?film=1
 

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>保卫老人 · 送药机器人 3D 交互演示（套房）</title>
+    <meta name="description" content="suite-3d 套房户型 + 王阿姨（虚构人物）+ 送药机器人 + 客厅充电桩的交互预览（离线可用，非医疗用途）" />
+    <link rel="stylesheet" href="./css/hud.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232f7f86'/%3E%3Ccircle cx='11' cy='14' r='3' fill='%23fff'/%3E%3Ccircle cx='21' cy='14' r='3' fill='%23fff'/%3E%3Crect x='9' y='22' width='14' height='3' rx='1.5' fill='%23fff'/%3E%3C/svg%3E"
+    />
+    <!--
+      保卫老人 · 套房 3D 交互演示台（S 线；原文件名 suite.html，v1.13 起改名为「保卫老人.html」）
+      ------------------------------------------------------------------
+      与正式演示（index.html）**同一份代码**：store / presence / scene3d / robot / person。
+      区别只是这里不挂长者端大字卡与家属端，专门用来看场景与摆位：
+        · 左键拖动旋转、滚轮缩放（scene3d 自带的自由视角）
+        · 点画面任意位置 → 王阿姨走过去坐下 → 机器人感应到位置并移动过去
+        · 机位预设 / 日光·黄昏 / 导航网格 三个开关
+      红线：3D 里不渲染任何文字；位置是**点击/开关模拟**，不是传感器。
+    -->
+    <style>
+      .suite-panel {
+        position: absolute; top: 16px; left: 16px; z-index: 4;
+        width: 292px; max-height: calc(100vh - 32px); overflow: auto;
+        background: rgba(253, 251, 247, 0.95);
+        border: 1px solid var(--line, #d8d2c6);
+        border-radius: 16px; padding: 14px 15px;
+        box-shadow: 0 10px 30px rgba(40, 34, 26, 0.16);
+        font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--ink, #24211d);
+      }
+      .suite-panel h1 { margin: 0 0 2px; font-size: 17px; }
+      .suite-panel h2 { margin: 12px 0 6px; font-size: 12.5px; color: #6d665c; font-weight: 600; letter-spacing: .04em; }
+      .suite-panel p { margin: 0 0 8px; font-size: 12.5px; color: #55504a; }
+      .suite-row { display: flex; flex-wrap: wrap; gap: 6px; }
+      .suite-btn {
+        font: inherit; font-size: 13px; padding: 7px 11px; min-height: 34px;
+        border-radius: 9px; border: 1px solid var(--line, #d8d2c6);
+        background: #fff; color: #24211d; cursor: pointer;
+      }
+      .suite-btn:hover { background: #f4f0e9; }
+      .suite-btn--on { background: #2f7f86; border-color: #2f7f86; color: #fff; }
+      .suite-note { font-size: 12px; color: #7a736a; }
+      .suite-status {
+        margin-top: 10px; padding: 8px 10px; border-radius: 10px;
+        background: #f4f0e9; border: 1px dashed var(--line, #d8d2c6);
+        font-size: 12.5px; color: #4a453f;
+      }
+      .suite-caption {
+        position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+        z-index: 4; padding: 6px 14px; border-radius: 999px;
+        background: rgba(253, 251, 247, 0.9); border: 1px solid var(--line, #d8d2c6);
+        font: 12.5px/1.5 -apple-system, "PingFang SC", sans-serif; color: #55504a; white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scene" class="scene" aria-hidden="true"></div>
+
+    <aside class="suite-panel">
+      <h1>保卫老人</h1>
+      <p class="suite-note" style="margin:-2px 0 6px;font-size:12px">送药机器人 · 套房 3D 交互演示</p>
+      <p class="suite-note">
+        suite-3d 户型（13.4 × 10.6 m）· 王阿姨（虚构人物）· 送药机器人 · 客厅充电桩
+      </p>
+
+      <h2>操作</h2>
+      <p class="suite-note">
+        左键拖动旋转 · 滚轮缩放 · <b>点画面任意位置</b> → 王阿姨沿户型通路走过去坐下（不穿墙），
+        机器人随后感应到位置并移动过去，<b>相机自动取景到她</b>。
+      </p>
+
+      <h2>王阿姨的位置（模拟输入）</h2>
+      <div class="suite-row" id="places"></div>
+
+      <h2>机位</h2>
+      <div class="suite-row" id="cams"></div>
+
+      <h2>场景</h2>
+      <div class="suite-row" id="toggles"></div>
+
+      <div class="suite-status" id="status">–</div>
+    </aside>
+
+    <p class="suite-caption">
+      王阿姨是虚构人物 · 取药 ≠ 服药 · 位置为点击/开关模拟，不是传感器 · 非医疗用途
+    </p>
+
+    <script type="importmap">
+      { "imports": { "three": "./vendor/three/three.module.js" } }
+    </script>
+    <script type="module">
+      import { store } from './js/store.js';
+      import * as presence from './js/presence.js';
+      import * as plan from './js/plan.js';
+      import { createScene3D } from './js/scene3d.js';
+      import { createRobot } from './js/robot.js';
+      import { createPerson } from './js/person.js';
+
+      const container = document.getElementById('scene');
+      const scene = createScene3D({ container });
+      if (!scene) {
+        container.innerHTML = '<p style="padding:40px;font:16px/1.8 sans-serif;color:#333">'
+          + '这台设备没有可用的 WebGL，3D 交互预览打不开。<br>'
+          + '请换 Chrome / Edge 打开，或在浏览器设置里开启「使用硬件加速」。<br>'
+          + '（正式演示页 <code>index.html</code> 在这种情况下会自动降级为 2D 俯视仿真，功能一条不少。）</p>';
+        throw new Error('WebGL unavailable');
+      }
+
+      /* ── 演示数据：4 条计划 / 3 个时段（与 main.js 的种子一致，虚构数据）── */
+      if (!store.getState().plans.length) {
+        plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', slots: [{ time: '08:00', label: '早' }], notes: '饭后服' });
+        plan.create({ name: '二甲双胍', doseText: '0.5g', kind: 'regular', slots: [{ time: '12:00', label: '午' }], notes: '随餐' });
+        plan.create({ name: '华法林', doseText: '3mg', kind: 'regular', slots: [{ time: '20:00', label: '晚' }], notes: '' });
+        plan.create({ name: '阿托伐他汀钙', doseText: '20mg', kind: 'regular', slots: [{ time: '20:30', label: '睡前' }], notes: '睡前服' });
+      }
+
+      const robot = createRobot(scene);
+      const person = createPerson(scene);   // 王阿姨（H 线的人形，本页只是把它挂进场景）
+
+      scene.enableOrbit(true);
+      scene.setAutoFrame(true);   // 点哪看哪：点完把相机搬到"看得见落座点"的机位
+      scene.enablePick((seat) => {
+        presence.setSeat(seat);
+        scene.showPickMarker(seat);
+      });
+
+      /* ── 面板 ─────────────────────────────────────────────────────── */
+      const el = (tag, cls, text) => {
+        const n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined) n.textContent = text;
+        return n;
+      };
+      const mkButton = (parent, label, onClick) => {
+        const b = el('button', 'suite-btn', label);
+        b.type = 'button';
+        b.addEventListener('click', onClick);
+        parent.appendChild(b);
+        return b;
+      };
+
+      const places = document.getElementById('places');
+      const placeBtns = new Map();
+      for (const opt of presence.locationOptions()) {
+        placeBtns.set(opt.value, mkButton(places, opt.label, () => presence.setLocation(opt.value)));
+      }
+
+      const cams = document.getElementById('cams');
+      const CAM_LIST = [
+        ['wide', '整户'], ['living', '客厅 · 电视墙'], ['bedroom', '卧室'],
+        ['kitchen', '餐区'], ['dock', '充电桩'], ['tray', '药盘特写'],
+      ];
+      const camBtns = new Map();
+      for (const [mode, label] of CAM_LIST) {
+        camBtns.set(mode, mkButton(cams, label, () => scene.setCameraMode(mode)));
+      }
+
+      const toggles = document.getElementById('toggles');
+      // v1.11：一天里的光三档循环（日光 → 黄昏 → 夜晚）
+      const TIME_MODES = [['day', '光照：日光'], ['dusk', '光照：黄昏'], ['night', '光照：夜晚']];
+      let timeIdx = 0;
+      const dayBtn = mkButton(toggles, TIME_MODES[0][1], (e) => {
+        timeIdx = (timeIdx + 1) % TIME_MODES.length;
+        scene.setTimeOfDay(TIME_MODES[timeIdx][0]);
+        e.currentTarget.textContent = TIME_MODES[timeIdx][1];
+      });
+      let shadows = true;
+      mkButton(toggles, '软阴影：开', (e) => {
+        shadows = !shadows;
+        scene.setShadows(shadows);
+        e.currentTarget.textContent = shadows ? '软阴影：开' : '软阴影：关';
+      });
+      let navOn = false;
+      mkButton(toggles, '导航网格', (e) => {
+        navOn = !navOn;
+        scene.showNavGrid(navOn);
+        e.currentTarget.textContent = navOn ? '网格：开' : '导航网格';
+      });
+      let autoFrame = true;
+      mkButton(toggles, '取景：跟随点击', (e) => {
+        autoFrame = !autoFrame;
+        scene.setAutoFrame(autoFrame);
+        e.currentTarget.textContent = autoFrame ? '取景：跟随点击' : '取景：手动';
+      });
+      mkButton(toggles, '复位', () => {
+        presence.setLocation('living_room');
+        scene.setCameraMode('wide');
+      });
+      void dayBtn;
+
+      /* ── 主循环 ───────────────────────────────────────────────────── */
+      let latest = store.getState();
+      store.subscribe((s) => { latest = s; });
+
+      const status = document.getElementById('status');
+      let acc = 0;
+      function refreshStatus() {
+        const s = latest;
+        const me = scene.getActorPosition('robot');
+        const seat = s.presence.seat;
+        const her = seat || scene.getWaypoint(s.presence.location);
+        const label = presence.LOCATION_LABEL[s.presence.location] || s.presence.location;
+        const dist = me && her ? Math.hypot(me.x - her.x, me.z - her.z) : null;
+        let phase = '回充电桩待命';
+        if (seat) phase = dist > 0.25 ? '已收到位置 · 正在过去' : '已到她身边';
+        if (s.activeEventId) phase = dist > 0.25 ? '送药中 · 正在过去' : '送药中 · 已到身边';
+        status.textContent = `王阿姨：${label}${seat ? `（点选落座 · ${
+          { sofa: '沙发', chair: '椅子', bed: '床沿', bench: '长凳', floor: '地面', surface: '台面' }[seat.kind] || seat.kind}）` : ''}`
+          + `　·　机器人：${phase}${dist ? ` · 距离 ${dist.toFixed(1)} m` : ''}`;
+
+        for (const [value, b] of placeBtns) {
+          b.classList.toggle('suite-btn--on', s.presence.location === value && !seat);
+        }
+        for (const [mode, b] of camBtns) {
+          b.classList.toggle('suite-btn--on', scene.getCameraMode() === mode);
+        }
+      }
+      store.subscribe(refreshStatus);
+
+      scene.setCameraMode('living');
+      scene.setCameraLook({ position: { x: 1.15, y: 2.05, z: 4.35 }, lookAt: { x: 3.60, y: 0.80, z: 2.55 }, fov: 54 });
+
+      let last = performance.now();
+      function frame(now) {
+        const dt = Math.min((now - last) / 1000, 0.1);
+        last = now;
+        robot.update(latest, dt);
+        person.update(latest, dt);
+        scene.render(latest, dt);
+        acc += dt;
+        if (acc > 0.35) { acc = 0; refreshStatus(); }
+        window.requestAnimationFrame(frame);
+      }
+      refreshStatus();
+      window.requestAnimationFrame(frame);
+
+      // 给自动化/调试留个口子（与正式演示同性质）
+      window.suitePreview = { scene, robot, person, store, presence };
+    </script>
+  </body>
+</html>
