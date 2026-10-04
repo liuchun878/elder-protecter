@@ -425,6 +425,14 @@ export function createScene3D({ container }) {
     look: 0.62,
     fov: 46,
   };
+  /** v1.14：「她 + 机器人」同框的候选（侧面为主，稍远稍高，看得清托盘上的手） */
+  const PAIR_CAND = {
+    dists: [2.2, 2.7, 3.3, 1.8, 3.9],
+    offsets: [-30, 30, 0, -60, 60, -100, 100, 150, -150],
+    height: 1.35,
+    look: 0.72,
+    fov: 44,
+  };
   const navWalls = room.userData.nav.walls;
   const navBoxes = room.userData.nav.boxes;
   const navBounds = room.userData.nav.bounds;
@@ -519,6 +527,67 @@ export function createScene3D({ container }) {
     const pose = seat ? seatCameraPose(seat) : null;
     if (!pose) return null;
     view.mode = 'seat'; // 不再对应任何预设按钮（面板上不该有为它高亮的按钮）
+    flyTo(pose, !animate);
+    return pose;
+  }
+
+  /**
+   * v1.14（用户口径：「吃药时把镜头移到老人与机器人，让观众看清递药，不要有遮挡」）
+   *
+   * 把**两个目标**（她 + 机器人）一起框进画面：取两点中点为 `lookAt`，沿「她 → 机器人」这条轴的
+   * **侧面**找机位（侧面看递药最清楚，正对着会被人挡人）。逐个候选做三重排除，与 `seatCameraPose`
+   * 同一套判据：① 在户型内 ② 不陷在家具里 ③ 到**两个目标**的视线都不隔墙（门洞放行）。
+   * 另外要求机位离她至少 max(1.1, 轴长×0.75) m —— 不然相机贴脸，画面里只剩一个人。
+   * 找不到返回 `null`：**保留原机位，不硬凑**（宁可少一个镜头，不要一个糊在柜面上的镜头）。
+   */
+  function pairCameraPose(a, b) {
+    const mx = (a.x + b.x) / 2;
+    const mz = (a.z + b.z) / 2;
+    const span = Math.hypot(a.x - b.x, a.z - b.z);
+    const axis = Math.atan2(b.x - a.x, b.z - a.z);
+    const minFromHer = Math.max(1.1, span * 0.75);
+    for (const dist of PAIR_CAND.dists) {
+      for (const off of PAIR_CAND.offsets) {
+        const ang = axis + Math.PI / 2 + (off * Math.PI) / 180;
+        const x = mx + Math.sin(ang) * dist;
+        const z = mz + Math.cos(ang) * dist;
+        if (!insideSuite(x, z)) continue;
+        if (insideFurniture(x, z, 0.10)) continue;
+        if (Math.hypot(x - a.x, z - a.z) < minFromHer) continue;
+        if (wallBlocksView(x, z, a.x, a.z)) continue;
+        if (wallBlocksView(x, z, b.x, b.z)) continue;
+        return {
+          position: { x, y: PAIR_CAND.height, z },
+          lookAt: { x: mx, y: PAIR_CAND.look, z: mz },
+          fov: PAIR_CAND.fov,
+        };
+      }
+    }
+    // 保底：侧面全被家具/墙挡死时，沿「她 → 机器人」这条轴退到后面拍**过肩镜头** ——
+    // 她在前景、机器人与托盘在中景，递药动作照样看得清（比"什么都不做"强，也比隔着墙强）。
+    for (const dist of [1.35, 1.7, 2.1]) {
+      for (const dir of [-1, 1]) {
+        const x = mx - Math.sin(axis) * dist * dir;
+        const z = mz - Math.cos(axis) * dist * dir;
+        if (!insideSuite(x, z)) continue;
+        if (insideFurniture(x, z, 0.05)) continue;
+        if (wallBlocksView(x, z, a.x, a.z)) continue;
+        if (wallBlocksView(x, z, b.x, b.z)) continue;
+        return {
+          position: { x, y: 1.45, z },
+          lookAt: { x: mx, y: 0.72, z: mz },
+          fov: 48,
+        };
+      }
+    }
+    return null;
+  }
+
+  /** 把「她 + 机器人」一起取景（递药那一刻用）；找不到机位就返回 null，保持原样 */
+  function focusPair(a, b, { animate = true } = {}) {
+    const pose = a && b ? pairCameraPose(a, b) : null;
+    if (!pose) return null;
+    view.mode = 'pair';
     flyTo(pose, !animate);
     return pose;
   }
@@ -727,6 +796,15 @@ export function createScene3D({ container }) {
     /** 点击落座后把相机搬到"看得见落座点"的机位（契约 v1.9 §3.1）；找不到返回 null */
     focusSeat(seat, { animate = true } = {}) {
       return focusSeat(seat, { animate });
+    },
+
+    /**
+     * v1.14：把**她 + 机器人**一起框进画面（递药那一刻用）。
+     * @param {{x:number,z:number}} a 她　@param {{x:number,z:number}} b 机器人
+     * @returns {object|null} 机位；找不到合适位置返回 null（保持原机位）
+     */
+    focusPair(a, b, { animate = true } = {}) {
+      return focusPair(a, b, { animate });
     },
 
     /** 自测用：最近一次自动取景用的机位 */

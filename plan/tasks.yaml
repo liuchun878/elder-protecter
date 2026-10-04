@@ -754,6 +754,33 @@ tasks:
     note: "判据与 v1.11 的 urgeAtSide 同一套（state.activeEventId + 到停靠点 ≤0.25 m）。"
     status: done
 
+  # ═══ 分支 0000000 / v1.15（可切换模式 + 家属端副屏 + 递药特写 + 面板收窄）═══
+  - id: S20
+    title: 可切换演示模式（自主点击 / 固定演示）+ 左下角「家属端副屏」按钮
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/index.html, prototype/css/hud.css, prototype/js/main.js, prototype/js/demo-script.js]
+    depends_on: [S19]
+    acceptance: "左下角控制条含「自主点击 / 固定演示」分段与「家属端副屏」按钮；点副屏按钮打开 ?view=family 的手机大小独立窗口（被拦截退化为新标签页）；切到固定演示后 body 带 is-scripted、两块面板进 compact 档、剧本按 DEMO_BEATS 顺序执行（06:30 起床 → 06:50 餐桌 → 08:00 送药 → 吃药）；?mode=scripted 可直接启动"
+    note: "用户口径「左下角设置一个按键，点击即可弹出家属端副屏」+「制作成可切换模式的平台」。
+           ⚠️ 用户说「一会儿给剧本」—— 正式剧本到了只改 demo-script.js 的 DEMO_BEATS，执行器不用动。"
+    status: done
+  - id: S21
+    title: 面板收窄 + 递药特写机位（她 + 机器人同框、不遮挡）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/css/hud.css, prototype/js/scene3d.js, prototype/js/scene2d.js, prototype/js/main.js]
+    depends_on: [S20]
+    acceptance: "大字卡 min(500px,34vw)→min(392px,26vw)（实测 392px）、控制台 min(392px,32vw)→min(322px,24vw)（实测 322px）；递药那一刻 cameraMode=pair 且 body 加 shot-delivery（控制台压暗）；找不到合适机位返回 null（保留原机位）；2D 恒 null 且功能一条不少"
+    note: "用户口径「左上角提示屏和右下角控制台再缩小一点」+「吃药时间把镜头移到老人与机器人…不要有遮挡」。
+           机位：先找「她→机器人」轴的**侧面**（在户型内 × 不陷家具 × 到两人视线都不隔墙 × 离她 ≥max(1.1,轴长×0.75)），
+           侧面全被挡死时退到沿轴的**过肩机位**。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

@@ -320,6 +320,10 @@ export function createScene2D({ container }) {
       /* v1.9：2D 俯视本来就把整户画在一屏里，"点哪看哪"不需要 —— 恒返回 null */
       return null;
     },
+    focusPair() {
+      /* v1.14：同理，2D 俯视整户同屏，"给她和机器人取景"不需要 —— 恒返回 null（功能一条不少） */
+      return null;
+    },
     getFocusPose() {
       return null;
     },
