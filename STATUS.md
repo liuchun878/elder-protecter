@@ -58,6 +58,7 @@
   「用药提醒未确认 · 08:00 的 氨氯地平 未确认，已提醒 2 次。她现在在卫生间，机器人没有进入私人区域，暂时无法送达。」
   → 手机屏收着时按钮留**红点**，固定演示模式**自动弹开**；15 秒自动收起 ✅
 - **不改队友的 `family-app/`**，也**不新增任何业务判据**（何时通知仍由 `escalate.js` 决定）
+- 📌 **一键看这条闭环**：http://localhost:8000/?demo=bathroom-push （打开约 3 秒后自动弹推送）
 
 > ⚠️ **本地演示服务器已换成禁缓存版**：`python3 scripts/serve-nocache.py prototype 8000`
 > （原来是 `python3 -m http.server 8000`，它不发 `Cache-Control`，Chrome 会缓存住 `js/main.js`，

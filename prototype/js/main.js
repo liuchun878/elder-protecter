@@ -808,6 +808,15 @@ function startMainView() {
     return { scene, robot, person, hud, film: true };
   }
 
+  /* v1.18：演示快捷入口 —— `?demo=bathroom-push`
+   * 直接把她放进**卫生间**、并把演示时钟拨到 **07:59:55**：
+   * 于是打开页面约 3 秒后就会看到「未确认 → 家属手机弹出推送」这一条闭环。
+   * 只是把控制台里本来就有的两个动作（切位置 / 设时刻）合成一个书签，**不新增业务规则**。 */
+  if (params.get('demo') === 'bathroom-push') {
+    presence.setLocation('bathroom');
+    clock.set(`${DEFAULT_DEMO_START.slice(0, 10)}T07:59:55`);
+  }
+
   clock.start();
   // 固定演示：从初始态开始按剧本走（`?mode=scripted` 或左下角按钮切的）
   if (mode === 'scripted') applyMode('scripted');
