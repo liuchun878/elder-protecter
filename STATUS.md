@@ -88,10 +88,11 @@
 - **推送**：✅ **已推到 GitHub** —— `git push origin main` 结果 `151d260..0c0f65e`；
   推送前 `git fetch` 复核与 `origin/main` 为 **0 领先 / 0 落后**（可快进，无需 force）。
   本里程碑另打 annotated tag **`v1.20-保卫老人`**
-- **本机凭据这条坑已解**（写进 [docs/本地环境与推送.md](docs/本地环境与推送.md) 第 2.1 节）：
-  agent 会话在沙箱里跑 `gh auth login` 会把令牌写不进 `~/.config/gh/`（`operation not permitted`），
-  改成 `export GH_CONFIG_DIR="$PWD/.tools/ghconfig"`（工作区内、已 gitignore）+ 代理登录即可，
-  **推送时也要带上同一个 `GH_CONFIG_DIR`**
+- **本机凭据已修成「全局可用」**（细则写进 [docs/本地环境与推送.md](docs/本地环境与推送.md) 第 2.1 / 2.2 / 6 节）：
+  `~/.config/gh/hosts.yml` 现在持有令牌（`--insecure-storage`，600），**任何目录、任何项目、任何 agent
+  （含工作区沙箱内的 shell）都能直接 push**，不再需要 `GH_CONFIG_DIR` 或 PAT。
+  两个踩过的坑：① 沙箱里 `gh auth login` 写不进 `~/.config/`（要提权）；② 令牌若只进 macOS keychain，
+  沙箱 shell 读不到（`security` → *A Module Directory Service error*）→ 必须落文件才对 agent 生效
 
 > ⚠️ **旧提示已失效**：早先「本地未推送 / 远端停在 `90c73f9`」的说法**不再成立** ——
 > 远端 `main` 已含 `0000000` 合并与本轮改动（`0c0f65e`）。
