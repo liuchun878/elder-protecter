@@ -436,6 +436,273 @@ tasks:
     p1_note: "2026-10-03 提前交付 15 秒演示片 recordings/promo-15s.mp4 + 可复跑脚本 scripts/record-promo.mjs（?film=1 逐帧驱动，含家属端）；三场景录屏与预检仍待 M6"
     status: doing
 
+  # ═══ v1.6 · 点击落座 + 位置感应（模拟）+ 充电桩写实（契约 v1.6）═══
+  - id: H11
+    title: 契约 v1.6 + presence.seat（点击落座的数据与命令）
+    line: H
+    block: D2PM
+    milestone: M1
+    priority: P0
+    files: [契约-接口.md, prototype/js/store.js, prototype/js/presence.js, prototype/js/person.js]
+    depends_on: [H1]
+    acceptance: "presence.seat 为纯数据（structuredClone 不抛）；setSeat/clearSeat 生效且 location 仍落在四个枚举内；点到家具按座面高度反解坐姿、点到地板走 FLOOR_SIT；到点判定/安静时段/升级链路一律只读 location"
+    note: "只加字段与函数，未改任何已有字段名、签名或语义（契约 §0.3）。
+           位置来源仍然只有两处：控制台开关与点击落座，两者都标注「模拟位置输入」，不宣称感知能力。"
+    status: done
+  - id: R8
+    title: 机器人位置感应前往（读 state.presence.seat）+ 回桩充电态
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/robot.js]
+    depends_on: [R3, H11]
+    acceptance: "点任意位置后机器人直线趋近到人前约 0.95 m 并转身面对她；有提示事件时仍优先开舱递药；回桩时底盘灯转青绿并慢呼吸；仍是 state 的纯函数，无自有状态机"
+    note: "站位由 S 的 scene.getApproachPoint(location, seat) 给（会绕开家具），R 只负责走。"
+    status: done
+  - id: S12
+    title: 场景拾取 API（pick/enablePick/showPickMarker）+ 座位元数据 + 写实再一轮
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/scene3d.js, prototype/js/room.js, prototype/js/scene2d.js, prototype/js/textures.js, prototype/js/main.js, prototype/js/controls.js]
+    depends_on: [S11, H11]
+    acceptance: "画面上点任意位置都能落座（沙发/餐椅吸附到坐具、地板席地而坐、墙面沿法线推开后坐地板）；2D 降级同样支持；机器人站在不压家具的空位上；各向异性 + 粗糙度贴图 + 布纹绒面 + 窗光光柱；零外部请求、零控制台异常"
+    note: "写实再一轮：贴图各向异性 8×、程序化粗糙度贴图、织物 sheen、光柱（四边羽化、加法混合、不投影）、挂钟/拐杖/拖鞋/水壶/书堆等生活痕迹。"
+    cut_first: "光柱与织物 sheen → 只留各向异性与粗糙度贴图"
+    status: done
+
+  # ═══ v1.7/v1.8 · 户型换成 suite-3d 套房 + 多房间寻路 + 机器人重做 ═══
+  - id: S13
+    title: suite-3d 套房搬入 + 导航网格 + 2D 同网格降级 + 室内预览台
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/room.js, prototype/js/suite-textures.js, prototype/js/navgrid.js, prototype/js/scene3d.js, prototype/js/scene2d.js, prototype/保卫老人.html]
+    depends_on: [S12]
+    acceptance: "13.4×10.6 m 十房间户型可见；机器人/人在多房间里沿可通行折线走（navtest 全程采样 0 帧穿墙）；3D 与 2D 的 navStats 完全一致；零外部请求、零控制台异常"
+    note: "顺手修掉原版 6 处缺陷，其中三处是家具堵住门洞/敞口（会把户型通行掐断）。
+           房型是 L 形起居，北带被餐桌椅 + 书房墙分成两块 —— 这是原户型的平面，不是寻路的限制。"
+    cut_first: "光柱 / 花纹毯 / 卫浴细节 → 只留卧室与起居"
+    status: done
+  - id: R9
+    title: 机器人按参考图重做（蛋形机身 + 顶部平板屏 + 抽屉式药盘）
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/robot.js]
+    depends_on: [R8]
+    acceptance: "机身是 LatheGeometry 回转体（0.71 m / 最大半径 0.205 m）；顶部前倾平板屏只有颜色与呼吸、不含任何文字；递药 = 盖板翻下 + 药盘前伸 0.15 m；update(state, dt) 签名与纯函数约束不变"
+    note: "底盘尺寸仍按 unnc-sophicar 的 STEP 实测值缩比；只借结构不借资产。"
+    status: done
+  - id: R10
+    title: 机器人屏幕比例校对（对着参考图放大平板屏）
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/robot.js]
+    depends_on: [R9]
+    acceptance: "屏宽 0.286（含边框）≈ 机身最大宽的 1.2 倍、长宽比 ≈ 1.75；整体高度仍 0.764 m、最大横向尺寸 0.41 m **未超碰撞直径 0.48**（不动 navgrid）；3D 里仍无任何文字；robot.update 纯函数约束不变"
+    note: "用户反馈「机器人不够像参考图」。把参考图 ① 格与自身渲染并排量化后确认：**差在屏的比例**（原 0.214×0.152，宽 1.04 倍机身 / 长宽比 1.41），
+           参考图的屏明显更大更宽。改为 0.262×0.150 + 托座加宽到 0.150。
+           ⚠️ **刻意不动机身半径**：机身最大半径 0.205 与 navgrid 的 0.22 机身扩容绑定，
+           调大它会让机器人在视觉上蹭家具（碰撞按 0.22 算）。只动屏，碰撞零风险。"
+    cut_first: "托座加宽 → 只改屏本体"
+    status: done
+  - id: H12
+    title: 王阿姨落位改到套房 + 沿折线行走 + 分区规则更新
+    line: H
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/person.js, prototype/js/presence.js, 契约-接口.md]
+    depends_on: [H11]
+    acceptance: "客厅=沙发（座垫 0.50）、卧室=卧室B床（躺，床头朝东）、餐厨=餐区餐椅（座面 0.47）；走路沿 scene.findPath 折线；zoneAt 按套房分区（三卧→bedroom、餐区北带→kitchen）"
+    status: done
+  - id: S14
+    title: 外部 .glb 资产接入管线（vendored GLTFLoader + asset-loader + 量具 + 夹具）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/asset-loader.js, prototype/asset-inspector.html, prototype/assets/**, prototype/vendor/three/addons/**, scripts/make-test-glb.py, THIRD-PARTY.md]
+    depends_on: [S13]
+    acceptance: "GLTFLoader 从 vendored 本地路径加载（零外部请求）；归一化把「中心原点 / 面朝 −z 或 +x / 尺寸差 100 倍」三种导出默认处理正确；量具能读出尺寸与朝向并产出 manifest 条目；.preview/assettest.mjs 全过"
+    note: "⚠️ **显式偏离 AGENTS.md §6「不引入外部模型资产」**，由项目所有者裁定。
+           .glb 是提交进仓库的本地文件，运行期仍零网络请求（已实测）。
+           本机连不上 tripo3d.ai（DNS 污染 + 443 超时），无法代生成，必须用户本地导出。
+           能力边界（不许含糊）：量具能量尺寸/朝向/接地；**量不出座面高度与墙体碰撞体**，必须资产生成方提供。"
+    cut_first: "asset-inspector.html 的视图预设与线框开关 → 只留「量尺寸 + 定朝向 + 出条目」"
+    status: doing
+  - id: H13
+    title: 修落座缺陷：人到不了坐具、也进不了坐姿（先补断言再改代码）
+    line: H
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/person.js, .preview/seatassert.mjs]
+    depends_on: [H12, S13]
+    acceptance: "新增断言：设沙发/餐椅/地板/床沿四种落座点后，人与落座点的距离 ≤0.15 m 且根节点高度进入该座面对应的坐姿区间（站姿 ~0.012 不算通过）。断言在修前必须**先失败**"
+    note: "**已闭环，但记录要纠正**：断言补齐后实测 —— 基线（HEAD）**四种落座都到点（0 m）且都进坐姿**
+           （根节点 −0.29 / −0.32 / −0.71 / −0.23），本条原述的『停在 0.83–1.54 m 外保持行走姿态』
+           **在 HEAD 上复现不出来**（那是已回滚修复尝试的中间态，被误记成基线缺陷）。
+           基线真正的缺陷是**两点一线穿墙穿家具**（违背契约 §3.1.1 v1.7『沿 findPath 走』）——
+           已在本轮修掉，见 S16；断言落在 `.preview/sitfix.mjs`（8/8）与 `.preview/walkdiag.mjs`。
+           ⚠️ 旧断言 rootY > 0.10 **方向写反**（坐姿是压低根节点），已改 rootY < −0.05（席地 < −0.4）。"
+    status: done
+  - id: S15
+    title: 客厅补一个「对着沙发」的机位（现有机位拍不到沙发上的人）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P2
+    files: [prototype/js/scene3d.js, prototype/保卫老人.html, prototype/js/controls.js]
+    depends_on: [S13]
+    acceptance: "新机位下沙发坐垫与坐在其上的王阿姨都在画面内（用 pick 扫描 + 截图核对）；不影响既有 6 个预设"
+    note: "**尝试过并回滚，未找到干净机位。** living 预设的 lookAt 是电视墙，沙发与其上的人恒在画面下缘之外。
+          本轮跑了 18 组候选机位（.preview/sofasweep.mjs 两轮各 6 组 + 早前 6 组）：
+            · 近距平视（x −0.2~0.6）：沙发与人确实进画（sofa 拾取 529 点），但右半幅被前景家具占住；
+            · 远距/高位（x −1.0~−3.0）：全部撞墙或糊在家具上，A/B/C 只能**隔着门洞**看沙发，D/F 直接贴柜面。
+          结论：**沙发被自身扶手 + 茶几 + 边柜围在一个凹槽里，现有房间几何下没有一个「能进画又不被遮挡」的外侧机位。**
+          真要那个镜头，得三选一：① 挪动客厅家具腾出拍摄位（改 room.js 布局）；
+          ② 允许相机穿墙（约 0.05 m 的裁剪面，牺牲「机位必须在室内」这条约束）；
+          ③ 把该分镜改到餐区演示（餐桌本来就在画面里，已实测可行）。
+          已把 6 个预设与其按钮全部还原，未留半成品。"
+    resolution: "**v1.9 换思路解决：不新建预设，机位按落座点算。** scene.focusSeat(seat) 从落座点正面向外找
+                 「在户型内 × 视线不隔墙（门洞放行）× 不陷在家具里」的位置并平滑飞过去；找不到返回 null 保留原机位。
+                 实测：点沙发后人在画面内（NDC (0, −0.31)），既有 6 个预设一字未动。18 组扫描找不到的构图，
+                 用『跟着点走』绕过去了 —— 卡住的从来不是相机参数，是『一个常量机位要同时满足所有落座点』这个前提。"
+    cut_first: "整段删掉（该分镜改到餐区演示）"
+    status: done
+  - id: S16
+    title: 点击后自动取景（点哪看哪）—— 让「点完看得见」
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/scene3d.js, prototype/js/scene2d.js, prototype/保卫老人.html, 契约-接口.md]
+    depends_on: [S13, S15]
+    acceptance: "点任意落座点后相机自动搬到「看得见落座点」的机位，且人真的被框进画面（.preview/clicklive.mjs 用真鼠标事件断言人的世界坐标投影落在 NDC 内、机位切到 seat）；找不到干净机位时返回 null 并保留原机位；默认关 —— 主演示 index.html 与拍摄模式 ?film=1 的构图不受影响；scene2d 提供同名空实现"
+    note: "契约升 v1.9（只加函数：focusSeat / setAutoFrame / isAutoFrame / getFocusPose / isCameraMoving）。
+           『点了没反应』的感受来自取景而不是功能：living 预设的 lookAt 是电视墙，沙发被围在凹槽里看不见。
+           飞行动画 0.85 s（easeInOut），用户一拖拽或一点机位按钮立刻交还控制权。"
+    cut_first: "取景的飞行动画 → 改成立即切换（只保留『点完看得见』）"
+    status: done
+  - id: H14
+    title: 王阿姨走位真正接上 navgrid（落座点拆「入口点 + 收尾」）
+    line: H
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/person.js, 契约-接口.md]
+    depends_on: [H13, S13]
+    acceptance: "落座点与预设位置都沿 scene.findPath 折线走；跨房间点卧室 C 床沿 .preview/walkdiag.mjs 逐帧采样穿墙 0 次、中途侵入实体最深 0 m、到点误差 0 m；短于 1.2 m 的目标不走折线（避免『已坐在沙发上又点沙发』先起身再回来）；findPath 末节点离目标 >0.12 m 时补一段收尾（否则床沿会停在 1.32 m 外）；仍是 state 的纯函数，无自有状态机"
+    note: "修的是**实现与契约不一致**：契约 §3.1.1（v1.7）与上一轮 CHANGELOG 都写着 person.js『沿 findPath 走』，
+           而 HEAD 的 update() 其实是两点一线直接插值，findPath 一次都没调。改前实测跨房间穿墙 2 次。
+           落座点在**家具内部**、网格里没有它，所以终点固定拆两段：① 折线走到坐具外入口点（网格内、离当前位置最近）；
+           ② 最后一段『落座收尾』直接挪到落座点。"
+    status: done
+  - id: R10
+    title: 机器人本体换成 PR #2 版本（对开门开到 90° + 带导轨托盘）
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/robot.js, 契约-接口.md]
+    depends_on: [R9, S13]
+    acceptance: "蛋形机身（0.500 m / 最大半径 0.190）+ 前下方**对开门绕外侧竖边开到 90°** + 暗腔 + **带伸缩导轨的托盘**（尾端留在舱内不脱节）+ 圆角矩形头（0.310×0.170）+ 画布屏（红/绿眼睛 + 指示条，**无文字**）+ 四轮底盘；收药时序『先收托盘、再关门』；.preview/robotnew.mjs 6/6（门 ±1.571 rad、托盘 0.030→0.230、收药中托盘在回程而门仍开）；收好时外形 0.389×0.682×0.400 < 碰撞直径 0.48；3D 无文字几何体；robot.update 仍是纯函数"
+    note: "来源：用户给的 PR #2（`liuchun878/elder-protecter#2`，分支 feat/robot-demo，head af7def5）的
+           `suite-3d/robot/index.html`。**只借结构不借资产**：全部 Lathe/Box/Cylinder/Extrude 重建，仓库不落 CAD/网格/贴图。
+           ⚠️ 与 PR #2 刻意不同的三处（红线）：① 屏上**不写字**（PR #2 写『请取药 / 已服药』，
+           本项目 3D 不渲染文字、界面不得出现『已服下』）；② 不引入『注水』水流与『老人的手』
+           （王阿姨是独立 actor，递药语义固定为开舱递药）；③ 保留我们的四轮底盘与充电触点。
+           另外按用户给的参考图把轮子做成**看得见的四轮**（原 PR #2 无轮）。"
+    status: done
+  - id: S17
+    title: 客厅三件坐具整体转 180°（三人沙发 + 两个单人沙发）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/room.js, prototype/js/person.js, prototype/js/main.js]
+    depends_on: [S13, H11]
+    acceptance: "三人沙发 `rot` −π/2 → +π/2、两个扶手沙发各 +π；`SEAT_SOFA.facing` 跟着翻（lockX 2.10 → 2.40）；`WAYPOINTS.living_room` / `PERSON` 预设朝向 / 控制台「坐沙发」按钮 / `APPROACH_POINTS.living_room` 同步；转后沙发面朝茶几与电视墙、两个单人沙发围住茶几（改前是『沙发背对电视墙、两个单人也背对沙发』的背靠背布局）；`.preview/roomview.mjs` 改前改后俯瞰比对 + 全量回归无退化"
+    note: "用户口径：『把场景中三个沙发旋转 180 度』。转的是**每件坐具各自的 y 轴**（原地转，不挪位），
+           所以家具占位（AABB）几乎不变 —— navgrid 连通性零影响（已跑 navtest 复核）。
+           家具朝向翻转必须同步**座面元数据**与**路径点/朝向**，否则会出现『人朝着沙发背面坐』。"
+    status: done
+  - id: S18
+    title: 夜晚档（一天里的光加到三档：日光 / 黄昏 / 夜晚）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/scene3d.js, prototype/js/suite-textures.js, prototype/保卫老人.html, prototype/js/controls.js, 契约-接口.md]
+    depends_on: [S13]
+    acceptance: "scene.setTimeOfDay('night') 生效且 getTimeOfDay() 返回 'night'；夜空背景 #1a2130 + 太阳 0.30 冷月光 + 室内暖光成为主光（×1.75）+ 曝光 0.88；切夜晚时**换夜空环境贴图 IBL**（白墙不被白天天光提亮）；预览台与主演示的「光照」按钮改成三档循环；.preview/nightcheck.mjs 全过"
+    note: "用户口径「再增加一个夜晚的场景」。关键一条：只压阳光/曝光得到的是『白天关灯』——
+           白墙会被 scene.environment 的白天 IBL 整体提亮。因此 skyCanvas() 加 'night' 模式
+           （深蓝夜空 + 月光），启动多烘一张 PMREM，applyTimeOfDay 里换 scene.environment。"
+    cut_first: "月亮光晕与窗外的城市灯光 → 只保留夜空渐变 + 室内暖光"
+    status: done
+  - id: R11
+    title: 夜晚的机器人荧幕：待命熄灭 / 递药转暖光
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/robot.js]
+    depends_on: [R10, S18]
+    acceptance: "只读 scene.getTimeOfDay()：夜晚 + 无提示事件 → 荧幕 visible=false（熄灭）；夜晚 + 有提示事件 → 荧幕亮起但走暖光 #ffb066 且亮度 ≤0.65（白天 0.92–1.0）；腰线/前条/肩灯统一压到 55%；白天与黄昏的行为一字未改；robot.update 仍是纯函数"
+    note: "用户口径「夜晚时机器人的屏幕可以关闭或者变成暖光」。按『有没有事』分两种而不是按时间一刀切：
+           夜里没事件时屏亮着是光污染，但有提示事件时提示通道（红线）不能只靠声音。"
+    status: done
+  - id: R12
+    title: 左上角「时间 + 确认」大字卡缩小
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/css/hud.css]
+    depends_on: [R2]
+    acceptance: "卡片宽度 min(620px,46vw) → min(500px,34vw)（实测 490px）；主文案 44 → 38px（仍 ≥30dp）；正文 26 → 22px（硬数值下限）；确认按钮 220×84 → 190×72（点击目标仍 ≥60×60）；.preview/hudsize.mjs 在**待取药态**量到按钮 190×74 且全部达标"
+    note: "用户口径「左上角时间确认的屏幕缩小一点」。只收**卡片占位与次要文字**，主文案与点击目标死守适老化下限
+           （200% 缩放不裁切、点击 ≥60×60、正文 ≥22px）。"
+    status: done
+  - id: R13
+    title: 童声督促（到吃药时间走到奶奶身边督促取药）+ 童声语音资产登记
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/audio.js, prototype/js/main.js, prototype/js/hud.js, prototype/assets/voice/**, prototype/assets/README.md, THIRD-PARTY.md]
+    depends_on: [R10, H5]
+    acceptance: "audio.speak 支持 style 'elder'|'child'（童声 = pitch 1.70 / rate 1.0，成人向仍 0.85 放慢）与 clip 参数（优先播 assets/voice/*.mp3，播不了退 TTS）；音色优先级同用户仓库 HEAD 版（系统童声 > 男声 > 女声 > 任意中文）；到点提醒与再次提醒走童声；机器人**到达场景停靠点**后额外督促一次（同一事件同一轮只一次）；.preview/voicecheck.mjs 6/6 且**全程不出现「已服下 / 服药」**"
+    note: "用户口径「到吃药时间机器人走到奶奶身边督促吃药，声音是童声」，来源是他仓库的
+           suite-3d/robot/voice/p1..p3.mp3（三个提交：吃药提醒/鼓励/留言给子女手机，男孩童声）
+           与 HEAD 版 suite-3d/robot/index.html 的语音实现。
+           ⚠️ 三段录音**入库但默认不播**（?voiceclip=1 才播）：p2 原话『药都吃完啦』= 已服下（红线）、
+           p1 写死『三粒』（本项目不做剂量计算，演示数据 4 条计划剂量各不相同）。默认走童声 TTS + 合规措辞。"
+    status: done
+  - id: R14
+    title: 借 robot-3d 的细节：近方大屏四态 + 木拉手 + 腰线 + 万向轮结构
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P1
+    files: [prototype/js/robot.js, prototype/assets/README.md]
+    depends_on: [R10, R13]
+    acceptance: "头部 0.310×0.170 → 0.300×0.240、屏 0.278×0.138 → 0.268×0.208（长宽比 2.01→1.29，对齐 robot-3d 的近方大屏）；屏幕四态 logo/eyes/green/off（依旧零文字）；背面木拉手两根；机身 y=0.085 深灰腰线；万向轮补轮轴/轮辋/立柱/轮架板；屏下压条 + 屏右上角小琥珀灯。整机高 0.725 m、最大横向 ≤0.48（碰撞零变化）；robotmetrics 6/6、robotnew 6/6、nightcheck 7/7"
+    note: "用户选的 B 方案：保留蛋形机（它已与 PR #2 对开门+托盘、童声、夜晚荧幕对齐），只借 robot-3d 的细节。
+           ⚠️ 刻意不借两样：① robot-3d 的**顶部摄像头**（本项目口径是不采集画面/不做识别，摆镜头自相矛盾）
+           ② **立柜式机身**（底盘对角 0.634 m，换它要重算 navgrid 半径 0.22→≈0.32 并重跑连通性）。
+           ⚠️ robot-3d 与新蛋形机的来源提交都属用户仓库；`grandma-web/` 是另一位同事的产物，本分支未改动。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

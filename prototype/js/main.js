@@ -135,6 +135,17 @@ function mountDebugDrawer({ scene, clock }) {
     button(presenceRow, option.label, () => presence.setLocation(option.value));
   }
 
+  // 点击落座（v1.6）：与在画面上点那一点等价
+  const seatSection = section('落座点（模拟位置输入）');
+  const seatRow = document.createElement('div');
+  seatRow.className = 'debug__row';
+  seatSection.appendChild(seatRow);
+  button(seatRow, '她回预设落位', () => presence.clearSeat());
+  // 坐标是 v1.7 套房户型的**世界坐标**（见 room.js 的 WAYPOINTS / SEAT_*）
+  button(seatRow, '坐沙发', () => presence.setSeat({ x: 2.40, z: 3.55, surfaceY: 0.50, facing: Math.PI / 2, kind: 'sofa' }));
+  button(seatRow, '坐餐椅', () => presence.setSeat({ x: -0.05, z: -0.745, surfaceY: 0.47, facing: 0, kind: 'chair' }));
+  button(seatRow, '客厅地板', () => presence.setSeat({ x: 0.60, z: 3.60, surfaceY: 0, facing: 0.4, kind: 'floor' }));
+
   // 场景与离线
   const sceneSection = section('场景 / 网络');
   const sceneRow = document.createElement('div');
@@ -142,6 +153,12 @@ function mountDebugDrawer({ scene, clock }) {
   sceneSection.appendChild(sceneRow);
   button(sceneRow, '主视角', () => scene.setCameraMode('wide'));
   button(sceneRow, '药盘特写', () => scene.setCameraMode('tray'));
+  let navOn = false;
+  button(sceneRow, '导航网格', (event) => {
+    navOn = !navOn;
+    if (scene.showNavGrid) scene.showNavGrid(navOn);
+    event.currentTarget.textContent = navOn ? '网格：开' : '导航网格';
+  });
   let shadows = false;
   button(sceneRow, '阴影开关', (event) => {
     shadows = !shadows;
@@ -203,11 +220,17 @@ const debugApi = {
   setOffline: (flag) => store.setOffline(Boolean(flag)),
   setClock: (iso) => clock.set(iso),
   setAcceleration: (n) => clock.setAcceleration(n),
-  /** 回到演示初始态：清事件与通知 + 重新种入假数据 + 时钟复位 */
+  /** v1.6：点击落座的程序化入口（测试与拍摄脚本用，等价于在画面上点那一点） */
+  setSeat: (seat) => presence.setSeat(seat),
+  clearSeat: () => presence.clearSeat(),
+  /** 回到演示初始态：清事件与通知 + 重新种入假数据 + 时钟复位 + 人回客厅预设落位 */
   reset() {
     store.reset();
     seedDemoData();
     clock.reset();
+    // 演示初始态是「王阿姨在客厅、机器人停在充电座」：落座点也要一起清掉，
+    // 否则点过场景之后按复位，人会留在那个角落（这一条 v1.6 才成立）
+    presence.setLocation('living_room');
   },
   state: () => store.getState(),
 };
@@ -255,6 +278,16 @@ function startMainView() {
     });
     // 交互模式才开自由视角；拍摄模式每帧由脚本复写机位，必须保持关闭
     scene.enableOrbit(true);
+    /**
+     * 点击落座（契约 §3.1.1，v1.6）：
+     * 在画面里点任意位置 → `scene.pick` 把屏幕坐标投成落座点 → 写进 `presence.setSeat`。
+     * 之后**机器人不需要额外通知**：它每帧只读 `state.presence.seat` 就知道该去哪。
+     * 这是"位置输入"，不是传感器：不采集画面、不做识别（文案里也必须这么写）。
+     */
+    scene.enablePick((seat) => {
+      presence.setSeat(seat);
+      scene.showPickMarker(seat);
+    });
   }
   // 演示时钟「仅内存、刷新即复位」——先把今天尚未了结的事件退回 scheduled，再开始走表
   store.setClock(clock.snapshot());
@@ -271,6 +304,40 @@ function startMainView() {
   hud.render(latest);
 
   /**
+   * 「机器人走到奶奶身边**督促**吃药」（v1.11 新增场景 · 童声）
+   *
+   * 判据全部来自 state 与场景读数，**不新增任何业务规则**：
+   *   ① 有未确认的提示事件（`state.activeEventId` 且该事件还没确认）
+   *   ② 机器人**已经到她跟前**（≤1.15 m，用 `scene.getActorPosition('robot')` 量）
+   *   ③ 同一轮（同一个事件 + 第几次尝试）只督促一次 —— 换通道时机器会再督促一遍
+   * 措辞只含**医嘱原文 + 请取走**：不说「服药 / 已服下」，也不给任何剂量建议（红线）。
+   * 声音走童声（`style:'child'`）；想听用户录的那三段 mp3 见 `audio.js` 的 `?voiceclip=1`。
+   */
+  const urgedKeys = new Set();
+  function urgeAtSide() {
+    const id = latest.activeEventId;
+    if (!id) return;
+    const event = latest.events.find((e) => e.id === id);
+    if (!event || event.state === 'confirmed') return;
+    const me = scene.getActorPosition('robot');
+    if (!me) return;
+    // 「到身边」= 到了**场景给的停靠点**（人坐/躺时机器人本来就不能贴着她站）：
+    // 预设落位下沙发正面被茶几占住，机器人只能停南侧 —— 那也是"到了"。
+    const stand = scene.getApproachPoint(latest.presence.location, latest.presence.seat || null);
+    if (!stand) return;
+    const atSide = Math.hypot(me.x - stand.x, me.z - stand.z) <= 0.25;
+    const attempts = event.attempts ? event.attempts.length : 0;
+    const key = `${id}|${attempts}`;
+    if (urgedKeys.has(key)) return;
+    urgedKeys.add(key);
+    const plan = latest.plans.find((p) => p.id === event.planId) || null;
+    const parts = [event.slotTime, plan ? plan.name : '', plan ? plan.doseText : ''].filter(Boolean);
+    audio.speak(`奶奶，药已经放在托盘上了。${parts.join('，')}，请取走`, {
+      force: true, style: 'child', clip: 'p1',
+    });
+  }
+
+  /**
    * 拍摄模式（`?film=1`）：不自动走表，动画由外部逐帧驱动，录屏因此完全可复现。
    * 用法见 scripts/record-promo.mjs；正常演示不受任何影响。
    */
@@ -285,6 +352,7 @@ function startMainView() {
       step(dt = 1 / 24) {
         robot.update(latest, dt);
         person.update(latest, dt);
+        urgeAtSide(); // 走到她身边就督促（童声）
         scene.render(latest, dt);
       },
       /** 推进演示时钟（秒）——会触发到点判定，等同演示者拨表 */
@@ -293,6 +361,14 @@ function startMainView() {
       },
       setPresence(location) {
         presence.setLocation(location);
+      },
+      /** v1.6：直接落座到某个点（录屏脚本用；等价于在画面上点那里） */
+      setSeat(seat) {
+        presence.setSeat(seat);
+        scene.showPickMarker(seat);
+      },
+      clearSeat() {
+        presence.clearSeat();
       },
       camera(mode) {
         scene.setCameraMode(mode);
@@ -325,6 +401,8 @@ function startMainView() {
       sceneKind: scene.kind,
     };
     audio.attachUnlock();
+    // 自动化走查 / 录屏脚本要直接读场景（投影、角色位置），与交互模式同一条口子
+    if (window.medbot) window.medbot.scene = scene;
     return { scene, robot, person, hud, film: true };
   }
 
@@ -335,12 +413,21 @@ function startMainView() {
     last = now;
     robot.update(latest, dt);
     person.update(latest, dt);
+    urgeAtSide(); // 走到她身边就督促（童声）
     scene.render(latest, dt);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame(frame);
 
   audio.attachUnlock();
+  // v1.11 童声：优先用系统里的童声（没有就男声抬高音调），并在音色列表变化时重选
+  audio.pickChildVoice();
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => audio.pickChildVoice();
+  }
+  // 自动化走查（无头 Chrome 的 CDP 脚本）需要直接调场景 API 做投影/断言；
+  // 与 `window.debug` 同性质：只读 + 契约里已有的命令，不额外放宽任何东西。
+  if (window.medbot) window.medbot.scene = scene;
   return { scene, robot, person, hud };
 }
 
@@ -353,8 +440,7 @@ function startFamilyView() {
 }
 
 function boot() {
-  window.medbot = { store, plan, presence, schedule, machine, escalate, debug: debugApi, getClock: () => clock };
-  // 假数据种子在两种视图下都执行（幂等）：先开副屏也不会是空列表
+  window.medbot = { store, plan, presence, schedule, machine, escalate, debug: debugApi, getClock: () => clock };  // 假数据种子在两种视图下都执行（幂等）：先开副屏也不会是空列表
   seedDemoData();
   if (VIEW === 'family') {
     document.body.classList.add('view-family');

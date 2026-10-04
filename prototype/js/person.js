@@ -20,6 +20,9 @@
  * 4. **可辨认的五官**：眼（眼白 + 虹膜）、眉、鼻、嘴、耳 + 圆眼镜（镜框沿面部球面
  *    压低、镜腿按 `atan2` 连到耳侧）；银发（发帽 + 后脑发量 + 鬓角 + 刘海 + 发髻）。
  * 5. **姿态过渡是插值的**：起坐、躺下都是角度插值，不再瞬间跳变。
+ * 6. **任意落座点（v1.6）**：`presence.seat` 存在时，位置与朝向直接来自落座点；
+ *    坐姿由落座点的 `surfaceY` 反解（家具表面）或走 `FLOOR_SIT`（点地板 → 席地而坐）。
+ *    本文件仍然**不判断业务**：落座点从哪来（点击/开关）与它无关。
  */
 
 import * as THREE from 'three';
@@ -559,9 +562,43 @@ function solveSitArms(sit) {
 const ARM_SIT_SOFA = solveSitArms(SIT_SOFA);
 const ARM_SIT_CHAIR = solveSitArms(SIT_CHAIR);
 
+/**
+ * 席地而坐（v1.6：点到地板时用）。
+ * 座面高 0 塞进 solveSit 会解出「膝盖反折 180°」的畸形姿态，所以低座面单独给一组角度：
+ * 腿向前伸（大腿几乎水平）、膝盖只微微弯，脚正好落在地板上。
+ * 骨盆中心取 0.15 m —— 再低，胯部那个填充椭球会穿到地板下面去。
+ */
+const FLOOR_SIT = {
+  seat: { y: 0.15 - D.hip, thigh: -1.48, knee: 0.04, ankle: -0.06 },
+  arms: { armX: -0.46, elbowX: -0.66 },
+};
+
+/** 座面高度 → 坐姿（按厘米缓存：拖动点击时不必每次重解余弦定理） */
+const SEAT_CACHE = new Map();
+function seatPoseFor(surfaceY) {
+  const key = Math.round(Math.max(0, surfaceY) * 100) / 100;
+  let pose = SEAT_CACHE.get(key);
+  if (!pose) {
+    if (key < 0.3) {
+      pose = FLOOR_SIT;
+    } else {
+      const seat = solveSit(key);
+      pose = { seat, arms: solveSitArms(seat) };
+    }
+    SEAT_CACHE.set(key, pose);
+  }
+  return pose;
+}
+
+/** v1.6：点击落座点 → 与 POSE_BY_LOCATION 同结构的配置（shift 恒 0，落点就是最终位置） */
+function seatConfig(seat) {
+  const { seat: sit, arms } = seatPoseFor(seat.surfaceY);
+  return { pose: 'sit', seat: sit, arms, facing: seat.facing, shift: 0 };
+}
+
 /** 每个位置的落位：姿态 + 朝向 + 沿朝向前移量（米） */
 const POSE_BY_LOCATION = {
-  living_room: { pose: 'sit', seat: SIT_SOFA, arms: ARM_SIT_SOFA, facing: -Math.PI / 2, shift: 0.04 },
+  living_room: { pose: 'sit', seat: SIT_SOFA, arms: ARM_SIT_SOFA, facing: Math.PI / 2, shift: 0.04 },
   // 餐椅：room.js 里椅背在座位 -z 侧，人应朝 +z 坐（朝 -z 会被椅背穿过大腿）
   kitchen: { pose: 'sit', seat: SIT_CHAIR, arms: ARM_SIT_CHAIR, facing: 0, shift: 0 },
   // 床：枕头在后墙侧，躺下时头朝 -z；group.z 后移 0.71 让头正好落到枕头上
@@ -650,7 +687,7 @@ export function createPerson(sceneApi) {
   /** 仅视觉状态：当前姿态与朝向（不是业务状态） */
   const view = {
     pose: 'sit',
-    facing: -Math.PI / 2,
+    facing: Math.PI / 2,
     walkPhase: 0,
     moving: false,
     walking: false,
@@ -667,6 +704,61 @@ export function createPerson(sceneApi) {
     knee: [0, 0],
     ankle: [0, 0],
   };
+
+  /**
+   * 走位（v1.9）：沿 navgrid 折线走，不再两点一线。
+   * 契约：位置仍然**只**来自 `state.presence`；这里只决定"怎么走过去"，
+   * 寻路一律问场景 API（`findPath` / `isWalkable`），本文件不放任何业务规则。
+   *
+   * 为什么终点要拆两段：落座点在家具**内部**（可通行网格里本来就没有它），
+   * 直接拿它当寻路终点会被吸附回起点、返回退化折线（这正是之前那次
+   * "人走不到坐具上"的根因）。所以：
+   *   ① 折线走到坐具外的**入口点**（网格内、离当前位置最近的一圈）
+   *   ② 最后一段「落座收尾」（入口点到落座点，通常 ≤0.6 m，大件家具旁可能到 1.6 m）直接挪过去 ——
+   *      就是坐下去的那一下
+   * 另外：**短距离（≤1.2 m）不走折线**。否则"她已经坐在沙发上、用户又点沙发"
+   * 会先被推去入口点再回来，反而多一个起身动作。
+   */
+  const route = { key: '', path: null, i: 0 };
+  const ROUTE_MIN_DIST = 1.2; // 短于它就直接走（收尾动作）
+
+  /** 坐具外的入口点：从最近的一圈开始扫，取离当前位置最近的可走点 */
+  function entryPointFor(tx, tz, fromX, fromZ) {
+    let best = null;
+    for (const r of [0.34, 0.5, 0.68, 0.86, 1.06, 1.3, 1.6]) {
+      for (let k = 0; k < 24; k += 1) {
+        const a = (k / 24) * Math.PI * 2;
+        const x = tx + Math.sin(a) * r;
+        const z = tz + Math.cos(a) * r;
+        if (typeof sceneApi.isWalkable === 'function' && !sceneApi.isWalkable(x, z)) continue;
+        const cost = Math.hypot(x - fromX, z - fromZ);
+        if (!best || cost < best.cost) best = { x, z, cost };
+      }
+      if (best) return best;
+    }
+    return null;
+  }
+
+  /**
+   * 规划一次走位：可走的终点直接连折线，不可走的终点（落座点）先到入口点再收尾。
+   * ⚠️ `findPath` 会把终点**吸附到最近的可走格**（大件家具旁能差 1 m 以上），
+   * 所以只要末节点离目标还有距离就补一段「收尾」，否则会出现"走到一半就停下"。
+   */
+  function planRoute(key, tx, tz) {
+    const from = { x: root.position.x, z: root.position.z };
+    route.key = key;
+    route.i = 0;
+    if (typeof sceneApi.findPath !== 'function') { route.path = [{ x: tx, z: tz }]; return; }
+    const goalWalkable = typeof sceneApi.isWalkable !== 'function' ? true : sceneApi.isWalkable(tx, tz);
+    const via = goalWalkable ? null : entryPointFor(tx, tz, from.x, from.z);
+    const goal = via || { x: tx, z: tz };
+    const path = sceneApi.findPath(from, goal);
+    route.path = (path && path.length)
+      ? path.map((p) => ({ x: p.x, z: p.z }))
+      : [{ x: goal.x, z: goal.z }];
+    const last = route.path[route.path.length - 1];
+    if (Math.hypot(last.x - tx, last.z - tz) > 0.12) route.path.push({ x: tx, z: tz });
+  }
 
   function apply() {
     spine.rotation.x = view.spineX;
@@ -727,17 +819,44 @@ export function createPerson(sceneApi) {
     }
     root.visible = true;
 
-    const point = sceneApi.getWaypoint(presence.location);
+    // v1.6：有落座点（点了场景里的任意位置）就用落座点，否则用该位置的预设落位
+    const seat = presence.seat;
+    const conf = seat ? seatConfig(seat) : (POSE_BY_LOCATION[presence.location] || POSE_BY_LOCATION.living_room);
+    const point = seat ? { x: seat.x, y: 0, z: seat.z } : sceneApi.getWaypoint(presence.location);
     if (!point) return;
-
-    const conf = POSE_BY_LOCATION[presence.location] || POSE_BY_LOCATION.living_room;
     const fx = Math.sin(conf.facing);
     const fz = Math.cos(conf.facing);
     const destX = point.x + fx * conf.shift;
     const destZ = point.z + fz * conf.shift;
 
-    const dx = destX - root.position.x;
-    const dz = destZ - root.position.z;
+    // 走位：长距离沿 navgrid 折线（不穿墙、不穿家具），短距离直接收尾
+    const key = seat
+      ? `seat:${destX.toFixed(2)},${destZ.toFixed(2)},${conf.pose}`
+      : `loc:${presence.location}`;
+    const straight = Math.hypot(destX - root.position.x, destZ - root.position.z);
+    const useRoute = straight > ROUTE_MIN_DIST;
+    if (!useRoute) {
+      route.key = '';
+      route.path = null;
+    } else if (route.key !== key || !route.path) {
+      planRoute(key, destX, destZ);
+    }
+
+    let aimX = destX;
+    let aimZ = destZ;
+    if (useRoute) {
+      // 推进到当前要追的节点（到点即换下一个）
+      while (route.i < route.path.length - 1
+        && Math.hypot(route.path[route.i].x - root.position.x, route.path[route.i].z - root.position.z) <= 0.14) {
+        route.i += 1;
+      }
+      const wp = route.path[Math.min(route.i, route.path.length - 1)];
+      aimX = wp.x;
+      aimZ = wp.z;
+    }
+
+    const dx = aimX - root.position.x;
+    const dz = aimZ - root.position.z;
     const distance = Math.hypot(dx, dz);
     view.moving = distance > 0.03;
 

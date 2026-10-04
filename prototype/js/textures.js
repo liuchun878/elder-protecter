@@ -22,8 +22,8 @@ import * as THREE from 'three';
 
 /* ── 确定性伪随机 ─────────────────────────────────────────────────── */
 
-/** 线性同余发生器：同一 seed 永远给出同一串随机数 */
-function makeRng(seed) {
+/** 线性同余发生器：同一 seed 永远给出同一串随机数（`suite-textures.js` 也用同一个） */
+export function makeRng(seed) {
   let s = (seed >>> 0) || 1;
   return () => {
     s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
@@ -94,7 +94,7 @@ function shade(hex, k) {
   return [((hex >> 16) & 255) * k, ((hex >> 8) & 255) * k, (hex & 255) * k];
 }
 
-function finish(canvas, { repeat = [1, 1], srgb = true, aniso = 4 } = {}) {
+function finish(canvas, { repeat = [1, 1], srgb = true, aniso = 8 } = {}) {
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
@@ -107,7 +107,7 @@ function finish(canvas, { repeat = [1, 1], srgb = true, aniso = 4 } = {}) {
 
 /* ── 木地板：条形拼接 + 木纹 + 板缝 ───────────────────────────────── */
 
-export function woodFloor({ size = 512, planks = 6, repeat = [3, 2.4], seed = 11, tone = 0xbe9469 } = {}) {
+export function woodFloor({ size = 512, planks = 6, repeat = [3, 2.4], seed = 11, tone = 0xbe9469, aniso = 8 } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
   const grain = fbm(6, 4, rand);
@@ -153,12 +153,12 @@ export function woodFloor({ size = 512, planks = 6, repeat = [3, 2.4], seed = 11
     ctx.fillStyle = 'rgba(40,26,16,0.30)';
     ctx.fillRect(seam, p * rowH, 1.5, rowH);
   }
-  return finish(canvas, { repeat });
+  return finish(canvas, { repeat, aniso });
 }
 
 /* ── 墙面：极淡的抹灰颗粒 ─────────────────────────────────────────── */
 
-export function wallPaint({ size = 256, repeat = [3, 2], seed = 23, tone = 0xf2ece3 } = {}) {
+export function wallPaint({ size = 256, repeat = [3, 2], seed = 23, tone = 0xf2ece3, aniso = 8 } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
   const n = fbm(4, 3, rand);
@@ -170,12 +170,12 @@ export function wallPaint({ size = 256, repeat = [3, 2], seed = 23, tone = 0xf2e
       ctx.fillRect(x, y, 2, 2);
     }
   }
-  return finish(canvas, { repeat });
+  return finish(canvas, { repeat, aniso });
 }
 
 /* ── 布纹：沙发 / 床品 / 抱枕 ─────────────────────────────────────── */
 
-export function fabric({ size = 256, repeat = [3, 3], seed = 31, tone = 0x9aa3ad, weave = 3 } = {}) {
+export function fabric({ size = 256, repeat = [3, 3], seed = 31, tone = 0x9aa3ad, weave = 3, aniso = 8 } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
   const [r, g, b] = shade(tone, 1);
@@ -198,12 +198,12 @@ export function fabric({ size = 256, repeat = [3, 3], seed = 31, tone = 0x9aa3ad
     ctx.fillStyle = rand() > 0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`;
     ctx.fillRect(x, y, 1.6, 1.6);
   }
-  return finish(canvas, { repeat });
+  return finish(canvas, { repeat, aniso });
 }
 
 /* ── 地毯：圈绒 ───────────────────────────────────────────────────── */
 
-export function rug({ size = 256, repeat = [1, 1], seed = 47, tone = 0xc6c2b7, border = true } = {}) {
+export function rug({ size = 256, repeat = [1, 1], seed = 47, tone = 0xc6c2b7, border = true, aniso = 8 } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
   const cloud = fbm(4, 3, rand);
@@ -251,12 +251,12 @@ export function rug({ size = 256, repeat = [1, 1], seed = 47, tone = 0xc6c2b7, b
     ctx.strokeRect(w + 2, w + 2, size - w * 2 - 4, size - w * 2 - 4);
   }
 
-  return finish(canvas, { repeat });
+  return finish(canvas, { repeat, aniso });
 }
 
 /* ── 木家具：细密木纹 ─────────────────────────────────────────────── */
 
-export function wood({ size = 256, repeat = [1, 1], seed = 59, tone = 0x9a6f47, rings = 26 } = {}) {
+export function wood({ size = 256, repeat = [1, 1], seed = 59, tone = 0x9a6f47, rings = 26, aniso = 8 } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
   const warp = fbm(3, 3, rand);
@@ -272,12 +272,12 @@ export function wood({ size = 256, repeat = [1, 1], seed = 59, tone = 0x9a6f47, 
       ctx.fillRect(x, y, 1, 1);
     }
   }
-  return finish(canvas, { repeat });
+  return finish(canvas, { repeat, aniso });
 }
 
 /* ── 台面：水磨石 / 大理石 ────────────────────────────────────────── */
 
-export function stone({ size = 256, repeat = [2, 2], seed = 71, tone = 0xe6e3dd, veins = 16 } = {}) {
+export function stone({ size = 256, repeat = [2, 2], seed = 71, tone = 0xe6e3dd, veins = 16, aniso = 8 } = {}) {
   const { canvas, ctx } = makeCanvas(size, size);
   const rand = makeRng(seed);
   const [r, g, b] = shade(tone, 1);
@@ -302,7 +302,7 @@ export function stone({ size = 256, repeat = [2, 2], seed = 71, tone = 0xe6e3dd,
     ctx.fillStyle = `rgba(${Math.round(r * k)},${Math.round(g * k)},${Math.round(b * k)},0.5)`;
     ctx.fillRect(rand() * size, rand() * size, 2, 2);
   }
-  return finish(canvas, { repeat });
+  return finish(canvas, { repeat, aniso });
 }
 
 /* ── 窗外天空：日落渐变 + 远景城市剪影 ────────────────────────────── */
@@ -427,7 +427,71 @@ export function normalFromTexture(map, strength = 2.0) {
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.copy(map.repeat);
   tex.colorSpace = THREE.NoColorSpace; // 法线贴图必须是线性数据，不能当 sRGB 解
-  tex.anisotropy = 4;
+  tex.anisotropy = map.anisotropy || 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/* ── 粗糙度贴图（v1.6）：把已有贴图的亮度当粗糙度起伏 ────────────────
+ * 真实材质没有一块是「均匀粗糙」的：地板的板缝更糙、漆面里的填充更亮更光。
+ * three 里 `roughness = material.roughness × roughnessMap.g`——所以接了这张图，
+ * 材质的 `roughness` 要设成 1，由贴图给出**绝对值**。
+ * ⚠️ 与法线贴图一样是线性数据：`colorSpace` 必须是 NoColorSpace。
+ */
+export function roughnessFromTexture(map, { base = 0.7, amount = 0.3, invert = false } = {}) {
+  const src = map.image;
+  const w = src.width;
+  const h = src.height;
+  const data = src.getContext('2d').getImageData(0, 0, w, h).data;
+  const { canvas, ctx } = makeCanvas(w, h);
+  const out = ctx.createImageData(w, h);
+  const dir = invert ? -1 : 1;
+
+  for (let i = 0; i < w * h; i += 1) {
+    const j = i * 4;
+    const lum = (data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114) / 255;
+    const value = Math.min(1, Math.max(0, base + (lum - 0.5) * 2 * amount * dir));
+    out.data[j] = value * 255;
+    out.data[j + 1] = value * 255;
+    out.data[j + 2] = value * 255;
+    out.data[j + 3] = 255;
+  }
+  ctx.putImageData(out, 0, 0);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.copy(map.repeat);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.anisotropy = map.anisotropy || 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/* ── 窗光光柱（v1.6）：给斜射进来的阳光一点空气感 ─────────────────
+ * 不是体积光，就是一张两端渐隐、四周羽化的加法混合贴片。零资产、零开销。
+ */
+export function lightShaft({ w = 128, h = 128 } = {}) {
+  const { canvas, ctx } = makeCanvas(w, h);
+  const img = ctx.createImageData(w, h);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const u = x / (w - 1);
+      const v = y / (h - 1);
+      // 横向：中间亮、两边羽化；纵向：靠近窗户那端最亮，远端淡出
+      // 四边都要羽化到 0：任何一条边留一点不透明度，落在地板上就是一道直溜溜的硬边
+      const lateral = Math.pow(Math.sin(u * Math.PI), 1.6);
+      const along = Math.pow(Math.sin(v * Math.PI), 1.1);
+      const i = (y * w + x) * 4;
+      img.data[i] = 255;
+      img.data[i + 1] = 244;
+      img.data[i + 2] = 224;
+      img.data[i + 3] = Math.round(255 * lateral * along * 0.55);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
   return tex;
 }
@@ -500,5 +564,5 @@ export function buildEnvironmentScene() {
 
 export const textures = {
   woodFloor, wallPaint, fabric, rug, wood, stone, cityView, leaf,
-  normalFromTexture, contactShadow, buildEnvironmentScene,
+  normalFromTexture, roughnessFromTexture, lightShaft, contactShadow, buildEnvironmentScene,
 };

@@ -2,123 +2,103 @@
  * robot.js —— 机器人本体 + 行为动画（R 线）
  *
  * 契约：契约-接口.md §1.1（机器人行为必须是 StateSnapshot 的**纯函数**，不许自己再写业务状态机）
- *       §3.1 场景 API
+ *       §3.1 场景 API（getDock / getDockFacing / getApproachPoint / findPath）
  *
- * 它只做四件事：走到 presence.location、**开舱递药**、提示时发光、空闲回充电座。
- * 「到点该不该送」「送完算不算确认」全部由 H 的 machine.js 决定——本文件不判断业务。
+ * 它只做四件事：走到人的位置、**开舱把药盘推出来递药**、提示时发光、空闲回充电座。
+ * 「到点该不该送」「送完算不算确认」全部由 H 的 machine.js 决定 —— 本文件不判断业务。
  *
- * ── 造型依据（两处，都说清楚）────────────────────────────────────────
- * ① **底盘**照真实样机 UNNC-AGV（`unnc-sophicar/UNNC-AGV-P-1.STEP` 实测）：
- *    总体 442(X)×402(Z)，Ø154 差速驱动轮（x=±0.198，轮轴离地 0.077）由 MD36LP27 电机
- *    经联轴器驱动，前后两个 Ø38 万向轮（z=±0.183），底板 400×400 在 y=0.047，
- *    底盘发光带贴底板四周。
- * ② **机身**照参考片：白色圆润立柱机身 + **正面上半部一整块深色舱门**（两扇对开）+
- *    独立头部（颈部 + 摄像头 + 灯环）+ 右侧木纹饰板 + 中部灯带。
- *    仓库里本来就有 `小车外壳-V1.SLDPRT`，所以「真机底盘 + 外壳」不是臆造。
+ * ── 造型依据（v1.10：本体换成用户给的 PR #2 版本）────────────────────
+ * 来源：`liuchun878/elder-protecter` **PR #2** 的 `suite-3d/robot/index.html`
+ *       （提交 `6cc1321`「门开到 90°」、`af7def5`「先收托盘·再关门」）。
+ * 照搬的结构（**只借结构，不借资产**：全部是 Lathe / Box / Cylinder / Extrude 拼的，
+ * 仓库里不落任何 CAD 文件、网格或贴图 —— 红线：断网可用、无外部模型资产）：
+ *   ① **蛋形回转体机身**：高 0.500 m、最大半径 0.190 m，一条侧轮廓 `LatheGeometry` 一次成型；
+ *   ② **前下方对开门**：左右各一扇，绕各自**外侧竖边**向外摆到 **90°**，带中缝细线、圆把手、
+ *      上下铰链活页；门扇半径比机身大 5 mm —— 贴在弧面上，不留缝也不悬空；
+ *   ③ 门后**暗腔**（内壁 + 底板 + 舱内导轨 + 隔板 + 药）+ **带伸缩导轨的托盘**：
+ *      导轨尾端始终留在舱内，所以拉出去**不脱节**；
+ *   ④ **圆角矩形头部**（挤出圆角矩形 0.310×0.170×0.060 + 脖座）+ 一块画布屏幕（红/绿眼睛 + 指示条）；
+ *   ⑤ 托盘上：温水杯、铝塑药袋（两排三列）、掀盖药盒、酒精棉、纱布卷。
+ * 我们自己保留的部分（契约要求的那些，一条不少）：藏在机身下的差速轮底座、腰线发光带 /
+ *   前发光条 / 肩灯（提示通道三件套）、车尾充电触点、位置感应光锥、
+ *   「沿可通行折线走到人跟前 / 回桩充电 / 回桩朝向」的行为。
  *
- * ── 递药动作（本次改的重点）──────────────────────────────────────────
- * 旧版是「顶上一个托盘升起来」。新版是**从身体中间打开、把托盘推出来**：
- *   两扇舱门对开（~106°） → 托盘前伸（0.19 m） → 托盘上是**一杯温水 + 一个药盒**
- *   （盒盖掀开、药片可见）。
- * 姿态仍然是 state 的纯函数：`activeEventId` 有值且已到位 → 开舱；取走后合上。
- *
- * **只借结构，不借资产**：全部是 Box / Cylinder / Sphere / Torus / Extrude 拼的，
- * 仓库里不落任何 CAD 文件、网格或贴图（红线：断网可用、无外部模型资产）。
+ * ⚠️ **与 PR #2 刻意不同的三处**（红线，不是漏做）：
+ *   ① PR #2 的屏幕上写着「请取药 · 药已备好 / 已服药 · 祝您健康」——
+ *      本项目 **3D 里不渲染任何文字**，界面也**不得出现「已服下」**（取药 ≠ 服药）。
+ *      因此屏幕**只画眼睛（红/绿）与一条指示条**，一个字的文案都不画。
+ *   ② PR #2 有一段「注水」水流与一只「老人的手」—— 本项目里王阿姨是独立的 `person.js` actor、
+ *      递药语义固定为「开舱递药」，故不引入注水动作与手。
+ *   ③ 保留我们的差速轮底座与充电触点：这是台会走的机器人，`navgrid` 半径与充电桩都按它有底盘算。
  */
 
 import * as THREE from 'three';
-import { wood, stone } from './textures.js';
+import { stone, wood } from './textures.js';
 
-const SHELL = 0xf4f4f2; // 机身白
-const SHELL_DIM = 0xdfe0dd; // 侧面/收边
-const GLASS_DARK = 0x1c2a31; // 舱门玻璃
-const INNER = 0x2a3339; // 舱内
-const TRIM = 0x8d949a; // 密封条 / 装饰线
-const TEAL = 0x4fc7d8; // 灯带
-const ORANGE = 0xe8863c; // 指示灯
-const TIRE = 0x24282c;
-const HUB = 0xb9c0c6;
-const MOTOR = 0x3d434a;
-const ALU = 0x9aa4ad;
+/* ── 尺寸（米；脚底 y = 0，正面 +z）——数字全部来自 PR #2 ────────────── */
+const BODY_H = 0.500; // 机身总高
+const BODY_R = 0.190; // 机身最大半径
+const DOOR = { y0: 0.170, y1: 0.300, az: 0.42 }; // 门的上下沿 + 单侧张角(rad)
+// v1.12：头部/屏幕比例借自 robot-3d（那台是 0.314×0.316 的近方大屏）——从 0.310×0.170 改成 0.300×0.240
+const HEAD = { y: 0.598, w: 0.300, h: 0.240, d: 0.062, r: 0.046 };
+const TRAY = { y: (DOOR.y0 + DOOR.y1) / 2 - 0.004, z0: 0.030, out: 0.200 };
+const BAND_Y = 0.315; // 腰线发光带高度
+
+/** 机身侧轮廓：`[高度, 半径]`（最鼓处 0.190 在 0.175~0.230 m） */
+const PROFILE = [
+  [0.000, 0.042], [0.015, 0.085], [0.045, 0.130], [0.105, 0.170], [0.175, 0.190],
+  [0.230, 0.190], [0.270, 0.188], [0.320, 0.185], [0.380, 0.176], [0.430, 0.155],
+  [0.465, 0.115], [0.487, 0.072], [0.500, 0.046],
+];
+/** 门扇轮廓：半径比机身外表面大 5 mm，贴弧面 */
+const DOOR_PROFILE = [[DOOR.y0, 0.1952], [0.235, 0.1950], [DOOR.y1, 0.1912]];
 
 const SPEED = 1.2; // m/s（预置路径动画，不宣称导航能力）
-const OPEN_TIME = 0.9; // 开舱全程（门先开、托盘后出），秒
-const DOOR_ANGLE = 2.24; // 舱门开合角（rad ≈ 128°）：开到底贴到机身两侧，不挡托盘上的东西
-const SHELF_OUT = 0.19; // 托盘前伸距离（m）
-const DOCK_FACING = Math.PI; // 回桩后**车尾对着充电桩**、正面朝向房间（桩在 DOCK 的 +z 侧）
+const OPEN_TIME = 0.9; // 从"收好"到"递到位"的全程时间，秒
+const TEAL = 0x4fc7d8; // 待命青蓝
+const ORANGE = 0xe8863c; // 有提示转琥珀
+const DOCK_GREEN = 0x53e0a6; // 回桩充电青绿
+const WARM = 0xffb066; // 夜晚的暖光（屏幕不打白光，免得不刺眼）
 
-/* 关键高度（米）：底盘沿用真机实测，机身按参考片 */
-const Y = {
-  deck: 0.047,
-  bodyBottom: 0.1,
-  bodyTop: 1.02,
-  shelf: 0.78,
-  hatchBottom: 0.55,
-  hatchTop: 0.92,
-  neck: 1.15,
-};
+/* ── 小工具 ───────────────────────────────────────────────────────── */
 
-const BODY = { w: 0.4, d: 0.36, r: 0.045 };
-const HATCH = { w: 0.3, h: 0.38, leaf: 0.152, t: 0.016, back: 0.12 };
-
-function mat(color, roughness = 0.6, extra = {}) {
+function mat(color, roughness = 0.5, extra = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness: 0.05, ...extra });
 }
 
-function box(w, h, d, material, x = 0, y = 0, z = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  m.position.set(x, y, z);
-  return m;
-}
-
-function cyl(rTop, rBot, h, material, seg = 20, axis = 'y') {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, seg), material);
-  if (axis === 'x') m.rotation.z = Math.PI / 2;
-  if (axis === 'z') m.rotation.x = Math.PI / 2;
-  return m;
-}
-
-/**
- * XZ 平面上的矩形轮廓，**四个角可以分别给半径**（顺序：-x-z, +x-z, +x+z, -x+z）。
- * 机身正面要开一个方舱口，两侧墙板只有「外侧靠前」那两个角需要跟机身同半径，
- * 内侧靠开口的角必须是直角——所以不能用统一的 roundedSlab。
- */
-function rectShape(w, d, radii) {
-  const [r00, r10, r11, r01] = radii;
-  const hw = w / 2;
-  const hd = d / 2;
-  const s = new THREE.Shape();
-  s.moveTo(-hw + r00, -hd);
-  s.lineTo(hw - r10, -hd);
-  if (r10) s.quadraticCurveTo(hw, -hd, hw, -hd + r10); else s.lineTo(hw, -hd);
-  s.lineTo(hw, hd - r11);
-  if (r11) s.quadraticCurveTo(hw, hd, hw - r11, hd); else s.lineTo(hw, hd);
-  s.lineTo(-hw + r01, hd);
-  if (r01) s.quadraticCurveTo(-hw, hd, -hw, hd - r01); else s.lineTo(-hw, hd);
-  s.lineTo(-hw, -hd + r00);
-  if (r00) s.quadraticCurveTo(-hw, -hd, -hw + r00, -hd); else s.lineTo(-hw, -hd);
-  return s;
-}
-
-/** 把轮廓沿 y 挤出成板，局部原点在**底面中心** */
-function extrudeSlab(shape, h, curveSegments = 6, bevel = 0.012) {
-  const geo = new THREE.ExtrudeGeometry(shape, {
-    depth: Math.max(0.001, h - bevel * 4),
-    bevelEnabled: bevel > 0,
-    bevelSize: bevel,
-    bevelThickness: bevel,
-    bevelSegments: 2,
-    curveSegments,
-  });
-  geo.rotateX(-Math.PI / 2); // 挤出方向 +z → +y
-  geo.computeBoundingBox();
-  geo.translate(0, -geo.boundingBox.min.y, 0); // 底面贴 y=0
+/** `[高度, 半径]` → LatheGeometry 的 Vector2（绕 y 轴回转） */
+function lathe(pairs, segments = 48, phiStart = 0, phiLength = Math.PI * 2) {
+  const pts = pairs.map(([y, r]) => new THREE.Vector2(Math.max(r, 0.0005), y));
+  const geo = new THREE.LatheGeometry(pts, segments, phiStart, phiLength);
+  geo.computeVertexNormals();
   return geo;
 }
 
-/** 带圆角的方板（四角同半径） */
-function roundedSlab(w, d, h, r, curveSegments = 6, bevel = 0.012) {
-  return extrudeSlab(rectShape(w, d, [r, r, r, r]), h, curveSegments, bevel);
+/** 机身在某高度处的半径（把发光带 / 触点 / 灯珠贴到曲面上用） */
+function bodyRadius(y) {
+  for (let i = 1; i < PROFILE.length; i += 1) {
+    const [y0, r0] = PROFILE[i - 1];
+    const [y1, r1] = PROFILE[i];
+    if (y <= y1) return r0 + (r1 - r0) * ((y - y0) / ((y1 - y0) || 1));
+  }
+  return PROFILE[PROFILE.length - 1][1];
+}
+
+/** 圆角矩形挤出（头部 / 托盘挡边用） */
+function roundedBox(w, h, d, r) {
+  const sh = new THREE.Shape();
+  const x0 = -w / 2;
+  const y0 = -h / 2;
+  sh.moveTo(x0 + r, y0);
+  sh.lineTo(x0 + w - r, y0); sh.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
+  sh.lineTo(x0 + w, y0 + h - r); sh.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h);
+  sh.lineTo(x0 + r, y0 + h); sh.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r);
+  sh.lineTo(x0, y0 + r); sh.quadraticCurveTo(x0, y0, x0 + r, y0);
+  const geo = new THREE.ExtrudeGeometry(sh, {
+    depth: d, bevelEnabled: true, bevelSize: 0.007, bevelThickness: 0.007, bevelSegments: 3, curveSegments: 12,
+  });
+  geo.translate(0, 0, -d / 2);
+  return geo;
 }
 
 function buildRobot() {
@@ -126,328 +106,576 @@ function buildRobot() {
   group.name = 'robot';
 
   const M = {
-    shell: mat(SHELL, 0.42, { metalness: 0.04 }),
-    shellDim: mat(SHELL_DIM, 0.5),
-    glass: mat(GLASS_DARK, 0.18, { metalness: 0.25 }),
-    inner: mat(INNER, 0.85),
-    trim: mat(TRIM, 0.4, { metalness: 0.4 }),
-    tire: mat(TIRE, 0.92),
-    hub: mat(HUB, 0.4, { metalness: 0.35 }),
-    motor: mat(MOTOR, 0.55, { metalness: 0.25 }),
-    alu: mat(ALU, 0.5, { metalness: 0.18 }),
-    wood: new THREE.MeshStandardMaterial({ map: wood({ tone: 0xb98a5c, seed: 5 }), roughness: 0.55 }),
+    shell: new THREE.MeshPhysicalMaterial({
+      color: 0xf7f8f9, roughness: 0.30, metalness: 0.02, clearcoat: 0.55, clearcoatRoughness: 0.28,
+    }),
+    shellDim: mat(0xe9ebee, 0.42),
+    cavity: mat(0x3a3d42, 0.82, { side: THREE.DoubleSide }),
+    cavBack: mat(0xeceef0, 0.5, { side: THREE.BackSide }),
+    dark: mat(0x101216, 0.14, { metalness: 0.45 }),
+    alu: mat(0xa8aeb4, 0.34, { metalness: 0.7 }),
+    tire: mat(0x24282c, 0.92),
+    hub: mat(0xb9c0c6, 0.4, { metalness: 0.35 }),
     tray: new THREE.MeshStandardMaterial({ map: stone({ tone: 0xf0eeea, seed: 91 }), roughness: 0.35 }),
+    pill: mat(0xefe6d4, 0.66),
+    foil: mat(0xd2d8dd, 0.24, { metalness: 0.5 }),
+    pad: mat(0xf3f6f8, 0.74),
+    cup: new THREE.MeshPhysicalMaterial({
+      color: 0xeaf4f8, roughness: 0.06, transparent: true, opacity: 0.32,
+      side: THREE.DoubleSide, envMapIntensity: 1.5,
+    }),
+    water: new THREE.MeshPhysicalMaterial({ color: 0x9fd0e8, roughness: 0.04, transparent: true, opacity: 0.75 }),
+    // 借 robot-3d 的「木拉手」：木色圆棒 + 铝支架
+    wood: new THREE.MeshStandardMaterial({ map: wood({ tone: 0xc9a26a, seed: 12 }), roughness: 0.62 }),
   };
 
-  /* ══ ① 底盘：真机 UNNC-AGV 的行走部分（保留可见）══════════════════ */
-  group.add(box(0.4, 0.008, 0.4, M.alu, 0, Y.deck, 0)); // 底板
+  const put = (geo, material, x, y, z, parent) => {
+    const m = new THREE.Mesh(geo, material);
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    (parent || group).add(m);
+    return m;
+  };
+  const box = (w, h, d, material, x, y, z, parent) => put(new THREE.BoxGeometry(w, h, d), material, x, y, z, parent);
+  const cyl = (rt, rb, h, material, x, y, z, parent, seg = 20) => put(
+    new THREE.CylinderGeometry(rt, rb, h, seg), material, x, y, z, parent,
+  );
 
-  for (const s of [-1, 1]) {
-    const wheel = cyl(0.077, 0.077, 0.046, M.tire, 26, 'x');
-    wheel.position.set(s * 0.198, 0.077, 0);
-    group.add(wheel);
-    const hub = cyl(0.034, 0.034, 0.052, M.hub, 16, 'x');
-    hub.position.set(s * 0.198, 0.077, 0);
-    group.add(hub);
+  /* ══ ① 底盘：四轮 —— 左右两个**驱动轮** + 前方两个**万向轮**，各带支架，都会滚 ══
+   * 数字照搬用户仓库 HEAD 版 `suite-3d/robot/index.html`（那里也是四轮 + 支架 + 滚动）。
+   * 碰撞零影响：最外的驱动轮 x=±0.126、半径 0.032 → 横向 0.316 m，
+   * 远小于 `scene.addActor` 用的碰撞直径 0.48 m（radius 0.24）。
+   */
+  const wheels = [];
+  function addWheel(x, z, r, w, caster) {
+    const g = new THREE.Group();
+    g.position.set(x, r, z);
+    g.name = 'robot-wheel';
+    group.add(g);
+    const spin = new THREE.Group(); // 滚动只转这个子组（支架不跟着转）
+    g.add(spin);
+    const tire = cyl(r, r, w, M.tire, 0, 0, 0, spin, 24);
+    tire.rotation.z = Math.PI / 2;
+    const hub = cyl(r * 0.42, r * 0.42, w + 0.006, M.hub, 0, 0, 0, spin, 16);
+    hub.rotation.z = Math.PI / 2;
+    for (const sgn of [-1, 1]) {
+      const disc = cyl(r * 0.40, r * 0.40, 0.004, M.shellDim, sgn * (w / 2 + 0.004), 0, 0, spin, 14);
+      disc.rotation.z = Math.PI / 2;
+    }
+    // 轮轴：穿过轮心的一根细轴（借 robot-3d 的「轮轴」）
+    const axle = cyl(0.0045, 0.0045, w + 0.012, M.alu, 0, 0, 0, spin, 10);
+    axle.rotation.z = Math.PI / 2;
+    // 轮辋：轮缘一圈细环（借 robot-3d 的「轮辋」）
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(r * 0.82, 0.0028, 6, 20), M.hub);
+    rim.rotation.y = Math.PI / 2;
+    spin.add(rim);
+    const fork = box(0.018, r + 0.030, 0.022, M.alu, 0, r * 0.5 + 0.015, 0, g);
+    fork.castShadow = true;
+    if (caster) {
+      // 万向轮：立柱 + 叉架 + 轮架板（借 robot-3d 的「立柱/叉架/轮架板」）
+      cyl(0.009, 0.009, 0.030, M.alu, 0, r * 0.5 + 0.008, 0, g, 12);
+      box(0.040, 0.008, 0.034, M.shellDim, 0, r + 0.030, 0, g);
+    }
+    g.userData.spin = spin;
+    wheels.push(g);
+    return g;
+  }
+  addWheel(-0.126, -0.016, 0.032, 0.028, false); // 左驱动轮
+  addWheel(0.126, -0.016, 0.032, 0.028, false); // 右驱动轮
+  addWheel(-0.090, 0.100, 0.024, 0.022, true); // 左前万向轮
+  addWheel(0.090, 0.100, 0.024, 0.022, true); // 右前万向轮
+  box(0.190, 0.018, 0.150, M.shellDim, 0, 0.028, -0.010, group); // 底盘托板（轮子挂在它上面）
 
-    const motor = cyl(0.0185, 0.0185, 0.135, M.motor, 16, 'x');
-    motor.position.set(s * 0.0955, 0.077, 0);
-    group.add(motor);
-    const coup = cyl(0.026, 0.026, 0.026, M.hub, 14, 'x');
-    coup.position.set(s * 0.1615, 0.077, 0);
-    group.add(coup);
-    group.add(box(0.04, 0.05, 0.042, M.alu, s * 0.0655, 0.107, 0));
+  /* ══ ② 蛋形机身（一条轮廓回转成型，没有拼接缝）════════════════════ */
+  const body = new THREE.Mesh(lathe(PROFILE, 72), M.shell);
+  body.name = 'robot-body';
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+
+  /* ══ ③ 门后暗腔：内壁 + 底板 + 舱内导轨 + 隔板 + 药 ════════════════ */
+  const nicheW = 2 * 0.1948 * Math.sin(DOOR.az) * 0.98;
+  const cavWall = box(nicheW, DOOR.y1 - DOOR.y0 - 0.004, 0.010, M.cavity, 0, (DOOR.y0 + DOOR.y1) / 2, 0.186);
+  cavWall.name = 'robot-cavity';
+  const cavFloor = box(nicheW, 0.006, 0.070, M.shellDim, 0, DOOR.y0 + 0.004, 0.156);
+  cavFloor.receiveShadow = true;
+  box(0.052, 0.008, 0.130, M.alu, 0, DOOR.y0 + 0.008, 0.100); // 舱内导轨
+  box(Math.min(nicheW - 0.012, 0.130), 0.008, 0.058, M.shellDim, 0, DOOR.y0 + 0.086, 0.134); // 隔板
+  [[-0.052, 0.055, 0.050], [0.000, 0.046, 0.046], [0.052, 0.050, 0.044]].forEach((q) => (
+    box(q[2], q[1], 0.048, M.pill, q[0], DOOR.y0 + 0.095 + q[1] / 2, 0.132)
+  ));
+
+  /* ══ ④ 前下方对开门：绕外侧竖边向外摆到 90° ═══════════════════════ */
+  const HR = 0.1948; // 铰链所在半径
+  function makeDoorLeaf(sign) {
+    const az0 = sign < 0 ? -DOOR.az : 0; // 左扇 [-az, 0]、右扇 [0, +az]
+    const hingeAz = sign < 0 ? -DOOR.az : DOOR.az;
+    const hx = Math.sin(hingeAz) * HR;
+    const hz = Math.cos(hingeAz) * HR;
+    const g = new THREE.Group();
+    g.name = sign < 0 ? 'robot-door-l' : 'robot-door-r';
+    g.position.set(hx, 0, hz);
+    group.add(g);
+    const outer = lathe(DOOR_PROFILE, 22, az0, DOOR.az);
+    outer.translate(-hx, 0, -hz);
+    const mo = new THREE.Mesh(outer, M.shell);
+    mo.castShadow = true;
+    mo.receiveShadow = true;
+    g.add(mo);
+    const inner = lathe(DOOR_PROFILE.map(([y, r]) => [y, r - 0.0035]), 22, az0, DOOR.az);
+    inner.translate(-hx, 0, -hz);
+    g.add(new THREE.Mesh(inner, M.cavBack));
+    // 中缝细线：让"对开"一眼可辨
+    const sa = sign * 0.010;
+    const seam = box(0.0035, DOOR.y1 - DOOR.y0 - 0.006, 0.005, M.shellDim,
+      Math.sin(sa) * 0.1966 - hx, (DOOR.y0 + DOOR.y1) / 2, Math.cos(sa) * 0.1966 - hz, g);
+    seam.rotation.y = -sa + Math.PI / 2;
+    // 圆形把手（靠中缝、贴门面）
+    const ha = sign * 0.090;
+    const hd = cyl(0.0085, 0.0085, 0.013, M.alu,
+      Math.sin(ha) * 0.1995 - hx, (DOOR.y0 + DOOR.y1) / 2, Math.cos(ha) * 0.1995 - hz, g, 16);
+    hd.rotation.x = Math.PI / 2;
+    // 上下铰链活页（贴在铰链竖线上，说明门是连在机身上的）
+    [DOOR.y0 + 0.014, DOOR.y1 - 0.014].forEach((hy) => cyl(0.0055, 0.0055, 0.018, M.alu, 0, hy, 0, g, 12));
+    return g;
+  }
+  const doorL = makeDoorLeaf(-1);
+  const doorR = makeDoorLeaf(1);
+
+  /* ══ ⑤ 头部：圆角矩形 + 画布屏幕（**只有眼睛与指示条，没有文字**）═══ */
+  cyl(0.044, 0.052, 0.042, M.shell, 0, 0.513, 0, group, 28); // 脖座
+  const head = new THREE.Mesh(roundedBox(HEAD.w, HEAD.h, HEAD.d, HEAD.r), M.shell);
+  head.name = 'robot-head';
+  head.position.set(0, HEAD.y, 0.010);
+  head.castShadow = true;
+  head.receiveShadow = true;
+  group.add(head);
+
+  const SCR = { w: 512, h: 288 };
+  const scrCv = document.createElement('canvas');
+  scrCv.width = SCR.w;
+  scrCv.height = SCR.h;
+  const scrCtx = scrCv.getContext('2d');
+  const scrTex = new THREE.CanvasTexture(scrCv);
+  scrTex.colorSpace = THREE.SRGBColorSpace;
+  const screenMat = new THREE.MeshBasicMaterial({ map: scrTex, toneMapped: false, transparent: true });
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(HEAD.w - 0.032, HEAD.h - 0.032), screenMat);
+  screen.name = 'robot-screen';
+  screen.position.set(0, HEAD.y, 0.056);
+  screen.userData.noShadow = true;
+  group.add(screen);
+  // 屏下压条 + 右上角小琥珀状态块（借 robot-3d 的「屏幕压条 / 小琥珀色块」）
+  const trimBar = box(HEAD.w - 0.026, 0.006, 0.006, M.shellDim, 0, HEAD.y - HEAD.h / 2 + 0.010, 0.058, group);
+  trimBar.userData.noShadow = true;
+  const scrLed = new THREE.Mesh(
+    new THREE.SphereGeometry(0.0055, 10, 8),
+    new THREE.MeshStandardMaterial({ color: 0xe8a33c, emissive: 0xe8a33c, emissiveIntensity: 1.1, roughness: 0.4 }),
+  );
+  scrLed.position.set(HEAD.w / 2 - 0.016, HEAD.y + HEAD.h / 2 - 0.014, 0.058);
+  scrLed.userData.noShadow = true;
+  scrLed.name = 'robot-screen-led';
+  group.add(scrLed);
+
+  // 头部与机身之间的托座（不然头像浮在空气里）
+  box(0.140, 0.104, 0.050, M.shell, 0, HEAD.y - 0.096, -0.006);
+
+  /* 屏幕：**四个状态**（借 robot-3d 那台的四套画面：logo / eyes / green / off）
+   *   logo  默认待命 —— 三条竖杠 + 一条细横线（就是用户实拍照片里那块屏的样子）
+   *   eyes  有提示事件（递药中）—— 两眼 + 一道弯，琥珀色
+   *   green 已取走、托盘正在收 —— 一个青绿圆环 + 满格指示条
+   *   off   夜晚待命 —— 整块黑（连指示条都不亮）
+   * ⚠️ 红线：**一个字都不画**（不出现「已服下 / 已服药」；也不在 3D 里渲染任何文字）。 */
+  let scrKey = '';
+  function drawScreen(kind, hex) {
+    const key = `${kind}|${hex}`;
+    if (key === scrKey) return;
+    scrKey = key;
+    const W = SCR.w;
+    const H = SCR.h;
+    const css = (v) => `#${v.toString(16).padStart(6, '0')}`;
+    const gr = scrCtx.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, '#141c25');
+    gr.addColorStop(1, '#070a0d');
+    scrCtx.fillStyle = gr;
+    scrCtx.fillRect(0, 0, W, H);
+    if (kind === 'off') { scrTex.needsUpdate = true; return; }
+    const col = kind === 'eyes' ? css(hex) : (kind === 'green' ? '#53e0a6' : css(hex));
+    scrCtx.shadowColor = col;
+    scrCtx.shadowBlur = 26;
+    scrCtx.strokeStyle = col;
+    scrCtx.fillStyle = col;
+    scrCtx.lineCap = 'round';
+
+    if (kind === 'logo') {
+      // 三条竖杠 + 一条细横线（实拍照片里的默认画面）
+      scrCtx.lineWidth = 26;
+      [-1, 0, 1].forEach((i) => {
+        scrCtx.beginPath();
+        scrCtx.moveTo(W / 2 + i * 62, 96);
+        scrCtx.lineTo(W / 2 + i * 62, 176);
+        scrCtx.stroke();
+      });
+      scrCtx.lineWidth = 8;
+      scrCtx.beginPath();
+      scrCtx.moveTo(W / 2 - 74, 214);
+      scrCtx.lineTo(W / 2 + 74, 214);
+      scrCtx.stroke();
+    } else if (kind === 'eyes') {
+      scrCtx.lineWidth = 13;
+      [-1, 1].forEach((sg) => {
+        scrCtx.beginPath();
+        scrCtx.arc(W / 2 + sg * 76, 126, 26, Math.PI * 1.12, Math.PI * 1.88);
+        scrCtx.stroke();
+      });
+      scrCtx.lineWidth = 11;
+      scrCtx.beginPath();
+      scrCtx.moveTo(W / 2 - 32, 190);
+      scrCtx.lineTo(W / 2 + 32, 190);
+      scrCtx.stroke();
+    } else { // green：已取走 · 已记录（图形，不是文字）
+      scrCtx.lineWidth = 13;
+      scrCtx.beginPath();
+      scrCtx.arc(W / 2, 140, 52, 0, Math.PI * 2);
+      scrCtx.stroke();
+      scrCtx.lineWidth = 16;
+      scrCtx.beginPath();
+      scrCtx.moveTo(W / 2 - 26, 142);
+      scrCtx.lineTo(W / 2 - 6, 164);
+      scrCtx.lineTo(W / 2 + 30, 118);
+      scrCtx.stroke();
+    }
+    // 底部指示条：颜色即状态（青蓝＝待命 / 琥珀＝有提示 / 青绿＝已记录）
+    scrCtx.shadowBlur = 0;
+    scrCtx.fillStyle = 'rgba(255,255,255,.10)';
+    scrCtx.fillRect(22, H - 46, W - 44, 28);
+    scrCtx.fillStyle = col;
+    const fill = kind === 'green' ? 1 : (kind === 'eyes' ? 1 : 0.34);
+    scrCtx.fillRect(22, H - 46, (W - 44) * fill, 28);
+    scrTex.needsUpdate = true;
+  }
+  drawScreen('logo', TEAL);
+
+  /* ══ ⑥ 托盘组（含伸缩导轨：尾端始终留在舱内 → 拉出去不脱节）═══════ */
+  const tray = new THREE.Group();
+  tray.name = 'robot-tray';
+  tray.position.set(0, TRAY.y, TRAY.z0);
+  group.add(tray);
+  box(0.200, 0.012, 0.140, M.tray, 0, 0, 0.045, tray); // 盘面
+  box(0.205, 0.014, 0.012, M.tray, 0, 0.008, 0.112, tray); // 前沿挡边
+  box(0.046, 0.010, 0.240, M.alu, 0, -0.010, -0.020, tray); // 伸缩导轨
+  box(0.030, 0.008, 0.260, M.shellDim, 0, -0.018, -0.040, tray);
+
+  // 温水杯（空杯，递到手里时由老人自己喝 —— 本项目不表现注水）
+  const CR = 0.026;
+  const CH = 0.068;
+  const cupGeo = new THREE.CylinderGeometry(CR, CR * 0.88, CH, 26, 1, true);
+  cupGeo.translate(0, CH / 2, 0);
+  const cup = put(cupGeo, M.cup, 0.030, 0.007, 0.052, tray);
+  const cupBottom = put(new THREE.CircleGeometry(CR * 0.88, 26), M.cup, 0.030, 0.0075, 0.052, tray);
+  cupBottom.rotation.x = -Math.PI / 2;
+  const waterGeo = new THREE.CylinderGeometry(CR * 0.93, CR * 0.82, CH * 0.80, 26);
+  waterGeo.translate(0, CH * 0.40, 0);
+  const water = put(waterGeo, M.water, 0.030, 0.009, 0.052, tray);
+
+  // 独立包装药（铝塑小袋，两排三列）
+  for (let r = 0; r < 2; r += 1) {
+    for (let i = 0; i < 3; i += 1) {
+      const px = -0.034 + i * 0.034;
+      const pz = 0.016 + r * 0.048;
+      box(0.028, 0.006, 0.040, M.pill, px, 0.010, pz, tray);
+      box(0.030, 0.003, 0.042, M.foil, px, 0.0145, pz, tray);
+    }
+  }
+  // 小药盒（圆盒，掀盖半开）
+  const pillBox = new THREE.Group();
+  pillBox.position.set(-0.034, 0.007, 0.086);
+  tray.add(pillBox);
+  cyl(0.033, 0.033, 0.024, M.pill, 0, 0.012, 0, pillBox, 22);
+  for (let i = 0; i < 6; i += 1) {
+    const a = (i / 6) * Math.PI * 2;
+    cyl(0.006, 0.006, 0.004, M.pill, Math.cos(a) * 0.016, 0.028, Math.sin(a) * 0.016, pillBox, 10);
+  }
+  cyl(0.035, 0.035, 0.006, M.pill, 0.030, 0.040, 0.018, pillBox, 22).rotation.set(-0.85, 0, -0.45);
+  // 少量医疗用品：两片酒精棉 + 一小卷纱布
+  box(0.024, 0.004, 0.024, M.pad, -0.020, 0.010, 0.110, tray);
+  box(0.024, 0.004, 0.024, M.pad, 0.006, 0.010, 0.106, tray);
+  cyl(0.014, 0.014, 0.026, M.pad, 0.040, 0.021, 0.100, tray, 18).rotation.z = Math.PI / 2;
+
+  /* ══ ⑥b 木拉手（借 robot-3d 的「木拉手/木棒」）：背面两根木色圆棒 + 铝支架 ══
+   * 位置贴在机身背面曲面上（y=0.44 处机身半径约 0.148） */
+  const handleR = bodyRadius(0.44);
+  for (const hz of [-0.028, 0.028]) {
+    const rod = cyl(0.015, 0.015, 0.190, M.wood, 0, 0.44, -(handleR + 0.030) + hz * 0, group, 14);
+    rod.name = 'robot-handle';
+    rod.rotation.z = Math.PI / 2;
+    rod.position.z = -(handleR + 0.032);
+    for (const sx of [-1, 1]) {
+      const br = box(0.016, 0.030, 0.030, M.alu, sx * 0.078, 0.44 + hz * 0, -(handleR + 0.016), group);
+      br.rotation.x = 0;
+      if (hz > 0) br.position.y += 0.052; else br.position.y -= 0.052;
+      const rodY = 0.44 + (hz > 0 ? 0.052 : -0.052);
+      // 同高的一根木棒（两根上下排开，像实拍照片里的双拉手）
+      const r2 = cyl(0.015, 0.015, 0.190, M.wood, 0, rodY, -(handleR + 0.032), group, 14);
+      r2.name = 'robot-handle';
+      r2.rotation.z = Math.PI / 2;
+    }
   }
 
-  for (const s of [-1, 1]) {
-    const z = s * 0.183;
-    group.add(box(0.036, 0.03, 0.03, M.alu, 0, 0.09, z));
-    group.add(box(0.02, 0.05, 0.03, M.alu, 0, 0.055, z - s * 0.014));
-    const w = cyl(0.019, 0.019, 0.03, M.tire, 14, 'z');
-    w.position.set(0, 0.027, z - s * 0.014);
-    group.add(w);
-  }
+  /* ══ ⑥c 底盘腰线 / 下缘（借 robot-3d 的「底盘腰线 + 底盘下缘」）══════ */
+  const waistMat = mat(0x6f767c, 0.55, { metalness: 0.25 });
+  const waist = new THREE.Mesh(new THREE.TorusGeometry(bodyRadius(0.085) + 0.003, 0.0032, 6, 56), waistMat);
+  waist.name = 'robot-waist';
+  waist.rotation.x = Math.PI / 2;
+  waist.position.y = 0.085;
+  waist.userData.noShadow = true;
+  group.add(waist);
 
-  // 底盘发光带（契约里的「发光环」）
+  /* ══ ⑦ 提示通道：腰线发光带 + 前发光条 + 肩灯 ═════════════════════ */
   const ringMat = new THREE.MeshStandardMaterial({
     color: TEAL, emissive: TEAL, emissiveIntensity: 0.9, roughness: 0.4,
   });
   const ring = new THREE.Group();
   ring.name = 'robot-ring';
-  const bandY = Y.deck - 0.01;
-  const half = 0.204;
-  ring.add(box(0.416, 0.012, 0.01, ringMat, 0, bandY, half));
-  ring.add(box(0.416, 0.012, 0.01, ringMat, 0, bandY, -half));
-  ring.add(box(0.01, 0.012, 0.416, ringMat, half, bandY, 0));
-  ring.add(box(0.01, 0.012, 0.416, ringMat, -half, bandY, 0));
+  const bandR = bodyRadius(BAND_Y) + 0.004;
+  const bandMesh = new THREE.Mesh(new THREE.TorusGeometry(bandR, 0.0052, 8, 56), ringMat);
+  bandMesh.rotation.x = Math.PI / 2;
+  bandMesh.position.y = BAND_Y;
+  bandMesh.userData.noShadow = true;
+  ring.add(bandMesh);
   group.add(ring);
-
-  /* ══ ② 机身外壳：白色圆润立柱，**正面真的开了一个方舱口** ═════════
-   * 不能只把一块深色盒子塞进实心机身里——那是看不见的。机身必须切成
-   * 上段 + 下段 + 舱口两侧墙板 + 后壁，中间才是真正的空腔。
-   */
-  const hatchMid = (Y.hatchBottom + Y.hatchTop) / 2;
-  const faceZ = BODY.d / 2;
-
-  const lower = new THREE.Mesh(roundedSlab(BODY.w, BODY.d, Y.hatchBottom - Y.bodyBottom, BODY.r), M.shell);
-  lower.position.y = Y.bodyBottom;
-  group.add(lower);
-
-  const upper = new THREE.Mesh(roundedSlab(BODY.w, BODY.d, Y.bodyTop - Y.hatchTop, BODY.r), M.shell);
-  upper.position.y = Y.hatchTop;
-  group.add(upper);
-
-  // 舱口两侧的墙板：外侧两个角跟机身同半径，靠开口的两个角是直角
-  const sideW = (BODY.w - HATCH.w) / 2;
-  for (const s of [-1, 1]) {
-    const radii = s < 0
-      ? [BODY.r, 0, 0, BODY.r] // 左墙：外(= -x) 前后角圆
-      : [0, BODY.r, BODY.r, 0]; // 右墙：外(= +x) 前后角圆
-    const panel = new THREE.Mesh(extrudeSlab(rectShape(sideW, BODY.d, radii), HATCH.h), M.shell);
-    panel.position.set(s * (HATCH.w / 2 + sideW / 2), Y.hatchBottom, 0);
-    group.add(panel);
-  }
-
-  // 舱口后壁
-  const backPanel = new THREE.Mesh(extrudeSlab(rectShape(HATCH.w, 0.08, [0, 0, 0, 0]), HATCH.h, 2, 0), M.shell);
-  backPanel.position.set(0, Y.hatchBottom, -BODY.d / 2 + 0.04);
-  group.add(backPanel);
-
-  // 舱内衬（深色）：背 / 左右 / 上 / 下 五片，开门后能看见里面的黑腔
-  const cavBackZ = -BODY.d / 2 + HATCH.back;
-  const cavDepth = faceZ - cavBackZ;
-  const cavMidZ = (cavBackZ + faceZ) / 2;
-  group.add(box(HATCH.w, HATCH.h, 0.008, M.inner, 0, hatchMid, cavBackZ + 0.004));
-  for (const s of [-1, 1]) {
-    group.add(box(0.008, HATCH.h, cavDepth, M.inner, s * (HATCH.w / 2 - 0.004), hatchMid, cavMidZ));
-  }
-  group.add(box(HATCH.w, 0.008, cavDepth, M.inner, 0, Y.hatchBottom + 0.004, cavMidZ));
-  group.add(box(HATCH.w, 0.008, cavDepth, M.inner, 0, Y.hatchTop - 0.004, cavMidZ));
-
-  // 底座收边（比机身略宽一圈，像参考片里的底环）
-  const skirt = new THREE.Mesh(roundedSlab(BODY.w + 0.03, BODY.d + 0.03, 0.055, BODY.r + 0.012, 6, 0.008), M.shellDim);
-  skirt.position.y = Y.bodyBottom - 0.02;
-  group.add(skirt);
-
-  /* ── 开口四周的密封条 ──────────────────────────────────────────── */
-  group.add(box(HATCH.w + 0.03, 0.012, 0.024, M.trim, 0, Y.hatchTop + 0.006, faceZ - 0.008));
-  group.add(box(HATCH.w + 0.03, 0.012, 0.024, M.trim, 0, Y.hatchBottom - 0.006, faceZ - 0.008));
-  for (const s of [-1, 1]) {
-    group.add(box(0.012, HATCH.h + 0.02, 0.024, M.trim, s * (HATCH.w / 2 + 0.006), hatchMid, faceZ - 0.008));
-  }
-
-  /* ── 两扇对开舱门（铰链在左右两侧）────────────────────────────── */
-  const doors = [];
-  for (const s of [-1, 1]) {
-    const hinge = new THREE.Group();
-    hinge.position.set(s * (HATCH.w / 2), hatchMid, faceZ - 0.002);
-    group.add(hinge);
-
-    const leafZ = 0.008;
-    hinge.add(box(HATCH.leaf, HATCH.h, HATCH.t, M.glass, -s * HATCH.leaf / 2, 0, leafZ));
-    // 门上的白色边框，避免整块黑
-    const fw = 0.014;
-    hinge.add(box(fw, HATCH.h, HATCH.t + 0.004, M.shell, -s * fw / 2, 0, leafZ));
-    hinge.add(box(HATCH.leaf, fw, HATCH.t + 0.004, M.shell, -s * HATCH.leaf / 2, HATCH.h / 2 - fw / 2, leafZ));
-    hinge.add(box(HATCH.leaf, fw, HATCH.t + 0.004, M.shell, -s * HATCH.leaf / 2, -HATCH.h / 2 + fw / 2, leafZ));
-    // 门把手
-    const knob = cyl(0.006, 0.006, 0.03, M.trim, 10, 'y');
-    knob.position.set(-s * (HATCH.leaf - 0.026), 0, 0.02);
-    hinge.add(knob);
-
-    doors.push({ hinge, side: s });
-  }
-
-  /* ── 托盘：盘面 + 挡边 + 导轨 ═══════════════════════════════════ */
-  const shelf = new THREE.Group();
-  shelf.name = 'robot-shelf';
-  group.add(shelf);
-
-  shelf.add(box(0.27, 0.014, 0.20, M.tray, 0, 0, 0));
-  shelf.add(box(0.29, 0.016, 0.016, M.trim, 0, 0.011, -0.092));
-  for (const s of [-1, 1]) {
-    shelf.add(box(0.014, 0.016, 0.20, M.trim, s * 0.138, 0.011, 0));
-    shelf.add(box(0.018, 0.016, 0.28, M.alu, s * 0.09, -0.014, -0.03));
-  }
-
-  // 温水杯：杯壁 + 水体 + 杯垫
-  const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, roughness: 0.03, metalness: 0.0,
-    transparent: true, opacity: 0.16, depthWrite: false,
-    side: THREE.DoubleSide, envMapIntensity: 2.2,
-  });
-  const g = cyl(0.034, 0.029, 0.098, glassMat, 20);
-  g.position.set(-0.072, 0.056, 0.012);
-  shelf.add(g);
-  const waterMat = new THREE.MeshPhysicalMaterial({
-    color: 0x8ec6dd, roughness: 0.04, metalness: 0.0,
-    transparent: true, opacity: 0.86, envMapIntensity: 1.5,
-  });
-  const w = cyl(0.0305, 0.027, 0.066, waterMat, 20);
-  w.position.set(-0.072, 0.042, 0.012);
-  shelf.add(w);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.0335, 0.0026, 8, 22), glassMat);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.set(-0.072, 0.105, 0.012);
-  shelf.add(rim);
-  const coaster = cyl(0.046, 0.046, 0.006, M.trim, 18);
-  coaster.position.set(-0.072, 0.01, 0.012);
-  shelf.add(coaster);
-
-  // 药盒：盒体 + 掀开的盒盖 + 里面的药片
-  const pillMat = mat(0xf2f3f1, 0.5);
-  const pillBody = box(0.105, 0.034, 0.085, pillMat, 0.072, 0.024, 0.0);
-  shelf.add(pillBody);
-  shelf.add(box(0.09, 0.006, 0.07, mat(0xd8d3c8, 0.7), 0.072, 0.038, 0.0));
-  const lid = box(0.105, 0.008, 0.085, pillMat);
-  lid.geometry.translate(0, 0, -0.0425);
-  lid.position.set(0.072, 0.03, 0.043);
-  lid.rotation.x = -2.0; // 掀开
-  shelf.add(lid);
-  const pillMats = [mat(0xf7f4ea, 0.4), mat(0xe9d9a8, 0.45), mat(0xdce8ef, 0.4)];
-  for (let i = 0; i < 5; i += 1) {
-    const p = new THREE.Mesh(new THREE.SphereGeometry(0.0085, 10, 8), pillMats[i % 3]);
-    p.scale.y = 0.52;
-    p.position.set(0.045 + (i % 3) * 0.024, 0.044, -0.015 + Math.floor(i / 3) * 0.026);
-    shelf.add(p);
-  }
-
-  /* ── 右侧木纹饰板 + 中部灯带 ───────────────────────────────────── */
-  group.add(box(0.014, 0.3, 0.16, M.wood, BODY.w / 2 - 0.002, 0.86, 0.02));
-  group.add(box(0.012, 0.3, 0.02, M.trim, BODY.w / 2 - 0.008, 0.86, -0.062));
 
   const stripMat = new THREE.MeshStandardMaterial({
     color: TEAL, emissive: TEAL, emissiveIntensity: 1.0, roughness: 0.35,
   });
-  const strip = box(0.2, 0.013, 0.008, stripMat, 0, Y.hatchTop + 0.045, faceZ + 0.002);
-  group.add(strip);
+  const strip = box(0.055, 0.008, 0.008, stripMat, 0, BAND_Y + 0.002, bodyRadius(BAND_Y) + 0.004);
+  strip.userData.noShadow = true;
 
-  // 下沿的进气格栅 + 传感器窗
-  for (const y of [0.24, 0.29]) {
-    group.add(box(0.2, 0.012, 0.008, M.inner, 0, y, faceZ + 0.001));
-  }
-  group.add(box(0.07, 0.03, 0.01, M.glass, 0, 0.19, faceZ + 0.002));
-
-  /* ── 头部：颈部 + 摄像头 + 灯环 ═════════════════════════════════ */
-  const neck = cyl(0.03, 0.036, 0.12, M.trim, 16);
-  neck.position.y = (Y.bodyTop + Y.neck) / 2 - 0.01;
-  group.add(neck);
-
-  const head = new THREE.Mesh(roundedSlab(0.215, 0.165, 0.125, 0.056, 8, 0.01), M.shell);
-  head.position.y = Y.neck - 0.01;
-  group.add(head);
-
-  const headFace = Y.neck + 0.045;
-  group.add(box(0.115, 0.065, 0.02, M.inner, -0.024, headFace, 0.078));
-  const lens = cyl(0.023, 0.023, 0.02, M.glass, 18, 'z');
-  lens.position.set(-0.024, headFace, 0.088);
-  group.add(lens);
-  const lensRing = new THREE.Mesh(new THREE.TorusGeometry(0.030, 0.0055, 8, 22), stripMat);
-  lensRing.position.set(-0.024, headFace, 0.089);
-  group.add(lensRing);
-  for (const s of [-1, 1]) {
-    group.add(box(0.006, 0.045, 0.11, M.inner, s * 0.107, headFace, -0.005));
-  }
-
-  /* ── 橙色状态灯（提示时脉冲）────────────────────────────────────── */
   const beacon = new THREE.Mesh(
-    new THREE.SphereGeometry(0.016, 14, 12),
+    new THREE.SphereGeometry(0.0105, 14, 12),
     new THREE.MeshStandardMaterial({ color: ORANGE, emissive: ORANGE, emissiveIntensity: 0.8, roughness: 0.4 }),
   );
-  beacon.position.set(0.13, 0.53, faceZ + 0.004);
+  beacon.position.set(Math.sin(0.6) * bodyRadius(0.44) * 1.02, 0.44, Math.cos(0.6) * bodyRadius(0.44) * 1.02);
+  beacon.userData.noShadow = true;
   group.add(beacon);
 
-  return { group, ring, doors, shelf, beacon, strip, cargo: [g, w, coaster, pillBody, lid] };
+  /* ══ ⑧ 充电触点（车尾）：两道铜排，贴在机身背面曲面上 ══════════════ */
+  const contactZ = -(bodyRadius(0.15) + 0.002);
+  for (const s of [-1, 1]) box(0.018, 0.048, 0.008, M.hub, s * 0.042, 0.150, contactZ);
+
+  /* ══ ⑨ 位置感应光束（"跟到阿姨身边"时才亮）═════════════════════════
+   * 契约 §3.1.1：这是**位置输入的可视化**，不是摄像头 / 识别。
+   */
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: TEAL, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const beamGeo = new THREE.ConeGeometry(0.05, 1, 14, 1, true);
+  beamGeo.translate(0, -0.5, 0);
+  beamGeo.rotateX(-Math.PI / 2);
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.name = 'robot-sense-beam';
+  beam.position.set(0, HEAD.y + 0.06, 0.09);
+  beam.visible = false;
+  beam.userData.noShadow = true;
+  group.add(beam);
+
+  return {
+    group, ring, strip, beacon, beam, doorL, doorR, tray, screen, screenMat, drawScreen, wheels, scrLed,
+    cargo: [cup, cupBottom, water],
+  };
 }
 
 export function createRobot(sceneApi) {
-  const { group, ring, doors, shelf, beacon, strip, cargo } = buildRobot();
+  const {
+    group, ring, strip, beacon, beam, doorL, doorR, tray, screen, screenMat, drawScreen, wheels, scrLed, cargo,
+  } = buildRobot();
 
-  /** 仅视觉状态（不是业务状态）：位置积分、朝向、开舱进度 */
+  /** 仅视觉状态（不是业务状态）：位置积分、朝向、**开门 / 出盘两个进度**、感应强度、路径 */
   const view = {
-    open: 0, // 0 关 → 1 全开（门 + 托盘）
-    openTarget: 0,
+    door: 0, // 门开度 0..1（→ 0..90°）
+    tray: 0, // 托盘伸出量 0..1
     facing: 0,
     pulse: 0,
+    sensing: 0,
+    path: null,
+    pathTarget: { x: 0, z: 0 },
+    roll: 0, // 轮子滚过的弧度（纯视觉）
   };
 
-  /** 把 0→1 的开舱进度分配成「门先开、托盘后出」 */
+  /** 把两个进度摆到机构上（对开门绕外侧竖边摆开 + 托盘沿导轨前伸） */
   function layout() {
-    const p = view.open;
     const ease = (t) => 1 - ((1 - t) ** 3);
-    const doorK = ease(Math.min(1, p / 0.55));
-    const shelfK = ease(Math.max(0, Math.min(1, (p - 0.3) / 0.7)));
-
-    for (const { hinge, side } of doors) {
-      hinge.rotation.y = side * DOOR_ANGLE * doorK; // 往外开（往舱内转会穿过舱壁）
-    }
-    shelf.position.set(0, Y.shelf, 0.05 + SHELF_OUT * shelfK);
+    const swing = ease(view.door) * (Math.PI / 2); // 门开到 90°（PR #2 提交 6cc1321）
+    doorL.rotation.y = -swing;
+    doorR.rotation.y = swing;
+    tray.position.z = TRAY.z0 + TRAY.out * ease(view.tray);
+    for (const node of cargo) node.visible = view.tray > 0.02;
+    // 轮子滚动：驱动轮与万向轮一起转（万向轮实际是随动的，这里跟着滚，只为"看起来在走"）
+    for (const w of wheels) if (w.userData.spin) w.userData.spin.rotation.x = view.roll;
   }
+
+  /** 回桩朝向：由场景提供（不同户型桩位朝向不同），拿不到就退回 0 */
+  const dockFacing = typeof sceneApi.getDockFacing === 'function' ? sceneApi.getDockFacing() : 0;
 
   const dock = sceneApi.getDock();
   group.position.set(dock.x, 0, dock.z);
   layout();
-  sceneApi.addActor({ id: 'robot', kind: 'robot', object3D: group, radius: 0.3 });
+  sceneApi.addActor({ id: 'robot', kind: 'robot', object3D: group, radius: 0.24 });
 
+  /**
+   * 朝目标走一步。**走的是可通行折线，不是直线**（套房有墙）：
+   * 目标一变就重算路径（`sceneApi.findPath`），之后沿折线逐个节点走。
+   * @returns {boolean} 是否已到位
+   */
   function stepTowards(target, dt) {
     const dx = target.x - group.position.x;
     const dz = target.z - group.position.z;
     const distance = Math.hypot(dx, dz);
     if (distance < 0.012) return true;
-    const step = Math.min(distance, SPEED * Math.max(dt, 0));
-    group.position.x += (dx / distance) * step;
-    group.position.z += (dz / distance) * step;
-    view.facing = Math.atan2(dx, dz);
+
+    const moved = Math.hypot(target.x - view.pathTarget.x, target.z - view.pathTarget.z) > 0.12;
+    const needPath = !view.path || view.path.length === 0 || moved;
+    if (needPath && typeof sceneApi.findPath === 'function') {
+      const p = sceneApi.findPath({ x: group.position.x, z: group.position.z }, { x: target.x, z: target.z });
+      view.path = p && p.length > 1 ? p.slice(1) : null;
+      view.pathTarget = { x: target.x, z: target.z };
+    }
+
+    const node = (view.path && view.path[0]) || target;
+    let ndx = node.x - group.position.x;
+    let ndz = node.z - group.position.z;
+    let nd = Math.hypot(ndx, ndz);
+    if (view.path && nd < 0.05 && view.path.length > 1) {
+      view.path.shift();
+      const nn = view.path[0];
+      ndx = nn.x - group.position.x;
+      ndz = nn.z - group.position.z;
+      nd = Math.hypot(ndx, ndz) || 1;
+    }
+    if (nd < 1e-4) return true;
+
+    const step = Math.min(nd, SPEED * Math.max(dt, 0));
+    group.position.x += (ndx / nd) * step;
+    group.position.z += (ndz / nd) * step;
+    view.facing = Math.atan2(ndx, ndz);
+    view.roll += step / 0.032; // 驱动轮半径 0.032 m → 走多远滚多少弧度
     return false;
   }
 
   /**
    * state 的纯函数（除视觉插值外不持有任何业务状态）
-   * @param {object} state StateSnapshot
-   * @param {number} dt 秒
+   *
+   * 去哪，只由 state 决定（契约 §3.1）：
+   *   ① 有提示事件            → 开到人的跟前递药（**对开门开到 90° + 托盘推出**）
+   *   ② 没有提示但有落座点     → **感应到阿姨位置，开到她跟前待命**（光锥）
+   *   ③ 都没有                → 回充电座
+   * 机器人自己**不判断**"她该不该吃药"、"要不要跟过去"——那些都在 state 里。
+   *
+   * 递药动作的时序（PR #2 提交 af7def5 的规矩）：**出药时"先开门、后出盘"；
+   * 收药时"先收托盘、再关门"** —— 托盘没回到舱内之前，门不许合上。
+   * 这里只用两个 0..1 的视觉进度表示，业务判据仍然只有 `state.activeEventId` 一个。
    */
   function update(state, dt) {
     const carrying = Boolean(state.activeEventId);
     const location = state.presence.location;
-    const target = carrying ? sceneApi.getApproachPoint(location) : dock;
+    const seat = state.presence.seat || null;
+    const attending = Boolean(seat);
+    const nearby = carrying || attending;
+
+    const target = nearby ? sceneApi.getApproachPoint(location, seat) : dock;
 
     const arrived = stepTowards(target, dt);
 
-    // 到位后转身面对人（送货时），而不是继续朝着行进方向——否则永远是背影对着老人
-    if (arrived && carrying) {
-      const person = sceneApi.getWaypoint(location);
+    if (arrived && nearby) {
+      const person = seat || sceneApi.getWaypoint(location);
       if (person) {
         view.facing = Math.atan2(person.x - group.position.x, person.z - group.position.z);
       }
     } else if (arrived) {
-      // 回到充电桩：车尾朝向桩、正面朝房间（充电触点对着桩身）
-      view.facing = DOCK_FACING;
+      view.facing = dockFacing;
     }
 
-    // 平滑转向（视觉缓冲，避免瞬间转头）
     const delta = ((view.facing - group.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
     group.rotation.y += delta * Math.min(1, dt * 8);
 
-    // 开舱：只在「有提示事件且已到位」时打开，OPEN_TIME 秒走完全程
-    view.openTarget = carrying && arrived ? 1 : 0;
+    // 递药：只在「有提示事件且已到位」时动作；OPEN_TIME 秒走完一个进度
+    const wantDeliver = carrying && arrived;
     const step = Math.max(0, dt) / OPEN_TIME;
-    view.open += Math.max(-step, Math.min(step, view.openTarget - view.open));
+    if (wantDeliver) {
+      view.door += Math.min(step, 1 - view.door); // 先开门
+      view.tray += Math.min(step, 1 - view.tray); // 后出盘（同时进行，门先到位）
+    } else {
+      view.tray -= Math.min(step * 1.6, view.tray); // 先收托盘
+      if (view.tray <= 0.02) view.door -= Math.min(step * 1.2, view.door); // 托盘进舱才关门
+    }
     layout();
 
-    // 杯与药盒只在「有提示事件」时出现在托盘上；取走后（activeEventId 清空）消失
-    for (const node of cargo) node.visible = carrying;
+    // 感应光锥：只在"知道她的位置、过去待命"时亮（递药时不开，免得抢戏）
+    const sensingTarget = attending && !carrying ? 1 : 0;
+    const rate = Math.max(0, dt) / 0.45;
+    view.sensing += Math.max(-rate, Math.min(rate, sensingTarget - view.sensing));
+    if (view.sensing > 0.01) {
+      const person = seat || sceneApi.getWaypoint(location);
+      const dx = person ? person.x - group.position.x : 0;
+      const dz = person ? person.z - group.position.z : 0;
+      const dist = Math.hypot(dx, dz);
+      beam.visible = true;
+      beam.scale.set(1, 1, Math.max(0.35, dist));
+      beam.rotation.y = Math.atan2(dx, dz) - group.rotation.y;
+      beam.material.opacity = (0.028 + 0.03 * Math.abs(Math.sin(view.pulse * 2.6))) * view.sensing;
+    } else {
+      beam.visible = false;
+      beam.material.opacity = 0;
+    }
 
-    // 提示时的发光脉冲（灯效与通道切换同步，不只靠颜色：HUD 同步换大字）
+    /* 提示通道：腰线发光带 + 屏幕 + 肩灯（三条通道同一份 state）*/
     view.pulse += dt;
     const attempts = state.activeEventId
       ? state.events.find((event) => event.id === state.activeEventId)?.attempts.length ?? 0
       : 0;
-    const base = carrying ? 0.85 + 0.45 * Math.sin(view.pulse * (attempts > 1 ? 9 : 4)) : 0.35;
+    const docked = !nearby && arrived;
+    // 一天里的光（v1.11）：**夜里不刺眼** —— 待命时把屏幕关掉，只留一点微光；
+    // 有提示事件时屏幕转**暖光**（琥珀偏暖）并把亮度压到白天的六成左右。
+    const night = typeof sceneApi.getTimeOfDay === 'function' && sceneApi.getTimeOfDay() === 'night';
+    const dim = night ? 0.55 : 1; // 夜里所有发光通道统一压暗
+    let base;
+    if (carrying) base = (0.85 + 0.45 * Math.sin(view.pulse * (attempts > 1 ? 9 : 4))) * dim;
+    else if (docked) base = (0.55 + 0.45 * Math.abs(Math.sin(view.pulse * 1.8))) * dim;
+    else base = (0.7 + 0.25 * Math.sin(view.pulse * 3.2)) * dim;
+    const tone = docked ? DOCK_GREEN : TEAL;
     ring.traverse((node) => {
-      if (node.isMesh) node.material.emissiveIntensity = base;
+      if (!node.isMesh) return;
+      node.material.emissiveIntensity = base;
+      node.material.color.setHex(tone);
+      node.material.emissive.setHex(tone);
     });
-    strip.material.emissiveIntensity = carrying ? 0.9 + 0.4 * Math.sin(view.pulse * 3) : 0.55;
-    beacon.material.emissiveIntensity = carrying ? 0.9 : 0.25;
+    strip.material.emissiveIntensity = (carrying ? 0.9 + 0.4 * Math.sin(view.pulse * 3) : 0.55) * dim;
+    strip.material.color.setHex(tone);
+    strip.material.emissive.setHex(tone);
+    // 屏幕：待命青蓝、有提示转琥珀并呼吸；**只有眼睛与指示条，没有文字**
+    // 夜晚：待命 → 熄灭（screen.visible=false）；递药 → 暖光（WARM）且压暗
+    // v1.12：屏幕四态（借 robot-3d 的四套画面）——
+    //   logo 待命 / eyes 递药中 / green 已取走·记录中（托盘正在收）/ off 夜晚待命
+    let kind = 'logo';
+    let screenTone = tone;
+    if (carrying) {
+      kind = 'eyes';
+      screenTone = night ? WARM : ORANGE;
+    } else if (view.tray > 0.02) {
+      kind = 'green'; // 她刚确认取走、托盘正在收回 ——「已取走 · 已记录」，不是「已服下」
+      screenTone = DOCK_GREEN;
+    }
+    if (night && !carrying && view.tray <= 0.02) kind = 'off';
+    screen.visible = kind !== 'off';
+    if (screen.visible) {
+      drawScreen(kind, screenTone);
+      screenMat.opacity = night
+        ? (carrying ? 0.58 + 0.05 * Math.abs(Math.sin(view.pulse * 4)) : 0.9)
+        : (carrying ? 0.96 + 0.04 * Math.abs(Math.sin(view.pulse * 4)) : 0.92);
+    }
+    // 屏右上角小琥珀灯（借 robot-3d 的那颗）：有提示事件才亮
+    scrLed.material.emissiveIntensity = (carrying ? 1.4 : 0.35) * dim;
+    beacon.material.emissiveIntensity = (carrying ? 0.9 : 0.25) * dim;
   }
 
   return { group, update, id: 'robot' };

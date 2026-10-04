@@ -30,7 +30,7 @@ export const DEFAULT_POLICY = Object.freeze({
 function emptyState() {
   return {
     clock: { demo: null, real: null, acceleration: 60, running: false },
-    presence: { home: true, location: 'living_room' },
+    presence: { home: true, location: 'living_room', seat: null },
     offline: false,
     plans: [],
     events: [],

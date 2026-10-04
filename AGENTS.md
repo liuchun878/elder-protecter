@@ -39,7 +39,7 @@
 | 线 | 文件 |
 |---|---|
 | **R** | `prototype/index.html`、`prototype/css/**`、`prototype/js/robot.js`、`hud.js`、`audio.js` |
-| **S** | `prototype/js/scene3d.js`、`room.js`、`scene2d.js`、`clock.js`、`main.js`、`prototype/vendor/**`、`scripts/**`、`.github/**`、`CODEOWNERS`、`recordings/**`、`docs/演示机预检.md` |
+| **S** | `prototype/js/scene3d.js`、`room.js`、`scene2d.js`、`navgrid.js`、`suite-textures.js`、`clock.js`、`main.js`、`prototype/保卫老人.html`、`prototype/vendor/**`、`scripts/**`、`.github/**`、`CODEOWNERS`、`recordings/**`、`docs/演示机预检.md` |
 | **H** | `prototype/js/store.js`、`plan.js`、`presence.js`、`schedule.js`、`machine.js`、`log.js`、`escalate.js`、`family.js`、`person.js`、`契约-接口.md`、`plan/**`、`STATUS.md`、`docs/演示脚本.md`、`docs/简报卡.md` |
 | 公共 | `README.md`、`CHANGELOG.md`、`AGENTS.md` |
 
