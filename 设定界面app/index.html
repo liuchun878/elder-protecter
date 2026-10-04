@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>机器人基础设置 · RHINE-LINK｜子女端 · 送药机器人</title>
+<style>
+/* ============================================================
+   莱茵生命（Rhine Lab）风 · 子女端「机器人基础设置」
+   深色实验室底色 / 青色数据主色 / 琥珀警示 / 切角面板 / 等宽字 / 扫描线
+   结构：设置首页 · 药品计划 · 药品编辑 · 提醒中心 · 装药核对
+   数据口径取自《机器人行为设定》§四 添药设定（录入项 / 余量 / 有效期）
+   与 §三 隐私考虑（摄像头范围）、§五 应急预案（2 min / 10 min / 报废留痕）
+   ============================================================ */
+:root{
+  --bg:#04090e;
+  --bg2:#07131b;
+  --bg3:#0b1c26;
+  --panel:rgba(10,26,35,.82);
+  --line:rgba(110,205,225,.20);
+  --line2:rgba(110,205,225,.42);
+  --cyan:#63d8e6;
+  --cyan-dim:#2f7f8e;
+  --cyan-deep:#123039;
+  --amber:#f0a92e;
+  --amber-deep:#4a3410;
+  --red:#ff5a55;
+  --green:#35d6a4;
+  --purple:#a68cff;
+  --warn:#f5c542;
+  --txt:#dcf1f6;
+  --dim:#7e9aa6;
+  --dim2:#54707c;
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;
+  --sans:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);
+  background:
+    radial-gradient(1100px 700px at 15% -5%,rgba(60,180,205,.13),transparent 60%),
+    radial-gradient(900px 600px at 95% 105%,rgba(240,169,46,.09),transparent 60%),
+    var(--bg);
+  color:var(--txt);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:900;opacity:.05;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.9) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font-family:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:rgba(99,216,230,.28);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+.mono{font-family:var(--mono)}
+
+/* ---------- 页面骨架 ---------- */
+.page{display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:26px 22px 40px;flex-wrap:wrap}
+.side{width:390px;max-width:100%;padding-top:8px}
+.side-brand{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.side-brand .hex{
+  width:38px;height:38px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--cyan-deep),rgba(4,9,14,.2));
+  border:1px solid var(--line2);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+  color:var(--cyan);font-family:var(--mono);font-size:15px;font-weight:700
+}
+.side-brand h1{font-size:17px;margin:0;letter-spacing:.16em;font-weight:700}
+.side-brand p{margin:3px 0 0;font-family:var(--mono);font-size:10.5px;color:var(--dim2);letter-spacing:.09em}
+.side-card{
+  border:1px solid var(--line);background:var(--panel);padding:14px 15px;margin-bottom:12px;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  position:relative
+}
+.side-card h3{margin:0 0 10px;font-size:12px;letter-spacing:.14em;color:var(--cyan);font-family:var(--mono);font-weight:600}
+.side-card h3::before{content:"// ";color:var(--cyan-dim)}
+.side-card p{margin:0 0 9px;font-size:12.3px;line-height:1.75;color:#adc6d0}
+.side-card p:last-child{margin-bottom:0}
+.side-card b{color:var(--cyan);font-weight:600}
+.side-card .warnline{color:var(--amber)}
+.kv{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:11px;padding:4px 0;border-bottom:1px dashed rgba(110,205,225,.13);color:var(--dim)}
+.kv:last-child{border-bottom:none}
+.kv b{color:#cfe9ef;font-weight:500}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--dim)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:6px;vertical-align:middle}
+
+/* ---------- 手机外框 ---------- */
+.device-wrap{position:sticky;top:22px}
+.device{
+  position:relative;width:414px;height:872px;border-radius:44px;padding:11px;
+  background:linear-gradient(150deg,#204450,#0a1a22 35%,#16333d);
+  box-shadow:0 0 0 1px rgba(110,205,225,.22),0 40px 90px rgba(0,0,0,.75),0 0 90px rgba(60,180,205,.1);
+}
+.device::after{
+  content:"";position:absolute;left:50%;bottom:4px;transform:translateX(-50%);
+  width:110px;height:4px;border-radius:3px;background:rgba(110,205,225,.28)
+}
+.device-inner{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--bg2);display:flex;flex-direction:column}
+.device::before{
+  content:"";position:absolute;top:11px;left:50%;transform:translateX(-50%);width:104px;height:24px;border-radius:0 0 16px 16px;
+  background:#0a1a22;z-index:60;pointer-events:none
+}
+
+/* ---------- 顶部状态条 ---------- */
+.statusbar{
+  flex:none;display:flex;justify-content:space-between;align-items:center;
+  padding:11px 20px 6px;font-family:var(--mono);font-size:11px;color:#9fc2cc;letter-spacing:.08em
+}
+.statusbar .sb-r{display:flex;gap:8px;align-items:center}
+.sig{display:flex;gap:2px;align-items:flex-end;height:9px}
+.sig i{width:2.5px;background:#9fc2cc;display:block}
+.sig i:nth-child(1){height:3px}.sig i:nth-child(2){height:5px}.sig i:nth-child(3){height:7px}.sig i:nth-child(4){height:9px;background:var(--cyan)}
+.batt{display:flex;align-items:center;gap:4px}
+.batt .cell{width:20px;height:10px;border:1px solid #9fc2cc;border-radius:2px;padding:1.5px}
+.batt .cell i{display:block;height:100%;width:76%;background:var(--green)}
+
+/* ---------- 应用头 ---------- */
+.appbar{
+  flex:none;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:6px 18px 12px;border-bottom:1px solid var(--line);position:relative
+}
+.appbar::after{content:"";position:absolute;left:18px;bottom:-1px;width:52px;height:1px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.ab-l{display:flex;align-items:center;gap:10px;min-width:0}
+.ab-l .hex{
+  width:32px;height:32px;flex:none;display:grid;place-items:center;color:var(--cyan);
+  background:linear-gradient(140deg,var(--cyan-deep),rgba(4,9,14,.3));border:1px solid var(--line2);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);font-family:var(--mono);font-size:12px;font-weight:700
+}
+.ab-t{min-width:0}
+.ab-t b{display:block;font-size:14.5px;letter-spacing:.14em;font-weight:700;white-space:nowrap}
+.ab-t span{display:block;font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.1em;margin-top:2px;white-space:nowrap}
+.icon-btn{
+  position:relative;width:36px;height:36px;flex:none;display:grid;place-items:center;
+  border:1px solid var(--line);background:rgba(10,26,35,.6);color:var(--dim);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)
+}
+.icon-btn:hover{color:var(--cyan);border-color:var(--line2)}
+.icon-btn.on{color:var(--amber);border-color:rgba(240,169,46,.5)}
+.icon-btn[disabled]{opacity:.32;cursor:default}
+.dot-badge{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;
+  background:var(--red);color:#fff;font-family:var(--mono);font-size:9.5px;line-height:16px;text-align:center;font-weight:700;
+  box-shadow:0 0 10px rgba(255,90,85,.7)
+}
+.dot-badge.calm{background:var(--cyan);color:#04141a;box-shadow:0 0 10px rgba(99,216,230,.6)}
+
+/* ---------- 滚动区 ---------- */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px 20px;scroll-behavior:smooth}
+.scroll.pad-b{padding-bottom:12px}
+.panel{display:none}
+.panel.active{display:block;animation:fadein .26s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- 通用组件 ---------- */
+.sec-head{display:flex;align-items:center;gap:9px;margin:16px 0 9px}
+.sec-head:first-child{margin-top:0}
+.sec-head .bar{width:3px;height:13px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.sec-head b{font-size:11.5px;letter-spacing:.18em;color:var(--cyan);font-weight:600;font-family:var(--mono)}
+.sec-head span{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.08em}
+.card{
+  position:relative;border:1px solid var(--line);background:var(--panel);padding:13px;
+  clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px)
+}
+.card::after{
+  content:"";position:absolute;right:-1px;top:9px;width:1px;height:22px;background:var(--cyan);opacity:.55
+}
+.card + .card{margin-top:10px}
+.card.flat{padding:11px 12px}
+.hair{height:1px;background:repeating-linear-gradient(90deg,var(--line) 0 5px,transparent 5px 10px);margin:9px 0}
+.tone-ok::after{background:var(--green)}
+.tone-warn::after{background:var(--amber)}
+.tone-emg::after{background:var(--red)}
+.tone-info::after{background:var(--purple)}
+
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  padding:3px 7px;border:1px solid var(--line2);color:var(--txt);background:rgba(99,216,230,.08);white-space:nowrap
+}
+.chip.ok{color:var(--green);border-color:rgba(53,214,164,.45);background:rgba(53,214,164,.09)}
+.chip.warn{color:var(--amber);border-color:rgba(240,169,46,.5);background:rgba(240,169,46,.1)}
+.chip.emg{color:var(--red);border-color:rgba(255,90,85,.5);background:rgba(255,90,85,.1)}
+.chip.info{color:var(--purple);border-color:rgba(166,140,255,.45);background:rgba(166,140,255,.09)}
+.chip.dim{color:var(--dim);border-color:var(--line);background:rgba(255,255,255,.02)}
+.blip{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor;animation:bp 1.6s infinite}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.25}}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;padding:8px 12px;
+  border:1px solid var(--line2);color:var(--cyan);background:rgba(99,216,230,.07);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);
+  transition:.16s;white-space:nowrap
+}
+.btn:hover{background:rgba(99,216,230,.16)}
+.btn.solid{background:var(--cyan);color:#04141a;border-color:var(--cyan);font-weight:700}
+.btn.solid:hover{background:#8fe6f0}
+.btn.warn{color:var(--amber);border-color:rgba(240,169,46,.5);background:rgba(240,169,46,.09)}
+.btn.warn:hover{background:rgba(240,169,46,.18)}
+.btn.emg{color:#ffe6e5;border-color:rgba(255,90,85,.6);background:rgba(255,90,85,.16)}
+.btn.emg:hover{background:rgba(255,90,85,.28)}
+.btn.ghost{color:var(--dim);border-color:var(--line);background:rgba(255,255,255,.02)}
+.btn.ghost:hover{color:var(--txt);background:rgba(255,255,255,.05)}
+.btn.tiny{padding:5px 8px;font-size:9.5px}
+.btn[disabled]{opacity:.42;cursor:default}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.btn-row.tight{margin-top:9px}
+
+.note-box{
+  border:1px solid rgba(240,169,46,.32);background:rgba(240,169,46,.06);padding:10px 11px;
+  font-size:11.6px;line-height:1.7;color:#e2cda4
+}
+.note-box b{color:var(--amber)}
+.note-box.cyan{border-color:var(--line2);background:rgba(99,216,230,.05);color:#a9c8d2}
+.note-box.cyan b{color:var(--cyan)}
+.caption{margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--dim2);line-height:1.6;letter-spacing:.03em}
+.lead{margin:0;font-size:12.2px;line-height:1.7;color:#b6ced6}
+
+/* ---------- 表单 ---------- */
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+.field > label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim2);margin-bottom:5px}
+.input{
+  width:100%;background:rgba(4,12,17,.75);border:1px solid var(--line);color:var(--txt);
+  padding:9px 10px;font-size:12.5px;font-family:var(--mono);letter-spacing:.04em
+}
+.input:focus{outline:none;border-color:var(--line2);box-shadow:0 0 0 2px rgba(99,216,230,.1)}
+.input::placeholder{color:var(--dim2)}
+.input.plain{font-family:var(--sans);letter-spacing:.02em}
+.input.err{border-color:rgba(255,90,85,.7);box-shadow:0 0 0 2px rgba(255,90,85,.12)}
+select.input{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--dim2) 50%),linear-gradient(135deg,var(--dim2) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 17px,calc(100% - 10px) 17px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{
+  flex:1;min-width:58px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:8px 6px;
+  border:1px solid var(--line);color:var(--dim);background:rgba(6,18,24,.5);transition:.15s
+}
+.seg button.on{color:var(--cyan);border-color:var(--line2);background:rgba(99,216,230,.12)}
+.seg.mini button{font-size:9.5px;padding:6px 4px;min-width:46px}
+.field-2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.field-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.unit-row{display:flex;gap:6px;align-items:center}
+.unit-row .input{flex:1}
+.unit-sel{
+  flex:none;width:66px;background:rgba(4,12,17,.75);border:1px solid var(--line);color:var(--txt);
+  font-family:var(--mono);font-size:11px;padding:9px 6px;appearance:none;text-align:center
+}
+.unit-sel:focus{outline:none;border-color:var(--line2)}
+
+/* 用药时段行 */
+.dose-list{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.dose-row{
+  display:grid;grid-template-columns:26px 62px 1fr 30px;gap:6px;align-items:center;
+  border:1px solid var(--line);background:rgba(6,18,24,.5);padding:7px 7px 7px 6px
+}
+.dose-row .no{
+  font-family:var(--mono);font-size:10px;color:var(--cyan);text-align:center;letter-spacing:.04em
+}
+.dose-row .am-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;grid-column:1 / -1;margin-top:2px}
+.dose-row .input{padding:7px 8px;font-size:11.5px}
+.dose-row .unit-sel{width:100%;padding:7px 4px;font-size:10.5px}
+.dose-row .del{
+  width:28px;height:28px;display:grid;place-items:center;color:var(--dim2);
+  border:1px solid var(--line);font-family:var(--mono);font-size:13px;line-height:1
+}
+.dose-row .del:hover{color:var(--red);border-color:rgba(255,90,85,.55)}
+.dose-row .mnote{grid-column:1 / -1;font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.04em}
+
+/* ---------- 设置首页：条目行 ---------- */
+.nav-list{display:flex;flex-direction:column;gap:7px}
+.nav-item{
+  text-align:left;width:100%;display:flex;align-items:center;gap:10px;
+  border:1px solid var(--line);background:var(--panel);padding:10px 11px;position:relative;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  transition:.16s
+}
+.nav-item::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--cyan);opacity:.55}
+.nav-item:hover{border-color:var(--line2);transform:translateX(2px)}
+.nav-item .nk{
+  width:27px;height:27px;flex:none;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;color:var(--cyan);
+  border:1px solid var(--line2);background:linear-gradient(140deg,var(--cyan-deep),rgba(8,20,26,.4))
+}
+.nav-item .nt{flex:1;min-width:0}
+.nav-item .nt b{display:block;font-size:12.6px;font-weight:600;letter-spacing:.04em}
+.nav-item .nt span{display:block;font-family:var(--mono);font-size:9.4px;color:var(--dim2);margin-top:2px;letter-spacing:.03em;line-height:1.5}
+.nav-item .go{font-family:var(--mono);font-size:14px;color:var(--cyan-dim)}
+.nav-item.warn::before{background:var(--amber)}
+.nav-item.warn .nk{color:var(--amber);border-color:rgba(240,169,46,.5)}
+
+/* 统计小格 */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stat{border:1px solid var(--line);background:rgba(6,18,24,.6);padding:8px 9px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--cyan);opacity:.5}
+.stat span{display:block;font-size:9.6px;color:var(--dim2);letter-spacing:.1em;font-family:var(--mono)}
+.stat b{display:block;font-family:var(--mono);font-size:15px;margin-top:4px;font-weight:600}
+.stat b small{font-size:10px;color:var(--dim);margin-left:3px;font-weight:400}
+.stat.warn b{color:var(--amber)}.stat.warn::before{background:var(--amber)}
+.stat.ok b{color:var(--green)}.stat.ok::before{background:var(--green)}
+.stat.emg b{color:var(--red)}.stat.emg::before{background:var(--red)}
+
+/* ---------- 药品条目 ---------- */
+.med-item{
+  border:1px solid var(--line);background:var(--panel);padding:11px 12px;margin-top:9px;position:relative;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)
+}
+.med-item::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--green)}
+.med-item.low::before{background:var(--amber)}
+.med-item.out::before{background:var(--red)}
+.med-item.exp::before{background:var(--purple)}
+.med-item .mh{display:flex;align-items:center;gap:8px}
+.med-item .mh .nm{font-size:13.2px;font-weight:600;letter-spacing:.03em}
+.med-item .mh .st{margin-left:auto}
+.med-item .spec{margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--dim2);letter-spacing:.04em}
+.med-item .grid{display:grid;grid-template-columns:auto 1fr;gap:3px 11px;margin-top:9px;font-size:11.5px}
+.med-item .grid dt{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:.06em}
+.med-item .grid dd{margin:0;color:#c6dce3;line-height:1.55}
+.med-item .grid dd em{font-style:normal;color:var(--cyan)}
+.med-item .grid dd.wr{color:var(--amber)}
+.med-item .grid dd.er{color:var(--red)}
+.bar-mini{height:4px;background:rgba(110,205,225,.13);margin-top:9px;position:relative;overflow:hidden}
+.bar-mini i{display:block;height:100%;background:var(--cyan);box-shadow:0 0 8px rgba(99,216,230,.6)}
+.bar-mini.low i{background:var(--amber);box-shadow:0 0 8px rgba(240,169,46,.6)}
+.bar-mini.out i{background:var(--red);box-shadow:0 0 8px rgba(255,90,85,.6)}
+
+/* ---------- 提醒中心 ---------- */
+.alert{
+  border:1px solid var(--line);background:var(--panel);padding:11px 12px;margin-top:9px;position:relative;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)
+}
+.alert::before{content:"";position:absolute;left:0;top:0;width:2px;height:100%;background:var(--amber)}
+.alert.emg::before{background:var(--red)}
+.alert.info::before{background:var(--purple)}
+.alert.done{opacity:.55}
+.alert .ah{display:flex;align-items:center;gap:8px}
+.alert .ah .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim2)}
+.alert .ah .t{font-size:12.8px;font-weight:600}
+.alert .ah .st{margin-left:auto}
+.alert .calc{
+  margin-top:9px;font-family:var(--mono);font-size:10.5px;line-height:1.75;color:#bcd8e0;
+  border-left:2px solid var(--line2);padding:6px 0 6px 9px;background:rgba(6,18,24,.45)
+}
+.alert .calc i{font-style:normal;color:var(--cyan)}
+.alert .calc b{color:var(--amber)}
+.alert .foot{margin-top:8px;font-family:var(--mono);font-size:9.8px;color:var(--dim2);line-height:1.6}
+
+/* ---------- 推送预览（同子女端风格） ---------- */
+.push{
+  border:1px solid var(--line2);background:linear-gradient(160deg,rgba(9,24,32,.9),rgba(4,10,14,.9));
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px)
+}
+.push .push-h{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line);background:rgba(6,18,24,.5)}
+.push .push-h .app{font-size:11.5px;font-weight:600;letter-spacing:.08em}
+.push .push-h .tag{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--amber);letter-spacing:.1em}
+.push .push-b{padding:10px 11px}
+.push .push-b .ttl{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.08em}
+.push .push-b .msg{margin-top:6px;font-size:12.4px;line-height:1.7;color:#dbedf2}
+.push .push-b .msg i{font-style:normal;color:var(--cyan);font-family:var(--mono)}
+.push .push-b .reason{margin-top:8px;border-left:2px solid var(--amber);background:rgba(240,169,46,.07);padding:6px 9px;font-size:11.2px;line-height:1.6;color:#e3cfa2}
+.push .push-b .reason b{color:var(--amber)}
+.push .push-f{display:flex;align-items:center;gap:8px;padding:8px 11px;border-top:1px solid var(--line);background:rgba(6,18,24,.35)}
+
+/* ---------- 隐私开关 ---------- */
+.switch-line{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(110,205,225,.13)}
+.switch-line:last-child{border-bottom:none}
+.switch-line .txt{flex:1;min-width:0}
+.switch-line .txt b{display:block;font-size:12.4px;font-weight:500}
+.switch-line .txt span{display:block;font-size:10.6px;color:var(--dim2);margin-top:3px;line-height:1.6}
+.switch-line.dim .txt b{color:var(--dim)}
+.switch-line.dim .txt span{color:var(--dim2)}
+.toggle{width:40px;height:20px;flex:none;margin-top:2px;border:1px solid var(--line2);background:rgba(4,12,17,.7);position:relative;transition:.18s}
+.toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--dim2);transition:.18s}
+.toggle.on{background:rgba(99,216,230,.22);border-color:var(--cyan)}
+.toggle.on i{left:22px;background:var(--cyan);box-shadow:0 0 9px var(--cyan)}
+.toggle.lock{opacity:.4;cursor:not-allowed}
+
+/* ---------- 装药核对 ---------- */
+.grid-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.bay{
+  aspect-ratio:1 / 1.06;border:1px solid var(--line);background:rgba(6,18,24,.55);padding:8px 7px;position:relative;
+  display:flex;flex-direction:column;gap:3px;text-align:left
+}
+.bay::after{content:"";position:absolute;left:0;bottom:0;width:100%;height:2px;background:var(--dim2)}
+.bay.ok::after{background:var(--green)}
+.bay.hot{border-color:var(--line2);box-shadow:inset 0 0 20px rgba(99,216,230,.14)}
+.bay.hot::after{background:var(--cyan)}
+.bay.done::after{background:var(--green)}
+.bay .bn{font-family:var(--mono);font-size:9px;color:var(--dim2);letter-spacing:.08em}
+.bay .bname{font-size:11px;font-weight:600;line-height:1.35;overflow:hidden}
+.bay .bdose{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:auto;line-height:1.4}
+.bay .btag{font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:.06em}
+.bay.hot .btag{color:var(--cyan)}
+.bay.warn .btag{color:var(--amber)}
+.bay.warn::after{background:var(--amber)}
+.bay .bx{position:absolute;right:6px;top:6px;font-family:var(--mono);font-size:9px;color:var(--dim2)}
+.checker{
+  border:1px solid var(--line2);background:linear-gradient(160deg,rgba(9,24,32,.92),rgba(4,10,14,.92));
+  width:100%;max-width:340px;padding:0;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)
+}
+.checker .ch{padding:12px 13px;border-bottom:1px solid var(--line)}
+.checker .ch .k{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.12em}
+.checker .ch h3{margin:6px 0 0;font-size:18px;letter-spacing:.04em}
+.checker .ch .sp{font-family:var(--mono);font-size:10.5px;color:var(--cyan);margin-top:5px;letter-spacing:.06em}
+.checker .cb{padding:13px}
+.checker .cb .big{font-family:var(--mono);font-size:13px;color:#dbedf2;line-height:1.7}
+.acting{position:absolute;inset:0;z-index:40;display:grid;place-items:center;padding:20px;background:rgba(3,8,12,.86);backdrop-filter:blur(3px)}
+
+/* ---------- 日志 ---------- */
+.log{border-left:2px solid var(--cyan-dim);padding:0 0 11px 12px;position:relative}
+.log:last-child{padding-bottom:2px}
+.log::before{content:"";position:absolute;left:-4.5px;top:5px;width:7px;height:7px;transform:rotate(45deg);background:var(--bg2);border:1px solid var(--cyan)}
+.log.warn{border-color:var(--amber)}.log.warn::before{border-color:var(--amber);background:var(--amber)}
+.log.ok{border-color:var(--green)}.log.ok::before{border-color:var(--green);background:var(--green)}
+.log .lh{display:flex;align-items:center;gap:8px}
+.log .lh time{font-family:var(--mono);font-size:10.5px;color:var(--cyan);letter-spacing:.06em}
+.log .lh .k{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.1em}
+.log .lb{margin-top:4px;font-size:12.1px;line-height:1.6;color:#c2d8df}
+.log .lb i{font-style:normal;color:var(--cyan);font-family:var(--mono)}
+
+/* 摘要 dl（隐私设置页） */
+dl.grid{margin:0}
+dl.grid dt{font-family:var(--mono);font-size:10px;color:var(--dim2);letter-spacing:.06em}
+dl.grid dd{margin:0;color:#c6dce3;line-height:1.55;font-size:11.5px}
+
+/* ---------- 保存条 ---------- */
+.savebar{
+  flex:none;border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(6,16,22,.94),rgba(4,10,14,.99));
+  padding:10px 16px 12px;position:relative
+}
+.savebar::before{content:"";position:absolute;top:-1px;left:0;width:34%;height:1px;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transition:.25s}
+.savebar.dirty::before{width:100%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.savebar .sb-h{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.savebar .sb-h .st{font-family:var(--mono);font-size:9.5px;color:var(--dim2);letter-spacing:.08em}
+.savebar .sb-h .st b{color:var(--amber);font-weight:600}
+.savebar .acts{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+.savebar .acts .btn{padding:11px 8px;font-size:11px}
+
+/* ---------- toast / 横幅 ---------- */
+.banner-wrap{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1300;width:calc(100% - 32px);max-width:372px;
+  pointer-events:none;display:flex;flex-direction:column;gap:8px
+}
+.banner{
+  pointer-events:auto;border:1px solid var(--line2);background:linear-gradient(160deg,rgba(9,24,32,.97),rgba(4,10,14,.97));
+  box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 30px rgba(99,216,230,.12);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+  animation:bin .3s ease;transition:opacity .24s,transform .24s
+}
+@keyframes bin{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.banner.out{opacity:0;transform:translateY(-14px)}
+.banner.warn{border-color:rgba(240,169,46,.5)}
+.banner.emg{border-color:rgba(255,90,85,.55)}
+.banner .bt{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line)}
+.banner .bt .src{font-size:11.5px;font-weight:600;letter-spacing:.06em}
+.banner .bt .now{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--dim2)}
+.banner .bb{padding:10px 11px}
+.banner .bb b{font-size:13px;display:block}
+.banner .bb p{margin:5px 0 0;font-size:11.8px;line-height:1.65;color:#bcd4dc}
+.banner .bact{display:flex;gap:8px;padding:9px 11px;border-top:1px solid var(--line);background:rgba(6,18,24,.35)}
+.banner .bact .btn{flex:1}
+.toast{
+  position:fixed;left:50%;bottom:34px;transform:translate(-50%,14px);z-index:1400;
+  border:1px solid var(--line2);background:rgba(6,20,27,.97);color:var(--txt);
+  font-family:var(--mono);font-size:11px;letter-spacing:.05em;padding:10px 14px;max-width:86vw;
+  opacity:0;pointer-events:none;transition:.22s;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <!-- ================= 左：手机 ================= -->
+  <div class="device-wrap">
+  <div class="device">
+    <div class="device-inner">
+
+      <!-- 状态条 -->
+      <div class="statusbar">
+        <div class="mono" id="sbClock">--:--</div>
+        <div class="sb-r">
+          <div class="sig"><i></i><i></i><i></i><i></i></div>
+          <div class="mono">5G</div>
+          <div class="batt"><div class="cell"><i></i></div><div class="mono" id="sbBatt">76%</div></div>
+        </div>
+      </div>
+
+      <!-- 应用头 -->
+      <div class="appbar">
+        <div class="ab-l">
+          <div class="hex">设</div>
+          <div class="ab-t">
+            <b id="abTitle">机器人基础设置</b>
+            <span id="abSub">ROBOT CONFIG / 王阿姨 · suite-3d</span>
+          </div>
+        </div>
+        <button class="icon-btn" id="backBtn" title="返回上一级" disabled>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button class="icon-btn" id="alertBtn" title="提醒中心 / 余量与有效期">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15V10a6 6 0 10-12 0v5l-2 3h16z"/><path d="M10 21h4"/></svg>
+          <i class="dot-badge" id="alertCount">0</i>
+        </button>
+      </div>
+
+      <!-- 滚动内容 -->
+      <div class="scroll" id="scroll">
+
+        <!-- ================= 页面：设置首页 ================= -->
+        <section class="panel active" id="page-home">
+          <div class="card">
+            <div class="kv"><span>机器人</span><b>RHINE-AGV-P-1</b></div>
+            <div class="kv"><span>服务对象</span><b>王阿姨 · 72 岁 · suite-3d</b></div>
+            <div class="kv"><span>设置权限</span><b>子女端（主账号）</b></div>
+            <div class="kv"><span>同步状态</span><b id="syncState">本机已同步 · 2026-10-04 21:20</b></div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat"><span>药品方案</span><b id="statMeds">3<small>种</small></b></div>
+            <div class="stat" id="statAlertsBox"><span>待处理提醒</span><b id="statAlerts">0<small>条</small></b></div>
+            <div class="stat"><span>每日服药</span><b id="statDoses">4<small>次</small></b></div>
+            <div class="stat ok"><span>摄像头</span><b id="statCam">开</b></div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>基础设置 / 5 组</b><span>点条目进入</span></div>
+          <div class="nav-list">
+            <button class="nav-item" data-go="meds">
+              <span class="nk">药</span>
+              <span class="nt"><b>用药计划</b><span>名称 / 剂量 / 频次 / 有效期 / 与进餐关系</span></span>
+              <span class="go">›</span>
+            </button>
+            <button class="nav-item" data-go="alerts" id="navAlertItem">
+              <span class="nk">!</span>
+              <span class="nt"><b>余量与有效期提醒</b><span id="navAlertSub">不足 1 天提前 24h · 过期提醒更换</span></span>
+              <span class="go">›</span>
+            </button>
+            <button class="nav-item" data-go="load">
+              <span class="nk">核</span>
+              <span class="nt"><b>装药核对（逐格引导）</b><span id="navLoadSub">3 格 · 逐格核对防错</span></span>
+              <span class="go">›</span>
+            </button>
+            <button class="nav-item" data-go="privacy">
+              <span class="nk">隐</span>
+              <span class="nt"><b>隐私设置</b><span id="navPrivSub">摄像头：启用 · 每次用药都播报：开</span></span>
+              <span class="go">›</span>
+            </button>
+            <button class="nav-item" data-go="dialog">
+              <span class="nk">话</span>
+              <span class="nt"><b>提醒与对话参数</b><span id="navDlgSub">提醒间隔 2 min · 超时 10 min · 音量 60%/40%</span></span>
+              <span class="go">›</span>
+            </button>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>今日排程预览 / 7D</b><span>随用药计划自动生成</span></div>
+          <div class="card flat">
+            <div id="schedPreview"></div>
+            <div class="caption">修改用药计划后，机器人本地排程即时重算；断网时按本地排程照常执行。</div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>变更日志 / TODAY</b><span>本机留痕</span></div>
+          <div id="logList"></div>
+
+          <div class="note-box" style="margin-top:12px">
+            基础设置只下发<b>结构化排程与开关</b>，不含影像。摄像头画面<b>不上传云端</b>，仅本地用于
+            「药片消失 + 杯子放回」判定；私密区域内<b>锁定不使用摄像头</b>，该处不做取药验证，
+            仅记「已送达 / 未取走」。机器人不是医疗器械，不提供诊断、不建议加药或停药。
+          </div>
+        </section>
+
+        <!-- ================= 页面：药品计划 ================= -->
+        <section class="panel" id="page-meds">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>用药计划</b><span id="medCountLabel"></span></div>
+          <div id="medList"></div>
+
+          <div class="btn-row">
+            <button class="btn solid" id="addMedBtn">+ 新增药品</button>
+            <button class="btn ghost" id="quickBtn">粘贴医嘱快速录入</button>
+          </div>
+
+          <div class="card quick" id="quickBox" style="display:none;margin-top:12px">
+            <div class="field">
+              <label>医嘱原文 / 一行一条，解析为结构化字段</label>
+              <input class="input plain" id="quickInput" placeholder="例：碳酸钙D3片 1片 每天2次 早晚餐后 2027-01" />
+              <div class="caption">规则：药名 → 名称；「5mg×1片 / 1片」→ 剂量；「每天2次 / 每晚1次」→ 频次；「早晚餐后」→ 与进餐关系 + 时段；「2027-01」→ 有效期。</div>
+            </div>
+            <div class="btn-row tight">
+              <button class="btn solid" id="quickParseBtn">解析并新增</button>
+              <button class="btn ghost" id="quickCloseBtn">收起</button>
+            </div>
+            <div class="caption" id="quickHint">解析结果只作草稿，仍可进入编辑核对后再保存。</div>
+          </div>
+
+          <div class="note-box cyan" style="margin-top:12px">
+            录入项与《机器人行为设定》§四一致：<b>名称 / 剂量 / 频次 / 有效期 / 与进餐关系</b>。
+            机器人按「频次 × 时段」出药，<b>一次一格、只出该次所需</b>；装药由人预先置入药盒，App 引导逐格核对。
+          </div>
+        </section>
+
+        <!-- ================= 页面：药品编辑 ================= -->
+        <section class="panel" id="page-edit">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b id="editHead">编辑药品</b><span id="editKey"></span></div>
+
+          <div class="card">
+            <div class="field">
+              <label>1 · 药品名称</label>
+              <input class="input plain" id="fName" placeholder="如 苯磺酸氨氯地平片" />
+            </div>
+            <div class="field-2">
+              <div class="field" style="margin-bottom:0">
+                <label>2 · 规格 / 剂型</label>
+                <input class="input" id="fSpec" placeholder="5 mg" />
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label>单剂单位</label>
+                <select class="unit-sel" id="fUnit" style="width:100%">
+                  <option>片</option><option>粒</option><option>袋</option><option>支</option><option>滴</option><option>喷</option>
+                </select>
+              </div>
+            </div>
+            <div class="caption">规格与单位用于播报与记录，如「氨氯地平片 5 mg × 1 片」。</div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>剂量 / 频次</b><span>决定每日出药次数</span></div>
+          <div class="card">
+            <div class="field">
+              <label>3 · 单次剂量（每次几片）</label>
+              <input class="input" id="fPerDose" placeholder="1" />
+              <div class="caption" id="doseCalc">每日总量 = 单次剂量 × 频次</div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>4 · 频次</label>
+              <div class="seg">
+                <button data-freq="daily" data-n="1">每日 1 次</button>
+                <button data-freq="daily" data-n="2">每日 2 次</button>
+                <button data-freq="daily" data-n="3">每日 3 次</button>
+              </div>
+              <div class="seg" style="margin-top:6px">
+                <button data-freq="everyOtherDay" data-n="1">隔日 1 次</button>
+                <button data-freq="weekly" data-n="1">每周 1 次</button>
+                <button data-freq="prn" data-n="1">按需 / 遵医嘱</button>
+              </div>
+              <div class="caption" id="freqHint"></div>
+            </div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>服药时段 / 与进餐关系</b><span id="slotCount"></span></div>
+          <div class="card">
+            <div class="dose-list" id="doseList"></div>
+            <div class="btn-row tight">
+              <button class="btn" id="addSlotBtn">+ 增加一次时段</button>
+            </div>
+            <div class="caption">与进餐关系决定提醒语与药理时间窗：餐前 30 min / 餐中 / 餐后 30 min / 睡前 / 不限。机器人只按设定提醒，不做用药建议。</div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>有效期 / 药盒余量</b><span>余量与过期预警依据</span></div>
+          <div class="card">
+            <div class="field-2">
+              <div class="field" style="margin-bottom:0">
+                <label>5 · 有效期至（YYYY-MM / YYYY-MM-DD）</label>
+                <input class="input" id="fExp" placeholder="2027-04" />
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label>药盒余量（<span id="fLeftUnit">片</span>）</label>
+                <input class="input" id="fLeft" placeholder="14" />
+              </div>
+            </div>
+            <div class="field" style="margin-top:13px;margin-bottom:0">
+              <label>整盒装量（<span id="fCapUnit">片</span>）</label>
+              <input class="input" id="fCap" placeholder="14" />
+            </div>
+            <div class="field" style="margin-top:13px;margin-bottom:0">
+              <label>装药护士 / 家属备注（选填）</label>
+              <input class="input plain" id="fNote" placeholder="如：与降压药同服，装在第 1 格" />
+            </div>
+            <div class="hair"></div>
+            <div class="kv"><span>每日消耗</span><b id="calcDaily">—</b></div>
+            <div class="kv"><span>剩余可用</span><b id="calcDays">—</b></div>
+            <div class="kv"><span>余量提醒</span><b id="calcAlert">—</b></div>
+            <div class="kv"><span>有效期提醒</span><b id="calcExp">—</b></div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn solid" id="editSaveBtn">保存此药品</button>
+            <button class="btn ghost" id="editCancelBtn">取消</button>
+            <button class="btn emg" id="editDelBtn" style="margin-left:auto">删除</button>
+          </div>
+        </section>
+
+        <!-- ================= 页面：提醒中心 ================= -->
+        <section class="panel" id="page-alerts">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>待处理提醒</b><span id="alertCountLabel"></span></div>
+          <div id="alertList"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>规则说明 / 两条硬规则</b><span>取自行为设定 §四</span></div>
+          <div class="card">
+            <div class="kv"><span>余量预警</span><b>药量不足 1 天 → 提前 24 小时提醒</b></div>
+            <div class="kv"><span>有效期管理</span><b>过期药品 → 提醒更换</b></div>
+            <div class="kv"><span>计算式</span><b>剩余可用天数 = 余量 ÷（单次剂量 × 每日次数）</b></div>
+            <div class="kv"><span>推送时机</span><b>每日 08:00 巡检 + 余量跨过 1 天时即时推送</b></div>
+            <div class="hair"></div>
+            <div class="caption">提醒只说明「余量 / 有效期」这一事实，并给出补齐建议；是否加药、停药由家属与医生决定。</div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>推送预览</b><span>子女端实际收到</span></div>
+          <div id="alertPushPreview"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>已处理 / 留痕</b><span id="alertDoneLabel"></span></div>
+          <div id="alertDoneList"></div>
+        </section>
+
+        <!-- ================= 页面：装药核对 ================= -->
+        <section class="panel" id="page-load">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>药盒 / 3 格</b><span id="loadProgress"></span></div>
+          <div class="card">
+            <div class="grid-list" id="bayGrid"></div>
+            <div class="hair"></div>
+            <div class="kv"><span>装药方式</span><b>人为预先置入机体内药盒</b></div>
+            <div class="kv"><span>出药规则</span><b>一次一格，只出该次所需</b></div>
+            <div class="kv"><span>废弃药片仓</span><b id="wasteState">1 / 8（未满）</b></div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn solid" id="startCheckBtn">开始逐格核对</button>
+            <button class="btn warn" id="refillBtn">标记需补药</button>
+            <button class="btn ghost" id="wasteBtn">清理废弃仓</button>
+          </div>
+
+          <div class="note-box" style="margin-top:12px">
+            逐格核对是<b>防错</b>手段：核对通过前，机器人不会为该格出药。若某格余量为 0，
+            该次任务降级为<b>语音 + 屏幕提示</b>，并同步子女端，绝不「空盘送达」。
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>核对记录 / 最近</b><span>留痕</span></div>
+          <div id="loadLog"></div>
+        </section>
+
+        <!-- ================= 页面：隐私设置 ================= -->
+        <section class="panel" id="page-privacy">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>摄像头</b><span>默认开启</span></div>
+          <div class="card" id="privacyCam"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>播报 / 是否需要每一次用药都播报</b><span>默认开启</span></div>
+          <div class="card" id="privacyVoice"></div>
+
+          <div class="sec-head"><i class="bar"></i><b>数据与影像边界</b><span>不可关闭</span></div>
+          <div class="card">
+            <div class="switch-line dim">
+              <div class="txt"><b>摄像头画面不上传云端</b><span>画面仅在机体本地用于「药片消失 + 杯子放回」判定，用完即弃，不落云端、不落手机相册。</span></div>
+              <span class="toggle lock"><i></i></span>
+            </div>
+            <div class="switch-line dim">
+              <div class="txt"><b>私密区域内不启用摄像头</b><span>卫生间等私密区域不进入、不录像，只做门外语音提醒；该处不做取药验证，仅记「已送达 / 未取走」。</span></div>
+              <span class="toggle lock"><i></i></span>
+            </div>
+            <div class="switch-line dim">
+              <div class="txt"><b>只拍手部区域，不做全身拍摄</b><span>进入卧室仅在判定清醒后进入，视野限于手部与托盘区域。</span></div>
+              <span class="toggle lock"><i></i></span>
+            </div>
+          </div>
+
+          <div class="note-box" style="margin-top:12px">
+            关闭摄像头后，<b>「药片消失」判定不可用</b>：机器人只能记录「已送达」，无法确认是否服下，
+            且不进入私密区域的规则照常生效。这一取舍需要家属明确知晓。
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>当前生效值 / 摘要</b><span>下发前核对</span></div>
+          <div class="card"><dl class="grid" id="privacySummary" style="display:grid;grid-template-columns:auto 1fr;gap:3px 11px;margin:0;font-size:11.5px"></dl></div>
+        </section>
+
+        <!-- ================= 页面：提醒与对话参数 ================= -->
+        <section class="panel" id="page-dialog">
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>提醒节奏</b><span>与行为设定同步</span></div>
+          <div class="card">
+            <div class="field">
+              <label>1 · 提醒间隔（分钟）</label>
+              <input class="input" id="dInterval" value="2" />
+              <div class="caption">未取药前，每隔该时长语音提示一次；设定值 2 min。</div>
+            </div>
+            <div class="field">
+              <label>2 · 未取走超时（分钟）</label>
+              <input class="input" id="dTimeout" value="10" />
+              <div class="caption">超时后 ① 收回药片与水 ② 上报子女端；收回药片直接报废并留痕。</div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>3 · 分时段音量</label>
+              <div class="seg">
+                <button data-vol="day" data-v="70">白天 70%</button>
+                <button data-vol="day" data-v="60">白天 60%</button>
+                <button data-vol="night" data-v="40">夜间 40%</button>
+                <button data-vol="night" data-v="25">夜间 25%</button>
+              </div>
+              <div class="caption" id="volHint">当前：白天 60% · 夜间 40%（22:00–07:00 自动切换）</div>
+            </div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>进餐相关语速与话术</b><span>老人友好</span></div>
+          <div class="card">
+            <div class="switch-line">
+              <div class="txt"><b>只播报一次，不反复催促</b><span>私密区域（卫生间门口等）只提示一次，随后静音等待。</span></div>
+              <span class="toggle on" data-tg="once"><i></i></span>
+            </div>
+            <div class="switch-line">
+              <div class="txt"><b>播报时说明「药名 + 与进餐关系」</b><span>如「餐后半小时，降压药 1 片，温水 60%」。</span></div>
+              <span class="toggle on" data-tg="detail"><i></i></span>
+            </div>
+            <div class="switch-line">
+              <div class="txt"><b>方言 / 称呼</b><span>称呼「王阿姨」，语速 0.9×。</span></div>
+              <span class="chip ok">已设定</span>
+            </div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>睡眠分支 / 三级唤醒</b><span>可配置</span></div>
+          <div class="card">
+            <div class="field" style="margin-bottom:0">
+              <label>4 · 三级唤醒：门外提示次数与间隔</label>
+              <div class="seg">
+                <button data-wake="3">3 次 · 3 min</button>
+                <button class="on" data-wake="3">3 次 · 5 min</button>
+                <button data-wake="1">1 次 · 10 min</button>
+              </div>
+              <div class="caption" style="margin-top:6px">第一级门外提示 · 第二级床头灯 1 min 渐亮至 50% · 第三级进房床边唤醒并同步子女。</div>
+            </div>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>设备 / 通道</b><span>RHINE-LINK</span></div>
+          <div class="card">
+            <div class="switch-line"><div class="txt"><b>RHINE-AGV-P-1</b><span>居家送药机器人 · 客厅充电桩</span></div><span class="chip ok">在线</span></div>
+            <div class="switch-line"><div class="txt"><b>客厅音箱</b><span>降级播报通道（设备故障时使用）</span></div><span class="chip">可用</span></div>
+            <div class="switch-line"><div class="txt"><b>床垫压力传感垫</b><span>卧室 · 睡眠分支判据</span></div><span class="chip ok">在线</span></div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 保存条 -->
+      <div class="savebar" id="saveBar">
+        <div class="sb-h">
+          <span class="st" id="saveState">本机设置与机器人已一致</span>
+          <span class="st" id="saveTime" style="margin-left:auto">21:20</span>
+        </div>
+        <div class="acts">
+          <button class="btn ghost" id="revertBtn">放弃修改</button>
+          <button class="btn solid" id="saveBtn">下发到机器人</button>
+        </div>
+      </div>
+
+      <!-- 装药核对浮层 -->
+      <div class="acting" id="checker" style="display:none">
+        <div class="checker">
+          <div class="ch">
+            <div class="k" id="chKey">LOAD CHECK / 0 of 3</div>
+            <h3 id="chTitle">—</h3>
+            <div class="sp" id="chSpec">—</div>
+          </div>
+          <div class="cb">
+            <div class="big" id="chBody">—</div>
+            <div class="btn-row">
+              <button class="btn solid" id="chOk">核对正确</button>
+              <button class="btn warn" id="chFix">重新核对</button>
+              <button class="btn ghost" id="chExit">退出</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  <!-- ================= 右：说明 ================= -->
+  <aside class="side">
+    <div class="side-brand">
+      <div class="hex">RL</div>
+      <div>
+        <h1>RHINE-LINK · 机器人基础设置</h1>
+        <p>ROBOT CONFIG / v1.0 / 演示用</p>
+      </div>
+    </div>
+
+    <div class="side-card">
+      <h3>这个界面是什么</h3>
+      <p>子女端给<b>送药机器人做基础设置</b>的界面：把用药方案（名称 / 剂量 / 频次 / 有效期 / 与进餐关系）
+      与隐私开关下发到机器人，机器人据此生成<b>本地排程</b>并出药。</p>
+      <p>它不接管「找到人 → 送到手边 → 确认吃下」，只负责<b>让它知道该送什么、什么时候送、能看什么</b>。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>设置分组</h3>
+      <div class="kv"><span>用药计划</span><b>3 种 · 每日 4 次</b></div>
+      <div class="kv"><span>提醒规则</span><b>余量 &lt; 1 天提前 24h</b></div>
+      <div class="kv"><span>装药核对</span><b>逐格引导防错</b></div>
+      <div class="kv"><span>隐私设置</span><b>摄像头 / 播报开关</b></div>
+      <div class="kv"><span>对话参数</span><b>2 min / 10 min / 音量</b></div>
+    </div>
+
+    <div class="side-card">
+      <h3>两条硬规则（可演示）</h3>
+      <p>① <b>余量提醒</b>：剩余可用天数 = 余量 ÷（单次剂量 × 每日次数）。≤ 1.0 天即触发，
+      推送写明「提前 24 小时」与计算式 —— 演示数据里<b>碳酸钙 D3（2 片 ÷ 2 片/日 = 1.0 天）</b>已经越线，
+      阿托伐他汀为 9.0 天（用于对照）。</p>
+      <p>② <b>过期提醒</b>：有效期早于当前年月 → 提醒更换。演示数据里「阿托伐他汀钙片」
+      按设定为<b>已过期（2026-08）</b>，进入提醒中心后可直接「标记已更换」；若把有效期改到未来
+      2 个月内（如 2026-12），则该条降级为<b>有效期临近</b>的提示级提醒。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>怎么玩</h3>
+      <p>① <b>用药计划</b> → 点任一药品进入编辑：改剂量 / 频次会自动重算时段行与「剩余可用天数」，
+      点「保存此药品」后首页排程与提醒随之更新。</p>
+      <p>② <b>余量与有效期提醒</b> → 看计算式，点「标记已补药」会生成一条「提前 24h 推送」预览。</p>
+      <p>③ <b>隐私设置</b> → 关掉「启用摄像头」，会同时说明代价（无法确认是否服下）；
+      「是否需要每一次用药都播报」可单独关闭。</p>
+      <p>④ 底部<b>下发到机器人</b>：有改动时高亮为琥珀色，下发后写入变更日志。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>与既有设定的对齐</h3>
+      <p>录入项与《机器人行为设定》<b>§四 添药设定</b>一致；隐私边界取自<b>§三 隐私考虑</b>
+      （私域不进入、不录像，画面不上云）；提醒间隔 <b>2 min</b>、未取走超时 <b>10 min</b>、
+      收回药片<b>直接报废</b>、废弃仓容量检测取自<b>§五 应急预案</b>。</p>
+      <p class="warnline">演示数据声明：王阿姨为虚构人物；数值均为脱敏演示值，不含影像。</p>
+    </div>
+
+    <div class="side-card">
+      <h3>图例</h3>
+      <div class="legend">
+        <span><i style="background:var(--green)"></i>正常 / 充足</span>
+        <span><i style="background:var(--amber)"></i>余量不足 1 天</span>
+        <span><i style="background:var(--red)"></i>已过期 / 需更换</span>
+        <span><i style="background:var(--purple)"></i>有效期临近</span>
+        <span><i style="background:var(--dim2)"></i>已关闭 / 未启用</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<div class="banner-wrap" id="bannerWrap"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+  /* ============================================================
+     一、数据模型
+     录入项对齐《机器人行为设定》§四：名称 / 剂量 / 频次 / 有效期 / 与进餐关系
+     频次另拆为每日次数 + 具体时段，机器人按「时段 × 单次剂量」出药
+     ============================================================ */
+  var TODAY = "2026-10-04";          // 演示「当前日期」
+  var TODAY_YM = "2026-10";          // 演示「当前年月」，用于有效期比较
+  var SLOT_DEFAULT = ["08:00","12:30","18:30"];
+  var MEAL_LABEL = {
+    "餐前":"餐前 30 min", "餐中":"餐中（随餐）", "餐后":"餐后 30 min",
+    "睡前":"睡前 30 min", "空腹":"晨起空腹", "不限":"不限 / 遵医嘱"
+  };
+
+  function defState(){
+    return {
+      meds:[
+        { id:"m1", name:"苯磺酸氨氯地平片", spec:"5 mg", unit:"片", perDose:1,
+          freq:"daily", perDay:1,
+          slots:[{t:"08:00", meal:"餐后"}],
+          left:11, cap:14, exp:"2027-04", note:"晨起血压偏高，早餐后即刻服用" },
+
+        { id:"m2", name:"阿托伐他汀钙片", spec:"20 mg", unit:"片", perDose:1,
+          freq:"daily", perDay:1,
+          slots:[{t:"18:30", meal:"餐后"}],
+          left:9, cap:14, exp:"2026-08", note:"已过期：需更换新批号后再装药" },
+
+        { id:"m3", name:"碳酸钙 D3 片", spec:"1 片", unit:"片", perDose:1,
+          freq:"daily", perDay:2,
+          slots:[{t:"08:00", meal:"餐后"},{t:"18:30", meal:"餐中"}],
+          left:2, cap:14, exp:"2027-01", note:"余量不足 1 天：需在 24 小时内补齐" }
+      ],
+      privacy:{
+        camera:true,
+        announceEveryDose:true,
+        announceDetail:true,
+        announceInPrivate:true,
+        localOnly:true,
+        privateCameraLocked:true
+      },
+      dialog:{ interval:2, timeout:10, volDay:60, volNight:40, wake:"3次·5min", once:true },
+      load:{ checked:{}, needsRefill:{}, waste:1, wasteCap:8 },
+      log:[
+        { time:"21:20", k:"SYNC", tone:"ok", text:"机器人设置已与本机同步（3 种药品 · 每日 4 次）" },
+        { time:"18:30", k:"LOAD-CHECK", tone:"ok", text:"装药核对完成：3 格逐格核对通过" },
+        { time:"08:00", k:"STOCK-ALERT", tone:"warn", text:"余量巡检：碳酸钙 D3 片、阿托伐他汀钙片 剩余可用不足 1 天，已提前 24 小时提醒" },
+        { time:"08:00", k:"EXPIRY", tone:"warn", text:"有效期巡检：阿托伐他汀钙片（2026-08）已过期，提醒更换" }
+      ],
+      alertsDone:[]
+    };
+  }
+
+  var DATA = defState();
+  var STATE = { page:"home", editId:null, dirty:false, quickOpen:false, checkIdx:-1, lastSavedAt:"21:20" };
+
+  /* ============================================================
+     二、计算规则（余量 / 有效期）
+     ============================================================ */
+  function dailyUnits(m){                        // 每日消耗（片/粒）
+    if(m.freq==="prn") return 0;
+    var base = (Number(m.perDose)||0) * (Number(m.perDay)||0);
+    if(m.freq==="everyOtherDay") base = base/2;
+    if(m.freq==="weekly") base = base/7;
+    return base;
+  }
+  function freqText(m){
+    if(m.freq==="prn") return "按需 / 遵医嘱";
+    if(m.freq==="everyOtherDay") return "隔日 "+(m.perDay>1?m.perDay+" 次":"1 次");
+    if(m.freq==="weekly") return "每周 "+(m.perDay>1?m.perDay+" 次":"1 次");
+    return "每日 "+m.perDay+" 次";
+  }
+  function daysLeft(m){
+    var du = dailyUnits(m);
+    if(du<=0) return null;
+    return (Number(m.left)||0)/du;
+  }
+  function daysText(m){
+    var d = daysLeft(m);
+    if(d===null) return "按需用药 · 不估算天数";
+    return d.toFixed(1)+" 天";
+  }
+  function stockState(m){
+    var d = daysLeft(m);
+    if(isExpired(m)) return { cls:"exp", tone:"emg", label:"已过期 · 待更换", key:"expired" };
+    if(d!==null && d<=0)   return { cls:"out", tone:"emg",  label:"余量为 0", key:"out" };
+    if(d!==null && d<=1.0) return { cls:"low", tone:"warn", label:"余量不足 1 天", key:"low" };
+    if(expSoon(m))         return { cls:"",    tone:"info", label:"有效期临近", key:"soon" };
+    return { cls:"", tone:"ok", label:"正常", key:"ok" };
+  }
+  function isExpired(m){
+    if(!m.exp) return false;
+    return String(m.exp).slice(0,7) < TODAY_YM;
+  }
+  function expSoon(m){                            // 有效期在 60 天内
+    if(!m.exp || isExpired(m)) return false;
+    var y = parseInt(String(m.exp).slice(0,4),10), mo = parseInt(String(m.exp).slice(5,7),10);
+    if(!y||!mo) return false;
+    var months = (y-2026)*12 + (mo-10);
+    return months<=2;
+  }
+  function slotText(m){
+    if(!m.slots.length) return "未设时段";
+    return m.slots.map(function(s){ return s.t+" "+s.meal; }).join(" · ");
+  }
+  function mealHelp(m){
+    var set = {};
+    m.slots.forEach(function(s){ set[s.meal]=1; });
+    return Object.keys(set).join(" / ") || "—";
+  }
+  function dailySummary(m){
+    var du = dailyUnits(m);
+    if(du<=0) return "按需";
+    return (Math.round(du*10)/10)+" "+m.unit+"/日";
+  }
+  function totalPerDay(){
+    var n = 0;
+    DATA.meds.forEach(function(m){ n += (m.freq==="prn"?0:(Number(m.perDay)||0)); });
+    return n;
+  }
+  function boxesCount(){                       // 药盒格数 = 全部时段数
+    var n = 0;
+    DATA.meds.forEach(function(m){ n += m.slots.length; });
+    return n;
+  }
+
+  /* ============================================================
+     三、提醒中心
+     ============================================================ */
+  function buildAlerts(){
+    var out = [];
+    DATA.meds.forEach(function(m){
+      var d = daysLeft(m);
+      if(d!==null && d<=1.0 && !isExpired(m)){
+        var du = dailyUnits(m);
+        out.push({
+          id:"stock-"+m.id, kind:"STOCK", medId:m.id, tone:d<=0?"emg":"warn", ord:1,
+          title:m.name+" 余量不足 1 天", chip:d<=0?"余量为 0":"提前 24 小时",
+          calc:"余量 <i>"+(Number(m.left)||0)+" "+esc(m.unit)+"</i> ÷（<i>"+(Number(m.perDose)||0)+
+               " "+esc(m.unit)+" × 每日 <i>"+(m.perDay||0)+"</i> 次）= 剩余可用 <b>"+d.toFixed(1)+" 天</b>"+
+               "　（每日消耗 "+du+" "+esc(m.unit)+"）",
+          foot:"触发规则：药量不足 1 天 → 提前 24 小时提醒。建议在下一次装药前补齐。",
+          push:{ title:"用药提醒：药品余量不足", msg:m.name+" 剩余约 <i>"+d.toFixed(1)+" 天</i>（余 "+(Number(m.left)||0)+" "+m.unit+"），请在 24 小时内补齐。",
+                 reason:"余量不足 1 天 · 提前 24 小时提醒" },
+          acts:[["refill","标记已补药"],["edit","调整用量"]]
+        });
+      }
+      if(isExpired(m)){
+        out.push({
+          id:"exp-"+m.id, kind:"EXPIRY", medId:m.id, tone:"emg", ord:2,
+          title:m.name+" 已过期", chip:"提醒更换",
+          calc:"有效期至 <i>"+esc(m.exp)+"</i>，当前 <i>"+TODAY_YM+"</i> → <b>已过期</b>",
+          foot:"触发规则：过期药品提醒更换。过期药品不得装入药盒；如已装入，请立即取出并交由家属处理。",
+          push:{ title:"用药提醒：药品已过期", msg:m.name+" 有效期至 <i>"+m.exp+"</i>，已过期，请尽快更换新批号。",
+                 reason:"过期药品提醒更换" },
+          acts:[["replaced","标记已更换"],["edit","修改有效期"]]
+        });
+      } else if(expSoon(m)){
+        out.push({
+          id:"soon-"+m.id, kind:"EXPIRY", medId:m.id, tone:"info", ord:3,
+          title:m.name+" 有效期临近", chip:"60 天内",
+          calc:"有效期至 <i>"+esc(m.exp)+"</i>，距 " + TODAY_YM + " 不足 2 个月 → <b>建议提前备药</b>",
+          foot:"该条为提示级，不阻断出药；过期后自动升级为「提醒更换」。",
+          acts:[["replaced","标记已更换"],["edit","修改有效期"]]
+        });
+      }
+    });
+    out.sort(function(a,b){ return a.ord-b.ord; });
+    return out;
+  }
+
+  function renderAlerts(){
+    var list = buildAlerts();
+    var pend = list.length;
+    $("#alertCount").textContent = pend;
+    $("#alertCount").className = "dot-badge" + (pend?"":" calm");
+    $("#alertBtn").classList.toggle("on", pend>0);
+    $("#statAlerts").innerHTML = pend + "<small>条</small>";
+    $("#statAlertsBox").className = "stat " + (pend?"emg":"ok");
+    $("#navAlertItem").classList.toggle("warn", pend>0);
+    $("#navAlertSub").textContent = pend
+      ? pend + " 条待处理 · 余量不足 1 天提前 24h / 过期提醒更换"
+      : "不足 1 天 → 提前 24 小时提醒 · 过期 → 提醒更换";
+    $("#alertCountLabel").textContent = pend ? pend+" 条" : "全部已处理";
+
+    $("#alertList").innerHTML = pend ? list.map(function(a){
+      return '<div class="alert '+(a.tone==="info"?"info":a.tone==="emg"?"emg":"")+'">'+
+        '<div class="ah"><span class="k">'+esc(a.kind)+'</span><span class="t">'+esc(a.title)+'</span>'+
+          '<span class="st"><span class="chip '+(a.tone==="info"?"info":a.tone==="emg"?"emg":"warn")+'">'+esc(a.chip)+'</span></span></div>'+
+        '<div class="calc">'+a.calc+'</div>'+
+        '<div class="foot">'+esc(a.foot)+'</div>'+
+        (a.push? '<div style="margin-top:10px">'+
+          '<div class="push"><div class="push-h"><span class="app">子女端提示</span><span class="tag">'+(a.kind==="STOCK"?"余量预警":"有效期提醒")+'</span></div>'+
+          '<div class="push-b"><div class="ttl">微信服务通知 / 订阅消息</div>'+
+          '<div class="msg"><b>'+esc(a.push.title)+'</b>　'+a.push.msg+'</div>'+
+          '<div class="reason"><b>原因：</b>'+esc(a.push.reason)+'</div></div></div></div>' : "")+
+        '<div class="btn-row tight">'+ a.acts.map(function(x){
+            return '<button class="btn '+(x[0]==="refill"||x[0]==="replaced"?"solid":"")+'" data-alert-act="'+x[0]+'" data-med="'+a.medId+'">'+esc(x[1])+'</button>';
+          }).join("") +'</div>'+
+      '</div>';
+    }).join("") : '<div class="card"><p class="lead">当前没有待处理提醒：全部药品余量充足、有效期正常。</p></div>';
+
+    // 已处理
+    $("#alertDoneList").innerHTML = DATA.alertsDone.length ? DATA.alertsDone.map(function(a){
+      return '<div class="log ok"><div class="lh"><time>'+esc(a.time)+'</time><span class="k">'+esc(a.kind)+'</span></div>'+
+        '<div class="lb">'+esc(a.text)+'</div></div>';
+    }).join("") : '<div class="caption">暂无已处理记录。</div>';
+
+    var first = list[0];
+    $("#alertPushPreview").innerHTML = (first && first.push)
+      ? '<div class="push"><div class="push-h"><span class="app">子女端提示</span><span class="tag">'+(first.kind==="STOCK"?"余量预警":"有效期提醒")+'</span></div>'+
+        '<div class="push-b"><div class="ttl">微信服务通知 / 订阅消息</div>'+
+        '<div class="msg"><b>'+esc(first.push.title)+'</b>　'+(first.push.msg||"")+'</div>'+
+        '<div class="reason"><b>原因：</b>'+esc(first.push.reason)+'</div></div>'+
+        '<div class="push-f"><span class="mono" style="font-size:9.5px;color:var(--dim2)">只推状态 · 不推画面</span>'+
+        '<button class="btn" style="margin-left:auto" data-banner-act="'+first.id+'">复现此推送</button></div></div>'
+      : '<div class="caption">无待处理提醒时，不推送余量 / 有效期消息。</div>';
+  }
+
+  /* ============================================================
+     四、渲染：首页
+     ============================================================ */
+  function renderHome(){
+    $("#statMeds").innerHTML = DATA.meds.length + "<small>种</small>";
+    $("#statDoses").innerHTML = totalPerDay() + "<small>次</small>";
+    $("#statCam").textContent = DATA.privacy.camera ? "开" : "关";
+    $("#statCam").style.color = DATA.privacy.camera ? "var(--green)" : "var(--amber)";
+
+    var done = 0;
+    DATA.meds.forEach(function(m){
+      m.slots.forEach(function(s,i){ if(DATA.load.checked[m.id+"-"+i]) done++; });
+    });
+    $("#navLoadSub").textContent = done + " / " + boxesCount() + " 格已核对 · 废弃仓 " +
+      DATA.load.waste + "/" + DATA.load.wasteCap;
+    $("#navPrivSub").textContent = "摄像头：" + (DATA.privacy.camera?"启用":"已关闭") +
+      " · 每次用药都播报：" + (DATA.privacy.announceEveryDose?"开":"关");
+    $("#navDlgSub").textContent = "提醒间隔 " + DATA.dialog.interval + " min · 超时 " +
+      DATA.dialog.timeout + " min · 音量 " + DATA.dialog.volDay + "%/" + DATA.dialog.volNight + "%";
+
+    renderSchedPreview();
+    renderLog();
+  }
+
+  function renderSchedPreview(){
+    var items = [];
+    DATA.meds.forEach(function(m){
+      if(m.freq==="prn") return;
+      m.slots.forEach(function(s){
+        items.push({ t:s.t, meal:s.meal, med:m.name, dose:m.perDose+" "+m.unit, freq:m.freq });
+      });
+    });
+    items.sort(function(a,b){ return a.t<b.t ? -1 : 1; });
+    if(!items.length){ $("#schedPreview").innerHTML = '<p class="lead">尚未设定定时时段（当前药品均为「按需 / 遵医嘱」）。</p>'; return; }
+    var today = items.filter(function(i){ return i.freq==="daily"; });
+    $("#schedPreview").innerHTML =
+      '<div class="tl">' + (today.length? today: items).map(function(i,ix){
+        return '<div class="slot'+(ix===0?" now":"")+'"><em>'+esc(i.t)+'</em><b>'+esc(i.dose)+'</b><i>'+esc(i.med)+'</i></div>';
+      }).join("") + '</div>'+
+      '<div class="hair"></div>'+
+      (items.map(function(i){
+        return '<div class="kv"><span>'+esc(i.t)+'　'+esc(i.meal)+'</span><b>'+esc(i.med)+'　'+esc(i.dose)+'</b></div>';
+      }).join(""));
+  }
+
+  function renderLog(){
+    $("#logList").innerHTML = DATA.log.map(function(l){
+      return '<div class="log '+(l.tone||"")+'"><div class="lh"><time>'+esc(l.time)+'</time>'+
+        '<span class="k">'+esc(l.k)+'</span></div><div class="lb">'+esc(l.text)+'</div></div>';
+    }).join("");
+  }
+
+  /* ============================================================
+     五、渲染：药品计划
+     ============================================================ */
+  function renderMeds(){
+    $("#medCountLabel").textContent = DATA.meds.length + " 种 · 每日 " + totalPerDay() + " 次";
+    $("#medList").innerHTML = DATA.meds.map(function(m){
+      var st = stockState(m), d = daysLeft(m);
+      var ratio = m.cap ? Math.max(0, Math.min(1, (Number(m.left)||0)/(Number(m.cap)||1))) : 0;
+      var barCls = st.cls==="low"?"low":st.cls==="out"?"out":"";
+      return '<button class="med-item '+(st.cls||"")+'" data-med-open="'+m.id+'" style="width:100%;text-align:left">'+
+        '<div class="mh"><span class="nm">'+esc(m.name)+'</span>'+
+          '<span class="st"><span class="chip '+st.tone+'">'+esc(st.label)+'</span></span></div>'+
+        '<div class="spec">'+esc(m.spec||"—")+'　'+esc(freqText(m))+'　'+esc(dailySummary(m))+'</div>'+
+        '<dl class="grid">'+
+          '<dt>剂量</dt><dd>每次 <em>'+(Number(m.perDose)||0)+' '+esc(m.unit)+'</em>（'+esc(m.spec||"规格未填")+'）</dd>'+
+          '<dt>时段</dt><dd>'+esc(slotText(m))+'</dd>'+
+          '<dt>进餐</dt><dd>'+esc(mealHelp(m))+'</dd>'+
+          '<dt>有效期</dt><dd class="'+(isExpired(m)?"er":expSoon(m)?"wr":"")+'">'+esc(m.exp||"—")+
+            (isExpired(m)?'　已过期':expSoon(m)?'　临近':'')+'</dd>'+
+          '<dt>余量</dt><dd class="'+(st.cls==="low"||st.cls==="out"?"wr":"")+'">'+(Number(m.left)||0)+' / '+
+            (Number(m.cap)||0)+' '+esc(m.unit)+'　剩余 '+(d===null?"按需":d.toFixed(1)+" 天")+'</dd>'+
+        '</dl>'+
+        '<div class="bar-mini '+barCls+'"><i style="width:'+Math.round(ratio*100)+'%"></i></div>'+
+        (m.note? '<div class="caption">备注：'+esc(m.note)+'</div>':"")+
+      '</button>';
+    }).join("");
+  }
+
+  /* ============================================================
+     六、渲染 / 编辑：药品表单
+     ============================================================ */
+  function blankMed(){
+    return { id:"m"+Date.now(), name:"", spec:"", unit:"片", perDose:1, freq:"daily", perDay:1,
+             slots:[{t:"08:00", meal:"餐后"}], left:14, cap:14, exp:"", note:"" };
+  }
+  function getEdit(){
+    return DATA.meds.filter(function(x){ return x.id===STATE.editId; })[0] || null;
+  }
+
+  function openEdit(id){
+    var m = id ? DATA.meds.filter(function(x){ return x.id===id; })[0] : blankMed();
+    if(!m) return;
+    if(!id){ DATA.meds.push(m); }
+    STATE.editId = m.id; STATE.dirty = true;
+    go("edit");
+    fillForm();
+  }
+
+  function fillForm(){
+    var m = getEdit(); if(!m) return;
+    $("#editHead").textContent = DATA.meds.filter(function(x){return x.id===m.id;}).length ? "编辑药品" : "新增药品";
+    $("#editKey").textContent = m.id + " / " + (m.freq==="prn"?"按需":("每日"+m.perDay+"次"));
+    $("#fName").value = m.name; $("#fSpec").value = m.spec;
+    $("#fUnit").value = m.unit; $("#fPerDose").value = m.perDose;
+    $("#fLeft").value = m.left; $("#fCap").value = m.cap;
+    $("#fExp").value = m.exp; $("#fNote").value = m.note;
+    $("#fLeftUnit").textContent = m.unit; $("#fCapUnit").textContent = m.unit;
+    $$("[data-freq]").forEach(function(b){
+      b.classList.toggle("on", b.getAttribute("data-freq")===m.freq && Number(b.getAttribute("data-n"))===Number(m.perDay));
+    });
+    $("#freqHint").textContent = m.freq==="prn"
+      ? "按需用药：只做「随时可取」的取药提醒，不进入定时排程，也不估算余量天数。"
+      : "当前：" + freqText(m) + "，机器人每日出药 " + m.perDay + " 次（每次 " + m.perDose + " " + m.unit + "）。";
+    renderSlots();
+    recalcForm();
+  }
+
+  function renderSlots(){
+    var m = getEdit(); if(!m) return;
+    $("#slotCount").textContent = m.slots.length + " 次 / 日";
+    $("#doseList").innerHTML = m.slots.map(function(s,i){
+      return '<div class="dose-row" data-slot="'+i+'">'+
+        '<span class="no">'+(i+1)+'</span>'+
+        '<input class="input" data-slot-t="'+i+'" value="'+esc(s.t)+'" placeholder="08:00" />'+
+        '<select class="unit-sel" data-slot-meal="'+i+'" style="width:100%">'+
+          ["餐前","餐中","餐后","睡前","空腹","不限"].map(function(k){
+            return '<option'+(k===s.meal?" selected":"")+'>'+k+'</option>';
+          }).join("")+
+        '</select>'+
+        '<button class="del" data-slot-del="'+i+'" title="删除该时段">×</button>'+
+        '<span class="mnote">与进餐关系：'+esc(MEAL_LABEL[s.meal]||s.meal)+
+          '　·　该次出药 '+(Number(m.perDose)||0)+' '+esc(m.unit)+'</span>'+
+      '</div>';
+    }).join("") || '<div class="caption">尚无时段，点下方「增加一次时段」。</div>';
+  }
+
+  function recalcForm(){
+    var m = getEdit(); if(!m) return;
+    var du = dailyUnits(m), d = daysLeft(m);
+    $("#doseCalc").textContent = "每日总量 = 单次剂量 " + (Number(m.perDose)||0) + " " + m.unit +
+      " × " + (m.freq==="prn"?"按需":m.perDay + " 次") + " = " + (du>0? (Math.round(du*10)/10)+" "+m.unit+"/日" : "不估算");
+    $("#calcDaily").textContent = du>0 ? (Math.round(du*10)/10)+" "+m.unit+"/日" : "按需用药";
+    $("#calcDays").textContent = d===null ? "按需用药 · 不估算天数" : d.toFixed(1)+" 天";
+    $("#calcDays").style.color = (d!==null && d<=1.0) ? "var(--amber)" : "";
+    if(isExpired(m)){
+      $("#calcAlert").textContent = "已过期 · 停用并更换";
+      $("#calcAlert").style.color = "var(--red)";
+    } else if(d!==null && d<=1.0){
+      $("#calcAlert").textContent = "余量不足 1 天 → 提前 24 小时提醒";
+      $("#calcAlert").style.color = "var(--amber)";
+    } else {
+      $("#calcAlert").textContent = d===null ? "不触发余量提醒" : "充足（> 1 天）";
+      $("#calcAlert").style.color = "";
+    }
+    $("#calcExp").textContent = m.exp
+      ? (isExpired(m) ? "已过期 → 提醒更换" : expSoon(m) ? "60 天内到期 → 提示备药" : "正常")
+      : "未填写有效期";
+    $("#calcExp").style.color = isExpired(m) ? "var(--red)" : expSoon(m) ? "var(--purple)" : "";
+  }
+
+  function readForm(){
+    var m = getEdit(); if(!m) return;
+    m.name = $("#fName").value.trim();
+    m.spec = $("#fSpec").value.trim();
+    m.unit = $("#fUnit").value;
+    m.perDose = Number($("#fPerDose").value)||0;
+    m.left = Number($("#fLeft").value)||0;
+    m.cap = Number($("#fCap").value)||0;
+    m.exp = $("#fExp").value.trim();
+    m.note = $("#fNote").value.trim();
+  }
+
+  /* ============================================================
+     七、装药核对
+     ============================================================ */
+  function renderLoad(){
+    var boxes = [];
+    DATA.meds.forEach(function(m){
+      m.slots.forEach(function(s,i){ boxes.push({ med:m, slot:s, idx:i }); });
+    });
+    var done = boxes.filter(function(b){ return DATA.load.checked[b.med.id+"-"+b.idx]; }).length;
+    $("#loadProgress").textContent = done + " / " + boxes.length + " 格已核对";
+    $("#bayGrid").innerHTML = boxes.map(function(b,i){
+      var k = b.med.id+"-"+b.idx;
+      var ok = !!DATA.load.checked[k], need = !!DATA.load.needsRefill[k];
+      var cls = ok ? "done" : need ? "warn" : "";
+      return '<div class="bay '+cls+'">'+
+        '<span class="bx">'+(i+1)+'</span>'+
+        '<span class="bn">GRID '+(i+1)+'</span>'+
+        '<span class="bname">'+esc(b.med.name)+'</span>'+
+        '<span class="bdose">'+esc(b.slot.t)+' '+esc(b.slot.meal)+'<br>'+(Number(b.med.perDose)||0)+' '+esc(b.med.unit)+
+          '　余 '+(Number(b.med.left)||0)+'</span>'+
+        '<span class="btag">'+(ok?"已核对":need?"需补药":"待核对")+'</span>'+
+      '</div>';
+    }).join("") || '<div class="caption">尚未设定用药时段，装药核对无格可核。</div>';
+    $("#wasteState").textContent = DATA.load.waste + " / " + DATA.load.wasteCap + (DATA.load.waste>=DATA.load.wasteCap?"（已满）":"（未满）");
+    $("#loadLog").innerHTML = DATA.log.filter(function(l){ return l.k==="LOAD-CHECK"||l.k==="REFILL"||l.k==="WASTE"; })
+      .map(function(l){
+        return '<div class="log '+(l.tone||"")+'"><div class="lh"><time>'+esc(l.time)+'</time><span class="k">'+esc(l.k)+'</span></div>'+
+          '<div class="lb">'+esc(l.text)+'</div></div>';
+      }).join("") || '<div class="caption">暂无核对记录。</div>';
+    STATE.boxes = boxes;
+  }
+
+  function openChecker(){
+    renderLoad();
+    if(!STATE.boxes.length){ toast("尚未设定用药时段"); return; }
+    STATE.checkIdx = 0;
+    $("#checker").style.display = "grid";
+    paintChecker();
+  }
+  function paintChecker(){
+    var b = STATE.boxes[STATE.checkIdx];
+    if(!b){ closeChecker(true); return; }
+    $("#chKey").textContent = "LOAD CHECK / " + (STATE.checkIdx+1) + " of " + STATE.boxes.length;
+    $("#chTitle").textContent = "第 " + (STATE.checkIdx+1) + " 格：" + b.med.name;
+    $("#chSpec").textContent = (b.med.spec||"规格未填") + "　·　" + b.slot.t + " " + b.slot.meal + "　·　每次 " + b.med.perDose + " " + b.med.unit;
+    $("#chBody").innerHTML = "请核对：药格 <b>" + (STATE.checkIdx+1) + "</b> 内是否为 <b>" + esc(b.med.name) + "</b>，"
+      + "单次 <b>" + b.med.perDose + " " + esc(b.med.unit) + "</b>。<br>"
+      + '<span style="color:var(--dim2);font-size:11.5px">药盒余量 ' + b.med.left + " " + esc(b.med.unit)
+      + "　有效期 " + esc(b.med.exp||"—") + (isExpired(b.med)? '　<span style="color:var(--red)">已过期，禁止装药</span>' : "")
+      + "</span>";
+  }
+  function closeChecker(finished){
+    $("#checker").style.display = "none";
+    STATE.checkIdx = -1;
+    renderLoad();
+    if(finished){
+      var t = nowHM();
+      DATA.log.unshift({ time:t, k:"LOAD-CHECK", tone:"ok", text:"装药核对完成："+STATE.boxes.length+" 格逐格核对通过，机器人可按时出药" });
+      STATE.dirty = true; renderLog(); renderHome(); markDirty(true);
+      toast("逐格核对完成 · " + STATE.boxes.length + " 格通过");
+    }
+  }
+
+  /* ============================================================
+     八、隐私 / 对话参数
+     ============================================================ */
+  function renderPrivacy(){
+    $("#privacyCam").innerHTML =
+      sw("camera","启用摄像头","用于「药片消失 + 杯子放回」的取药判定；画面仅在本地处理，不上传云端。",
+         DATA.privacy.camera, DATA.privacy.camera? "ok":"dim")+
+      sw("announceInPrivate","私密区域改用语音提醒","卫生间等私密区域不进入、不录像，仅门外语音提示一次。",
+         DATA.privacy.announceInPrivate, DATA.privacy.announceInPrivate?"":"dim")+
+      '<div class="note-box cyan" style="margin-top:10px">'+
+        (DATA.privacy.camera
+          ? '当前：<b>已启用</b>。取药判定条件为「药片消失 + 杯子放回」，其中「药片消失」仅靠摄像头；私密区域内<b>不使用</b>摄像头，该处不判定取药。'
+          : '当前：<b>已关闭</b>。机器人<b>无法确认是否服下</b>，只能记录「已送达 / 未取走」；家属需以电话或音箱提醒确认。')+
+      '</div>';
+
+    $("#privacyVoice").innerHTML =
+      sw("announceEveryDose","是否需要每一次用药都播报","开启：每次送达都由机器人语音播报药名、剂量与进餐关系；关闭：仅在屏幕上提示，保持安静。",
+         DATA.privacy.announceEveryDose, DATA.privacy.announceEveryDose?"ok":"dim")+
+      sw("announceDetail","播报包含剂量与进餐关系","如「餐后半小时，氨氯地平片 5 mg 1 片，温水 60%」。",
+         DATA.privacy.announceDetail, DATA.privacy.announceDetail?"":"dim")+
+      '<div class="caption" style="margin-top:8px">关闭「每一次都播报」后，仍保留：<b>睡眠分支唤醒提示</b>、'
+      + '<b>未取走超时提醒</b>、<b>紧急播报</b>与<b>药量不足/过期</b>的子女端推送。</div>';
+
+    var p = DATA.privacy;
+    $("#privacySummary").innerHTML = '<div class="kv"><span>启用摄像头</span><b>'+(p.camera?"是":"否")+'</b></div>'+
+      '<div class="kv"><span>取药判定</span><b>'+(p.camera?"药片消失 + 杯子放回":"不可用（仅记已送达）")+'</b></div>'+
+      '<div class="kv"><span>每次用药都播报</span><b>'+(p.announceEveryDose?"是":"否（仅屏幕提示）")+'</b></div>'+
+      '<div class="kv"><span>播报含剂量/进餐</span><b>'+(p.announceDetail?"是":"否")+'</b></div>'+
+      '<div class="kv"><span>私密区域语音提醒</span><b>'+(p.announceInPrivate?"是（门外一次）":"否")+'</b></div>'+
+      '<div class="kv"><span>画面是否上云</span><b>否（本地处理）</b></div>';
+  }
+  function sw(key,title,desc,on,tone){
+    return '<div class="switch-line '+(on?"":"dim")+'">'+
+      '<div class="txt"><b>'+esc(title)+'</b><span>'+desc+'</span></div>'+
+      '<span class="toggle '+(on?"on":"")+'" data-sw="'+key+'"><i></i></span></div>';
+  }
+
+  function renderDialog(){
+    $("#dInterval").value = DATA.dialog.interval;
+    $("#dTimeout").value = DATA.dialog.timeout;
+    $("#volHint").textContent = "当前：白天 " + DATA.dialog.volDay + "% · 夜间 " + DATA.dialog.volNight +
+      "%（22:00–07:00 自动切换）· 唤醒 " + DATA.dialog.wake;
+    $$("[data-vol]").forEach(function(b){
+      var isDay = b.getAttribute("data-vol")==="day";
+      b.classList.toggle("on", Number(b.getAttribute("data-v"))===(isDay?DATA.dialog.volDay:DATA.dialog.volNight));
+    });
+    $$("[data-wake]").forEach(function(b){ b.classList.toggle("on", b.textContent.trim()===DATA.dialog.wake); });
+  }
+
+  /* ============================================================
+     九、页面切换 / 脏标记
+     ============================================================ */
+  var TITLES = {
+    home:["机器人基础设置","ROBOT CONFIG / 王阿姨 · suite-3d"],
+    meds:["用药计划","MEDICATION PLAN / 录入项对齐 §四 添药设定"],
+    edit:["药品编辑","MED EDITOR / 名称 · 剂量 · 频次 · 有效期 · 与进餐关系"],
+    alerts:["余量与有效期提醒","STOCK & EXPIRY / 不足 1 天提前 24h · 过期提醒更换"],
+    load:["装药核对","LOAD CHECK / 逐格核对防错"],
+    privacy:["隐私设置","PRIVACY / 摄像头 · 播报 · 影像边界"],
+    dialog:["提醒与对话参数","DIALOG / 2 min · 10 min · 音量"]
+  };
+  function go(page){
+    if(!TITLES[page]) page = "home";
+    STATE.page = page;
+    $$(".panel").forEach(function(p){ p.classList.remove("active"); });
+    var el = $("#page-"+page); el && el.classList.add("active");
+    $("#abTitle").textContent = TITLES[page][0];
+    $("#abSub").textContent = TITLES[page][1];
+    $("#backBtn").disabled = (page==="home");
+    $("#scroll").scrollTop = 0;
+    if(location.hash !== "#"+page){
+      try{ location.hash = page; }catch(e){}
+    }
+  }
+
+  function markDirty(v){
+    STATE.dirty = v;
+    $("#saveBar").classList.toggle("dirty", v);
+    $("#saveState").innerHTML = v ? "<b>有未下发的修改</b>" : "本机设置与机器人已一致";
+  }
+
+  function saveAll(){
+    var t = nowHM();
+    STATE.lastSavedAt = t; $("#saveTime").textContent = t;
+    var pend = buildAlerts().length;
+    DATA.log.unshift({ time:t, k:"SYNC", tone:"ok",
+      text:"设置已下发到机器人：用药计划 "+DATA.meds.length+" 种 · 每日 "+totalPerDay()+" 次 · 摄像头"+
+            (DATA.privacy.camera?"启用":"关闭")+" · 每次用药播报"+(DATA.privacy.announceEveryDose?"开启":"关闭")+
+            " · 待处理提醒 "+pend+" 条" });
+    markDirty(false); renderLog(); renderHome(); renderAlerts();
+    $("#syncState").textContent = "本机已同步 · 2026-10-04 " + t;
+    toast("已下发到机器人 · " + t);
+  }
+
+  /* ============================================================
+     十、变更日志 / 排程重建
+     ============================================================ */
+  function reflow(){
+    renderHome(); renderAlerts(); renderMeds(); renderLoad();
+    if(STATE.page==="edit"){ fillForm(); }
+  }
+
+  /* ============================================================
+     十一、快速录入解析（草稿级）
+     ============================================================ */
+  var CN_NUM = {"一":1,"两":2,"二":2,"三":3,"四":4,"五":5,"六":6};
+  // 与进餐关系关键词 → 默认时段（按每日次数取前 N 个）
+  var MEAL_RULES = [
+    ["早餐后","餐后","08:00"],["早饭后","餐后","08:00"],["早餐前","餐前","07:30"],["早上","餐后","08:00"],
+    ["午餐后","餐后","12:30"],["午饭后","餐后","12:30"],["午餐前","餐前","12:00"],["中午","餐后","12:30"],
+    ["晚餐后","餐后","18:30"],["晚饭后","餐后","18:30"],["晚餐前","餐前","18:00"],["晚上","餐后","18:30"],
+    ["睡前","睡前","21:00"],["临睡","睡前","21:00"],["空腹","空腹","07:00"],["晨起","空腹","07:00"],
+    ["随餐","餐中","12:30"],["餐中","餐中","12:30"],["餐后","餐后","08:00"],["餐前","餐前","07:30"]
+  ];
+  function parseOrder(text){
+    var s = String(text||"").trim();
+    if(!s) return null;
+    var out = blankMed();
+    var rest = s.replace(/[，,、;；]/g," ");
+
+    // ⓪ 药名先取：取最长的中文串（允许夹 1–3 位字母数字，如 D3 / B12 / D），排除频次与进餐词
+    var STOP = /^(每天|每日|一天|每晚|隔天|隔日|每周|按需|遵医嘱|必要时|餐前|餐后|餐中|随餐|空腹|晨起|睡前|临睡|早餐|午餐|晚餐|早饭|午饭|晚饭)$/;
+    var runs = [], nr;
+    var nre = /[\u4e00-\u9fa5]+(?:[A-Za-z]+\d{0,3})?[\u4e00-\u9fa5]*/g;
+    while((nr = nre.exec(rest)) !== null){
+      var v = nr[0];
+      if(STOP.test(v)) continue;
+      if(v.length<2) continue;
+      runs.push(v);
+    }
+    runs.sort(function(a,b){ return b.length-a.length; });
+    out.name = runs[0] || "";
+    // 去掉频次/进餐/剂量等已识别字段，只留药名供后续判定
+    rest = rest.replace(new RegExp(out.name ? out.name.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") : "\u0000","g")," ");
+
+    // ① 有效期：2027-01 / 2027/1 / 2027年1月 / 2027-01-05
+    var mexp = rest.match(/(20\d{2})\s*[-\/年]\s*(\d{1,2})(?:\s*[-\/月]\s*(\d{1,2}))?/);
+    if(mexp){
+      out.exp = mexp[1]+"-"+String(mexp[2]).padStart(2,"0") + (mexp[3]?("-"+String(mexp[3]).padStart(2,"0")):"");
+      rest = rest.replace(mexp[0]," ");
+    }
+
+    // ② 频次：每日 N 次 / 每天 N 次 / 一天 N 次 / 隔日 / 每周 / 按需
+    var freq = "daily", perDay = 1;
+    if(/按需|必要时|遵医嘱/.test(rest)) freq = "prn";
+    else if(/隔[天日]/.test(rest)) freq = "everyOtherDay";
+    else if(/每周/.test(rest)) freq = "weekly";
+    var mtimes = rest.match(/(?:每天|每日|一天|1天)\s*([0-9一两二三四五六])?\s*次/);
+    if(mtimes){ perDay = mtimes[1] ? (CN_NUM[mtimes[1]] || Number(mtimes[1]) || 1) : 1; rest = rest.replace(mtimes[0]," "); }
+    rest = rest.replace(/每晚|隔[天日]|每周|按需用药|按需|遵医嘱|必要时/g," ");
+
+    // ③ 剂量与剂型：20mg × 1片 / 1 片
+    var mdose = rest.match(/([0-9]+(?:\.[0-9]+)?)\s*(mg|毫g|ug|微克|IU|ml|毫升|g|克)/i);
+    var mtab  = rest.match(/([0-9一两二三四五六]+)\s*(片|粒|袋|支|滴|喷)/);
+    if(mdose){ out.spec = mdose[1]+" "+mdose[2].replace("毫g","mg").replace("克","g"); rest = rest.replace(mdose[0]," "); }
+    if(mtab){
+      out.unit = mtab[2];
+      out.perDose = CN_NUM[mtab[1]] || Number(mtab[1]) || 1;
+      rest = rest.replace(mtab[0]," ");
+    }
+
+    // ④ 与进餐关系（按关键词顺序，多命中即多时段）
+    var hits = [];
+    MEAL_RULES.forEach(function(r){
+      if(rest.indexOf(r[0])>=0 && hits.length<4) hits.push(r);
+      rest = rest.split(r[0]).join(" ");
+    });
+    if(freq!=="prn" && hits.length<perDay){
+      for(var i=hits.length;i<perDay;i++) hits.push(["","餐后",SLOT_DEFAULT[i]||"20:00"]);
+    }
+    if(freq!=="prn" && hits.length>perDay) perDay = hits.length;
+    out.freq = freq;
+    if(freq==="prn" && !hits.length){
+      out.slots = [{t:"08:00", meal:"不限"}];
+    } else {
+      // 每日 ≥2 次时按标准时段（08:00 / 12:30 / 18:30 / 21:00）落位，进餐关系随位置保留
+      out.slots = hits.slice(0, Math.max(1, perDay)).map(function(r,i){
+        var t = (perDay>=2) ? (SLOT_DEFAULT[i] || r[2]) : r[2];
+        return { t: t, meal: r[1] };
+      });
+    }
+    out.perDay = freq==="prn" ? 1 : out.slots.length;
+
+    if(!out.name) out.name = "未识别药品";
+    if(!out.spec) out.spec = out.perDose + " " + out.unit;
+    out.left = Number(out.cap)||14;
+    return out;
+  }
+
+  /* ============================================================
+     十二、交互绑定
+     ============================================================ */
+  function nowHM(){
+    var d = new Date();
+    var p = function(n){ return String(n).padStart(2,"0"); };
+    return p(d.getHours())+":"+p(d.getMinutes());
+  }
+
+  var toastTimer=null;
+  function toast(msg){
+    var t = $("#toast"); t.textContent = msg; t.classList.add("on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 2300);
+  }
+  function banner(tone, title, body){
+    var el = document.createElement("div");
+    el.className = "banner " + (tone||"");
+    el.innerHTML = '<div class="bt"><span class="src">子女端提示</span>'+
+      '<span class="chip '+(tone==="emg"?"emg":tone==="warn"?"warn":"ok")+'">机器人基础设置</span>'+
+      '<span class="now">'+nowHM()+'</span></div>'+
+      '<div class="bb"><b>'+esc(title)+'</b><p>'+esc(body)+'</p></div>'+
+      '<div class="bact"><button class="btn solid" data-banner-go="1">查看提醒中心</button>'+
+      '<button class="btn" data-banner-x="1">知道了</button></div>';
+    $("#bannerWrap").appendChild(el);
+    setTimeout(function(){ if(el.parentNode){ el.classList.add("out"); setTimeout(function(){ el.parentNode&&el.parentNode.removeChild(el); },260); } }, 8000);
+    while($("#bannerWrap").children.length>2){ $("#bannerWrap").removeChild($("#bannerWrap").firstChild); }
+  }
+
+  function bind(){
+    // 顶层导航
+    document.addEventListener("click", function(ev){
+      var t = ev.target.closest ? ev.target.closest(
+        "[data-go],[data-med-open],[data-med-act],[data-alert-act],[data-sw],[data-freq],[data-slot-del],"+
+        "[data-wake],[data-vol],[data-banner-go],[data-banner-x],[data-bay]") : null;
+      if(!t) return;
+      var v;
+
+      if((v=t.getAttribute("data-go"))){ closeChecker(false); go(v); return; }
+      if((v=t.getAttribute("data-med-open"))){ openEdit(v); return; }
+      if((v=t.getAttribute("data-alert-act"))){
+        handleAlertAct(v, t.getAttribute("data-med")); return;
+      }
+      if((v=t.getAttribute("data-sw"))){
+        DATA.privacy[v] = !DATA.privacy[v];
+        STATE.dirty = true; renderPrivacy(); renderHome(); markDirty(true);
+        if(v==="camera"){
+          DATA.log.unshift({ time:nowHM(), k:"PRIVACY", tone: DATA.privacy.camera?"ok":"warn",
+            text: DATA.privacy.camera
+              ? "摄像头已启用：恢复「药片消失 + 杯子放回」取药判定（私密区域仍不使用）"
+              : "摄像头已关闭：无法确认是否服下，仅记「已送达 / 未取走」" });
+          renderLog();
+          toast(DATA.privacy.camera ? "摄像头已启用 · 取药判定恢复" : "摄像头已关闭 · 无法确认是否服下");
+        } else if(v==="announceEveryDose"){
+          DATA.log.unshift({ time:nowHM(), k:"PRIVACY", tone:"ok",
+            text: DATA.privacy.announceEveryDose
+              ? "已开启：每一次用药都由机器人语音播报药名、剂量与进餐关系"
+              : "已关闭：每次用药仅屏幕提示，保留睡眠唤醒 / 未取走 / 紧急播报" });
+          renderLog();
+          toast(DATA.privacy.announceEveryDose ? "每次用药都会播报" : "已关闭每次用药播报");
+        } else {
+          toast("已更新隐私设置");
+        }
+        return;
+      }
+      if(t.hasAttribute("data-freq") && t.hasAttribute("data-n")){
+        var m = getEdit(); if(!m) return;
+        m.freq = t.getAttribute("data-freq");
+        m.perDay = Number(t.getAttribute("data-n"))||1;
+        if(m.freq==="prn"){ m.slots = [{t:"08:00", meal:"不限"}]; m.perDay = 1; }
+        else {
+          var next = [];
+          for(var i=0;i<m.perDay;i++) next.push(m.slots[i] || { t:SLOT_DEFAULT[i]||"08:00", meal:"餐后" });
+          m.slots = next;
+        }
+        STATE.dirty = true; markDirty(true);
+        fillForm(); toast("频次已改为 " + freqText(m) + " · 时段行已重算");
+        return;
+      }
+      if((v=t.getAttribute("data-slot-del"))){
+        var m2 = getEdit(); if(!m2) return;
+        if(m2.slots.length<=1){ toast("至少保留一个时段"); return; }
+        m2.slots.splice(Number(v),1); m2.perDay = m2.slots.length;
+        STATE.dirty = true; markDirty(true); fillForm(); return;
+      }
+      if((v=t.getAttribute("data-wake"))){
+        $$("[data-wake]").forEach(function(b){ b.classList.toggle("on", b===t); });
+        DATA.dialog.wake = t.textContent.trim(); STATE.dirty = true; markDirty(true);
+        renderDialog(); toast("唤醒参数已更新：" + DATA.dialog.wake); return;
+      }
+      if(t.hasAttribute("data-vol")){
+        var isDay = t.getAttribute("data-vol")==="day";
+        var val = Number(t.getAttribute("data-v"))||60;
+        if(isDay) DATA.dialog.volDay = val; else DATA.dialog.volNight = val;
+        STATE.dirty = true; markDirty(true); renderDialog();
+        toast((isDay?"白天":"夜间") + "音量已设为 " + val + "%"); return;
+      }
+      if(t.hasAttribute("data-banner-go")){ go("alerts"); cleanBanner(t); return; }
+      if(t.hasAttribute("data-banner-x")){ cleanBanner(t); return; }
+      if((v=t.getAttribute("data-bay"))){ return; }
+    });
+
+    function cleanBanner(el){
+      var b = el.closest(".banner");
+      if(b){ b.classList.add("out"); setTimeout(function(){ b.parentNode&&b.parentNode.removeChild(b); },260); }
+    }
+
+    function handleAlertAct(act, medId){
+      var m = DATA.meds.filter(function(x){ return x.id===medId; })[0];
+      if(!m) return;
+      var t = nowHM();
+      if(act==="edit"){ openEdit(medId); return; }
+      if(act==="refill"){
+        m.left = m.cap;
+        DATA.alertsDone.unshift({ time:t, kind:"STOCK", text:"已补药："+m.name+" 余量重置为 "+m.cap+" "+m.unit+"，余量提醒已解除" });
+        DATA.log.unshift({ time:t, k:"REFILL", tone:"ok", text:"已补药："+m.name+" 余量 "+m.cap+" "+m.unit+"（原余量不足 1 天）" });
+        STATE.dirty = true;
+        banner("warn","余量已补齐","下次余量巡检将通过；若再次不足 1 天，仍会提前 24 小时提醒。");
+        toast("已补药 · " + m.name);
+      }
+      if(act==="replaced"){
+        var y = new Date(); y.setFullYear(y.getFullYear()+2);
+        m.exp = y.getFullYear()+"-"+String(y.getMonth()+1).padStart(2,"0");
+        DATA.alertsDone.unshift({ time:t, kind:"EXPIRY", text:"已更换："+m.name+" 有效期更新为 "+m.exp+"，过期提醒已解除" });
+        DATA.log.unshift({ time:t, k:"EXPIRY", tone:"ok", text:"已更换："+m.name+" 有效期更新为 "+m.exp });
+        STATE.dirty = true;
+        toast("已标记更换 · 有效期更新为 " + m.exp);
+      }
+      reflow(); markDirty(true);
+      if(STATE.page==="edit") fillForm();
+    }
+
+    // 药品计划
+    $("#addMedBtn").addEventListener("click", function(){ openEdit(null); toast("新增药品 · 请填写录入项"); });
+    $("#quickBtn").addEventListener("click", function(){
+      STATE.quickOpen = !STATE.quickOpen;
+      $("#quickBox").style.display = STATE.quickOpen ? "block" : "none";
+      if(STATE.quickOpen) $("#quickInput").focus();
+    });
+    $("#quickCloseBtn").addEventListener("click", function(){ STATE.quickOpen=false; $("#quickBox").style.display="none"; });
+    $("#quickParseBtn").addEventListener("click", function(){
+      var txt = $("#quickInput").value;
+      var m = parseOrder(txt);
+      if(!m || !m.name || m.name==="未识别药品"){
+        $("#quickInput").classList.add("err");
+        $("#quickHint").textContent = "未能识别出药名，请补一句中文药名后重试（例：碳酸钙D3片 1片 每天2次 早晚餐后 2027-01）。";
+        return;
+      }
+      $("#quickInput").classList.remove("err");
+      DATA.meds.push(m); STATE.dirty = true; markDirty(true);
+      DATA.log.unshift({ time:nowHM(), k:"PLAN", tone:"warn", text:"快速录入（草稿）："+m.name+"　"+freqText(m)+"　"+slotText(m)+"　有效期 "+m.exp });
+      renderLog(); renderMeds(); renderHome();
+      $("#quickInput").value = "";
+      $("#quickHint").textContent = "已解析并加入草稿：" + m.name + " · " + freqText(m) + " · " + slotText(m) + " · 有效期 " + m.exp + "。请进入编辑核对。";
+      toast("已解析：" + m.name);
+    });
+
+    // 编辑表单
+    // 注意：输入过程中不重排时段行，否则会打断正在输入的焦点
+    ["fName","fSpec","fPerDose","fLeft","fCap","fExp","fNote"].forEach(function(id){
+      $("#"+id).addEventListener("input", function(){
+        readForm(); STATE.dirty = true; markDirty(true); recalcForm();
+      });
+    });
+    $("#fUnit").addEventListener("change", function(){
+      readForm(); STATE.dirty = true; markDirty(true);
+      $("#fLeftUnit").textContent = this.value; $("#fCapUnit").textContent = this.value;
+      recalcForm(); renderSlots();
+    });
+    $("#doseList").addEventListener("input", function(ev){
+      var t = ev.target;
+      var m = getEdit(); if(!m) return;
+      if(t.hasAttribute && t.hasAttribute("data-slot-t")){
+        m.slots[Number(t.getAttribute("data-slot-t"))].t = t.value.trim();
+        STATE.dirty = true; markDirty(true); renderSchedPreview();
+      }
+      if(t.hasAttribute && t.hasAttribute("data-slot-meal")){
+        m.slots[Number(t.getAttribute("data-slot-meal"))].meal = t.value;
+        STATE.dirty = true; markDirty(true); renderSlots();
+      }
+    });
+    $("#doseList").addEventListener("change", function(ev){
+      var t = ev.target;
+      if(t.hasAttribute && t.hasAttribute("data-slot-meal")){
+        var m = getEdit(); if(!m) return;
+        m.slots[Number(t.getAttribute("data-slot-meal"))].meal = t.value;
+        STATE.dirty = true; markDirty(true); renderSlots();
+      }
+    });
+    $("#addSlotBtn").addEventListener("click", function(){
+      var m = getEdit(); if(!m) return;
+      if(m.slots.length>=4){ toast("最多 4 个时段（每日 4 次）"); return; }
+      m.slots.push({ t:SLOT_DEFAULT[m.slots.length]||"20:00", meal:"餐后" });
+      m.perDay = m.slots.length; STATE.dirty = true; markDirty(true); fillForm();
+    });
+    $("#editSaveBtn").addEventListener("click", function(){
+      readForm();
+      var m = getEdit(); if(!m) return;
+      if(!m.name){ $("#fName").classList.add("err"); toast("请填写药品名称"); return; }
+      $("#fName").classList.remove("err");
+      if(!m.exp){ toast("建议填写有效期 · 以便过期提醒更换"); }
+      DATA.log.unshift({ time:nowHM(), k:"PLAN", tone:"ok",
+        text:"用药计划已更新："+m.name+"　"+freqText(m)+"　"+slotText(m)+"　每次 "+m.perDose+" "+m.unit+
+             "　有效期 "+(m.exp||"—")+"　余量 "+m.left+"/"+m.cap });
+      reflow(); markDirty(true); go("meds"); toast("已保存：" + m.name);
+    });
+    $("#editCancelBtn").addEventListener("click", function(){
+      var m = getEdit();
+      if(m && !m.name) DATA.meds = DATA.meds.filter(function(x){ return x.id!==m.id; });
+      go("meds"); reflow();
+    });
+    $("#editDelBtn").addEventListener("click", function(){
+      var m = getEdit(); if(!m) return;
+      DATA.meds = DATA.meds.filter(function(x){ return x.id!==m.id; });
+      DATA.log.unshift({ time:nowHM(), k:"PLAN", tone:"warn", text:"已删除药品："+m.name+"（需重新装药与核对）" });
+      STATE.dirty = true; go("meds"); reflow(); markDirty(true); toast("已删除：" + m.name);
+    });
+
+    // 提醒中心
+    $("#alertBtn").addEventListener("click", function(){ go("alerts"); });
+
+    // 装药核对
+    $("#startCheckBtn").addEventListener("click", openChecker);
+    $("#chOk").addEventListener("click", function(){
+      var b = STATE.boxes[STATE.checkIdx];
+      if(b){ DATA.load.checked[b.med.id+"-"+b.idx] = true; delete DATA.load.needsRefill[b.med.id+"-"+b.idx]; }
+      STATE.checkIdx++;
+      if(STATE.checkIdx>=STATE.boxes.length) closeChecker(true); else paintChecker();
+    });
+    $("#chFix").addEventListener("click", function(){
+      var b = STATE.boxes[STATE.checkIdx];
+      if(b){ DATA.load.needsRefill[b.med.id+"-"+b.idx] = true; delete DATA.load.checked[b.med.id+"-"+b.idx]; }
+      toast("已标记该格需重新装药 · 核对不通过不出药");
+      STATE.checkIdx++;
+      if(STATE.checkIdx>=STATE.boxes.length) closeChecker(true); else paintChecker();
+    });
+    $("#chExit").addEventListener("click", function(){ closeChecker(false); toast("已退出逐格核对"); });
+    $("#refillBtn").addEventListener("click", function(){
+      renderLoad();
+      var need = STATE.boxes.filter(function(b){ return (Number(b.med.left)||0) <= 0; });
+      if(!need.length){ toast("当前没有余量为 0 的药格"); return; }
+      need.forEach(function(b){ DATA.load.needsRefill[b.med.id+"-"+b.idx]=true; });
+      DATA.log.unshift({ time:nowHM(), k:"REFILL", tone:"warn", text:"标记需补药："+need.length+" 格余量为 0，核对通过前不出药" });
+      markDirty(true); renderLoad(); renderLog(); toast("已标记 " + need.length + " 格需补药");
+    });
+    $("#wasteBtn").addEventListener("click", function(){
+      DATA.load.waste = 0;
+      DATA.log.unshift({ time:nowHM(), k:"WASTE", tone:"ok", text:"废弃药片仓已清理：0 / "+DATA.load.wasteCap+"，清理流程与补药流程分开留痕" });
+      markDirty(true); renderLoad(); renderLog(); toast("废弃仓已清理 · 留痕");
+    });
+
+    // 对话参数
+    $("#dInterval").addEventListener("input", function(){
+      DATA.dialog.interval = Number(this.value)||0; STATE.dirty=true; markDirty(true); renderHome();
+    });
+    $("#dTimeout").addEventListener("input", function(){
+      DATA.dialog.timeout = Number(this.value)||0; STATE.dirty=true; markDirty(true); renderHome();
+    });
+    $$("[data-tg]").forEach(function(el){
+      el.addEventListener("click", function(){
+        el.classList.toggle("on");
+        var k = el.getAttribute("data-tg");
+        DATA.privacy[k==="once"?"once":k] = el.classList.contains("on");
+        STATE.dirty = true; markDirty(true);
+        toast("已" + (el.classList.contains("on")?"开启":"关闭") + "：" + (k==="once"?"只播报一次":"播报含剂量与进餐关系"));
+      });
+    });
+
+    // 保存 / 放弃
+    $("#saveBtn").addEventListener("click", saveAll);
+    $("#revertBtn").addEventListener("click", function(){
+      DATA = defState(); STATE.dirty=false; STATE.editId=null;
+      markDirty(false); reflow(); go("home"); renderPrivacy(); renderDialog();
+      toast("已放弃未下发的修改 · 回到本机已同步状态");
+    });
+    $("#backBtn").addEventListener("click", function(){
+      if(STATE.page==="edit"){ go("meds"); reflow(); }
+      else go("home");
+    });
+    $("#sbBatt").textContent = "76%";
+
+    // 深链：robot-settings.html#meds / #alerts / #load / #privacy / #dialog 直接打开子页
+    window.addEventListener("hashchange", function(){
+      var h = location.hash.replace("#","");
+      if(TITLES[h] && h!==STATE.page) go(h);
+    });
+  }
+
+  /* ============================================================
+     十三、初始化
+     ============================================================ */
+  function clock(){
+    var d = new Date(), p = function(n){ return String(n).padStart(2,"0"); };
+    $("#sbClock").textContent = p(d.getHours())+":"+p(d.getMinutes());
+  }
+
+  function init(){
+    renderHome(); renderAlerts(); renderMeds(); renderLoad();
+    renderPrivacy(); renderDialog(); markDirty(false);
+    $("#saveTime").textContent = STATE.lastSavedAt;
+    bind(); clock(); setInterval(clock, 20000);
+    // 深链：?page=meds 或 #meds 直接打开子页（便于分享与演示）
+    var q = /[?&]page=([a-z]+)/i.exec(location.search);
+    var h = location.hash.replace(/^#/,"");
+    var want = (q && q[1]) || h || "";
+    go(TITLES[want] ? want : "home");
+    // 首屏 2.6s 自动演示一条「余量不足 1 天」的提前 24h 推送
+    setTimeout(function(){
+      var a = buildAlerts().filter(function(x){ return x.kind==="STOCK"; })[0];
+      if(a){
+        var m = DATA.meds.filter(function(x){ return x.id===a.medId; })[0];
+        banner("warn","用药提醒：药品余量不足（提前 24 小时）",
+          m.name+" 剩余可用 "+daysText(m)+"（余 "+m.left+" "+m.unit+"，每日消耗 "+dailyUnits(m)+" "+m.unit+"），请在 24 小时内补齐。");
+      }
+    }, 2600);
+  }
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+})();
+</script>
+</body>
+</html>
