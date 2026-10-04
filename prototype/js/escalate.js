@@ -106,7 +106,10 @@ export function tick() {
       renotify(event.id);
       continue;
     }
-    if (elapsed >= policy.notifyFamilyAfterSec && event.attempts.length < 3) {
+    // v1.21：家属通知**不再被"提醒次数 < 3"卡住** —— 用户口径「每 2 分钟督促、10 分钟后通知家属」，
+    // 而"每 2 分钟"会很快用满次数，导致家属端永远收不到通知。去重仍由 notifyFamily 里的
+    // familyNotifiedAt / 已存在的 level 2 通知保证（同一事件只推一条）。
+    if (elapsed >= policy.notifyFamilyAfterSec && !event.familyNotifiedAt) {
       renotify(event.id);
       notifyFamily(event.id);
     }

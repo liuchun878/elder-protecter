@@ -692,7 +692,36 @@ input{font-family:inherit}
 
         <!-- ========== 设置 ========== -->
         <section class="panel" id="pane-settings">
-          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>推送通道</b><span>二级 / 三级升级才打扰</span></div>
+          <!-- v1.21：新增「机器人基础设置」栏目（入口指向同目录的 robot-settings.html，支持深层锚点） -->
+          <div class="sec-head" style="margin-top:0"><i class="bar"></i><b>机器人基础设置</b><span>RHINE-AGV-P-1 · 子女端（主账号）</span></div>
+          <div class="card">
+            <a class="switch-line" style="text-decoration:none;color:inherit" href="robot-settings.html">
+              <div class="txt"><b>机器人基础设置</b><span>用药计划 · 余量与有效期 · 装药核对 · 隐私 · 提醒参数</span></div>
+              <span class="chip ok">进入 ›</span>
+            </a>
+            <a class="switch-line" style="text-decoration:none;color:inherit" href="robot-settings.html#meds">
+              <div class="txt"><b>用药计划</b><span>名称 / 剂量 / 频次 / 有效期 / 与进餐关系</span></div>
+              <span class="chip">›</span>
+            </a>
+            <a class="switch-line" style="text-decoration:none;color:inherit" href="robot-settings.html#alerts">
+              <div class="txt"><b>余量与有效期提醒</b><span>余量不足 1 天提前 24h · 过期提醒更换</span></div>
+              <span class="chip warn">2 条</span>
+            </a>
+            <a class="switch-line" style="text-decoration:none;color:inherit" href="robot-settings.html#load">
+              <div class="txt"><b>装药核对（逐格引导）</b><span>按格核对 · 废弃仓</span></div>
+              <span class="chip">›</span>
+            </a>
+            <a class="switch-line" style="text-decoration:none;color:inherit" href="robot-settings.html#privacy">
+              <div class="txt"><b>隐私设置</b><span>摄像头仅在本地判定 · 画面不上传云端</span></div>
+              <span class="chip">›</span>
+            </a>
+            <a class="switch-line" style="text-decoration:none;color:inherit" href="robot-settings.html#dialog">
+              <div class="txt"><b>提醒与对话参数</b><span>提醒间隔 2 min · 超时 10 min · 音量</span></div>
+              <span class="chip">›</span>
+            </a>
+          </div>
+
+          <div class="sec-head"><i class="bar"></i><b>推送通道</b><span>二级 / 三级升级才打扰</span></div>
           <div class="card" id="pushSettings"></div>
 
           <div class="sec-head"><i class="bar"></i><b>阈值 / 可配置</b><span>与机器人行为设定同步</span></div>

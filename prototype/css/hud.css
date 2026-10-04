@@ -1326,3 +1326,56 @@ body.is-scripted .caption {
 body.is-scripted .collapse-toggle--dock {
   bottom: 150px;
 }
+
+/* v1.21：家属端手机屏上的「家属端 / 机器人设置」切换（把队友最新那份也放进主演示）
+ * ⚠️ 必须放在手机壳**内部**：壳是 overflow:hidden，原先放 bottom:-34px 会被整块裁掉（点不到） */
+.phone__tabs {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 26px;
+  display: flex;
+  gap: 6px;
+  z-index: 7;
+}
+
+.phone.is-collapsed .phone__tabs {
+  display: none;
+}
+
+/* 顶部让出一点位置给切换条，别压在内容上 */
+.phone__screen {
+  margin-top: 26px;
+  height: calc(100% - 26px);
+}
+
+.phone__tab {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(14, 18, 22, 0.9);
+  color: #dfeaec;
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.phone__tab.is-on {
+  background: var(--brand, #2f7f86);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* v1.21：左下角「她没吃药」演示模块 */
+.dock__seg--missed {
+  border-color: #d8a12a;
+}
+
+.dock__seg--missed .dock__button {
+  color: #a8730b;
+}
+
+.dock__seg--missed .dock__button:hover {
+  background: rgba(216, 161, 42, 0.16);
+}

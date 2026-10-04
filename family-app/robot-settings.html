@@ -1470,7 +1470,10 @@ dl.grid dd{margin:0;color:#c6dce3;line-height:1.55;font-size:11.5px}
     var el = $("#page-"+page); el && el.classList.add("active");
     $("#abTitle").textContent = TITLES[page][0];
     $("#abSub").textContent = TITLES[page][1];
-    $("#backBtn").disabled = (page==="home");
+    // v1.21（主演示接入）：嵌入家属端手机屏时，主页的「返回」键回到家属端 App ——
+    // 否则从家属端点进设置后，主页上这颗键是 disabled，出不去。
+    window.EMBEDDED = (window.self !== window.top); // 全局：返回键的处理函数在另一个作用域里
+    $("#backBtn").disabled = (page==="home") && !window.EMBEDDED;
     $("#scroll").scrollTop = 0;
     if(location.hash !== "#"+page){
       try{ location.hash = page; }catch(e){}
@@ -1866,6 +1869,7 @@ dl.grid dd{margin:0;color:#c6dce3;line-height:1.55;font-size:11.5px}
       toast("已放弃未下发的修改 · 回到本机已同步状态");
     });
     $("#backBtn").addEventListener("click", function(){
+      if(window.EMBEDDED && STATE.page==="home"){ location.href = "index.html"; return; }  // 回到家属端主页
       if(STATE.page==="edit"){ go("meds"); reflow(); }
       else go("home");
     });

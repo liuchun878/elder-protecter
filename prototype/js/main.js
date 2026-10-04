@@ -114,9 +114,21 @@ function ensurePhone() {
     '<div class="phone__title">家属端（点右上 ⌄ 展开）</div>',
     // v1.17：手机屏内容 = **队友做的家属端 App**（仓库根 `family-app/`，由禁缓存服务器双根提供）
     '<iframe class="phone__screen" title="家属端（队友做的 App）" src="/family-app/index.html"></iframe>',
+    '<div class="phone__tabs">'
+    + '<button type="button" class="phone__tab is-on" data-app="family-app/index.html">家属端</button>'
+    + '<button type="button" class="phone__tab" data-app="family-app/robot-settings.html">机器人设置</button>'
+    + '</div>',
     '</div>',
   ].join('');
   document.body.appendChild(phone);
+  // v1.21：屏幕内容可切换（家属端 App / 队友最新那份机器人设置）
+  for (const tab of phone.querySelectorAll('.phone__tab')) {
+    tab.addEventListener('click', () => {
+      const app = tab.dataset.app;
+      phone.querySelector('.phone__screen').src = `/${app}`;
+      for (const t of phone.querySelectorAll('.phone__tab')) t.classList.toggle('is-on', t === tab);
+    });
+  }
   return phone;
 }
 
@@ -228,7 +240,7 @@ function mountCaptions() {
   };
 }
 
-function mountDock({ getMode, setMode, onFamily }) {
+function mountDock({ getMode, setMode, onFamily, onMissed }) {
   const root = document.getElementById('dock');
   if (!root) return { setHint() {}, refresh() {} };
   const seg = document.createElement('div');
@@ -259,6 +271,21 @@ function mountDock({ getMode, setMode, onFamily }) {
   family.textContent = '家属端手机屏';
   family.addEventListener('click', onFamily);
   root.appendChild(family);
+  // v1.21（用户口径）：新增「她没吃药」演示模块 —— 老人在卫生间 / 出门，机器人每 2 分钟督促、
+  // 10 分钟后收回托盘、家属端弹出未吃药提示。两个入口对应两种情景。
+  if (onMissed) {
+    const missed = document.createElement('span');
+    missed.className = 'dock__seg dock__seg--missed';
+    root.appendChild(missed);
+    for (const [where, label] of [['bathroom', '卫生间没吃'], ['away', '出门没吃']]) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'dock__button';
+      b.textContent = label;
+      b.addEventListener('click', () => onMissed(where));
+      missed.appendChild(b);
+    }
+  }
 
   return {
     setHint(text) { hint.textContent = text || ''; },
@@ -583,9 +610,52 @@ function startMainView() {
     }
   }
 
+  /* v1.21：**「她没吃药」情景**（用户口径）——
+   * 老人出门 / 在卫生间 → 机器人**每 2 分钟**督促一次、**10 分钟后**把托盘收回（事件转 missed）、
+   * 家属端**弹出未吃药提示**。实现方式：用 `store.setPolicy` 把三段时限按这两个数字设置，
+   * 其余（何时提醒、何时通知家属、什么时候算超时）**全部交给已有的升级链路**，不新增业务规则。
+   * 离开这个情景时把策略恢复默认。 */
+  // 9 分钟通知家属、10 分钟收托盘（若两者都设 600s，事件会先转 missed，家属通知就发不出去了）
+  const MISSED_POLICY = { renotifyAfterSec: 120, maxRenotify: 6, notifyFamilyAfterSec: 540, confirmWindowMin: 10 };
+  let missedScenario = null;      // null = 不在该情景；否则记着默认策略以便恢复
+  let missedAttempts = 0;
+  function startMissedScenario(where) {
+    if (!missedScenario) missedScenario = store.getPolicy();  // 备份默认策略
+    if (typeof script !== 'undefined' && script && typeof script.stop === 'function') script.stop();
+    if (mode === 'scripted') applyMode('interactive');
+    store.setPolicy(MISSED_POLICY);
+    debugApi.reset();                       // 清事件、时钟复位、她回客厅
+    presence.setLocation(where);            // 她进卫生间 / 出门
+    store.setPolicy(MISSED_POLICY);         // reset 之后再设一次（reset 不改策略，保险）
+    missedAttempts = 0;
+    clock.setAcceleration(60);              // 60× → 2 分钟 = 2 秒，10 分钟 = 10 秒，现场节奏正好
+    clock.set(`${DEFAULT_DEMO_START.slice(0, 10)}T07:59:50`);
+    dock.setHint(where === 'away' ? '情景：她出门了没吃药' : '情景：她在卫生间没吃药');
+    window.setTimeout(() => dock.setHint(''), 6000);
+  }
+  /** 每次「再次提醒」时说的话（用户口径：机器人会播报「奶奶，您需要吃药了」） */
+  function watchMissedScenario() {
+    if (!missedScenario) return;
+    const id = latest.activeEventId;
+    const ev = id ? latest.events.find((e) => e.id === id) : null;
+    const n = ev ? ev.attempts.length : 0;
+    if (n > missedAttempts) {
+      missedAttempts = n;
+      audio.speak('奶奶，您需要吃药了。药就放在托盘上，请及时取走。', { force: true, style: 'child' });
+    }
+    if (!id && missedAttempts > 0) { // 事件收口（10 分钟到 → missed）→ 情景结束，恢复默认策略
+      missedAttempts = 0;
+      store.setPolicy(missedScenario);
+      missedScenario = null;
+      dock.setHint('托盘已收回，家属端已收到未确认通知');
+      window.setTimeout(() => dock.setHint(''), 8000);
+    }
+  }
+
   const dock = mountDock({
     getMode: () => mode,
     setMode: (next) => applyMode(next),
+    onMissed: (where) => startMissedScenario(where),
     onFamily: () => {
       const open = togglePhone();
       // 打开手机屏时把右下控制台收起来：两块面板都在右侧，会互相压住
@@ -835,7 +905,9 @@ function startMainView() {
       // ⚠️ 时序：机器人**先把水注好**，她再端杯 —— 否则"她拿走杯子"会把注水打断（水面只涨到 0.22）。
       // 这只是表现层的先后次序，不是业务判据。
       const poured = typeof robot.isPoured !== 'function' || robot.isPoured();
-      if (atSide && poured) {
+      // v1.21：她在卫生间 / 出门时不触发"递药到手"（人不在跟前，机器人只在门口等）
+      const reachable = latest.presence.location !== 'bathroom' && latest.presence.location !== 'away';
+      if (atSide && poured && reachable) {
         // 把**托盘的真实世界位置**告诉她：她要"上前一步、伸手够到托盘"（纯表现位移，不改 presence）
         if (typeof person.setTakeTarget === 'function' && typeof robot.getCargoNodes === 'function') {
           const nodes = robot.getCargoNodes();
@@ -886,9 +958,9 @@ function startMainView() {
     if (action.phase === 'done' && !takenSaid.has(`${action.eventId}|p3`)) {
       takenSaid.add(`${action.eventId}|p3`);
       audio.speak('吃药的记录，我已经发到您家人的手机上啦', { force: true, style: 'child', clip: 'p3' });
-      // v1.20：**固定演示模式**下，剧本里"她吃完药 → 机器人记录"这一拍由自动确认落地。
-      // 交互模式下不这么做（那里要演示者自己点「已取走」，那才是闭环的演示点）。
-      if (mode === 'scripted' && action.eventId) pendingConfirm = action.eventId;
+      // v1.21（用户口径）：**老人拿走药物就自动确认**，不再需要人工点左上角「已取走」——
+      // 机器人的摄像头/传感器判定「药已取走」在演示里由这一拍代替（取药 ≠ 服药，文案仍是「已取走」）。
+      if (action.eventId) pendingConfirm = action.eventId;
     }
     // 固定演示：动作走完就替她把「已取走」确认掉（只调契约里已有的命令，不加业务规则）
     if (pendingConfirm && latest.activeEventId === pendingConfirm) {
@@ -922,6 +994,8 @@ function startMainView() {
         urgeAtSide(); // 走到她身边就督促（童声）
         syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
         settleShot(); // v1.20：机器人回桩后才结束特写
+    watchMissedScenario(); // v1.21：没吃药情景——每 2 分钟督促 / 10 分钟收托盘
+        watchMissedScenario(); // v1.21：没吃药情景——每 2 分钟督促 / 10 分钟收托盘
         watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
         // v1.20：录制时的自动运镜 —— 没有递药近景时，每秒把机位重算到"看得见她"的位置
         // （机器人就在旁边时把两个人一起框；复用 focusSeat/focusPair 的可见性判据）
@@ -1027,13 +1101,16 @@ function startMainView() {
   if (mode === 'scripted') applyMode('scripted');
   let last = performance.now();
   function frame(now) {
-    const dt = scaledDt(Math.min((now - last) / 1000, 0.1));
+    // v1.21：单帧上限 0.1 → 0.2 s。软渲染只有 2–5 fps 时，0.1 s 的上限会把仿真**饿死**
+    // （机器人实际只走 30% 速度，还没到老人跟前，确认窗口就到期了 → 事件转 missed、取药根本没发生）。
+    const dt = scaledDt(Math.min((now - last) / 1000, 0.2));
     last = now;
     robot.update(latest, dt);
     person.update(latest, dt);
     urgeAtSide(); // 走到她身边就督促（童声）
     syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
     settleShot(); // v1.20：机器人回桩后才结束特写
+    watchMissedScenario(); // v1.21：没吃药情景——每 2 分钟督促 / 10 分钟收托盘
     watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
     scene.render(latest, dt);
     window.requestAnimationFrame(frame);
