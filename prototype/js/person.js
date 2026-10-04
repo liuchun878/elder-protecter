@@ -1064,8 +1064,8 @@ export function createPerson(sceneApi) {
       const tx = takeTarget.x - root.position.x;
       const tz = takeTarget.z - root.position.z;
       const td = Math.hypot(tx, tz) || 1;
-      const cap = conf.pose === 'sit' ? 0.62 : 0.92;
-      const want = Math.min(cap, Math.max(0, td - 0.42));
+      const cap = conf.pose === 'sit' ? 0.80 : 1.05;
+      const want = Math.min(cap, Math.max(0, td - 0.34));
       const u = Math.min(1, action.elapsed / 0.75) * Math.min(1, (TAKE_TOTAL - action.elapsed) / 0.7);
       const stepLen = want * Math.max(0, u);
       const wx = (tx / td) * stepLen;
