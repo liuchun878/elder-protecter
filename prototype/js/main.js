@@ -657,10 +657,26 @@ function startMainView() {
     presence.setLocation(where);            // 她进卫生间 / 出门
     store.setPolicy(MISSED_POLICY);         // reset 之后再设一次（reset 不改策略，保险）
     missedAttempts = 0;
-    clock.setAcceleration(60);              // 60× → 2 分钟 = 2 秒，10 分钟 = 10 秒，现场节奏正好
-    clock.set(`${DEFAULT_DEMO_START.slice(0, 10)}T07:59:50`);
-    dock.setHint(where === 'away' ? '情景：她出门了没吃药' : '情景：她在卫生间没吃药');
-    window.setTimeout(() => dock.setHint(''), 6000);
+    /* v1.22（用户口径「奶奶在卫生间的情况，你怎么让奶奶出去了」）：
+     * 卫生间在导航网格里**不可通行**，寻路只能把她送到门口、再由"收尾"挪进去 —— 实测要走 ~15 秒。
+     * 原先一按就把表拨到 07:59:50，倒计时立刻开始：推送说"她在卫生间"时人还在走廊上（看着像出去了）。
+     * 现在**先让她走进去**（时钟先按 1× 且停在未到点），到位了再拨表开始 2 分钟 / 10 分钟倒计时。 */
+    clock.setAcceleration(1);
+    clock.set(`${DEFAULT_DEMO_START.slice(0, 10)}T07:50:00`); // 未到点：不会有事件
+    dock.setHint(where === 'away' ? '她正走向门口…' : '她正走进卫生间…');
+    const waitStart = Date.now();
+    const waitTimer = window.setInterval(() => {
+      const her = latest.presence.seat || scene.getWaypoint(latest.presence.location);
+      const p = scene.getActorPosition('wang-ayi') || scene.getActorPosition('person');
+      const inside = where === 'away' || (p && her && Math.hypot(p.x - her.x, p.z - her.z) < 0.35);
+      if (!inside && Date.now() - waitStart < 30000) return;   // 最多等 30 秒兜底
+      window.clearInterval(waitTimer);
+      if (!missedScenario) return;                             // 期间用户切走了就不继续
+      clock.setAcceleration(60);                               // 60× → 2 分钟 = 2 秒、10 分钟 = 10 秒
+      clock.set(`${DEFAULT_DEMO_START.slice(0, 10)}T07:59:50`); // 到点 → 倒计时开始
+      dock.setHint(where === 'away' ? '情景：她出门了没吃药' : '情景：她在卫生间没吃药');
+      window.setTimeout(() => dock.setHint(''), 6000);
+    }, 400);
   }
   /** 每次「再次提醒」时说的话（用户口径：机器人会播报「奶奶，您需要吃药了」） */
   function watchMissedScenario() {
