@@ -85,11 +85,17 @@
 - **实测**：`node --check` 两文件通过；`node .preview/takecheck.mjs` **12/12 全过**
   （零外部请求 30/30 → `127.0.0.1:8000`，控制台异常 0，界面无「已服下」）；
   `/`、`/?view=family`、`/保卫老人.html`、`/suite.html`、`/js/*` 全部 200
-- **推送**：本地 `main` 已把上述改动提交；`git fetch` 后与 `origin/main`（`151d260`）为 **0 领先 / 0 落后**，
-  推送后打 annotated tag **`v1.20-保卫老人`** —— 推送状态见本文件末尾。
+- **推送**：✅ **已推到 GitHub** —— `git push origin main` 结果 `151d260..0c0f65e`；
+  推送前 `git fetch` 复核与 `origin/main` 为 **0 领先 / 0 落后**（可快进，无需 force）。
+  本里程碑另打 annotated tag **`v1.20-保卫老人`**
+- **本机凭据这条坑已解**（写进 [docs/本地环境与推送.md](docs/本地环境与推送.md) 第 2.1 节）：
+  agent 会话在沙箱里跑 `gh auth login` 会把令牌写不进 `~/.config/gh/`（`operation not permitted`），
+  改成 `export GH_CONFIG_DIR="$PWD/.tools/ghconfig"`（工作区内、已 gitignore）+ 代理登录即可，
+  **推送时也要带上同一个 `GH_CONFIG_DIR`**
 
 > ⚠️ **旧提示已失效**：早先「本地未推送 / 远端停在 `90c73f9`」的说法**不再成立** ——
-> 远端 `main` 现在是 `151d260`（含 `0000000` 合并），只差本轮这 9 个文件的改动。
+> 远端 `main` 已含 `0000000` 合并与本轮改动（`0c0f65e`）。
+
 
 ### 实测（`.preview/takecheck.mjs` · 无头 Chrome 真跑，不是目测）
 

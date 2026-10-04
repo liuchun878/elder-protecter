@@ -56,6 +56,10 @@ node .preview/takecheck.mjs # 无头 Chrome 真跑，12/12 全过
 `README.md`、`CHANGELOG.md`、`STATUS.md`、`plan/tasks.yaml`、`docs/本地环境与推送.md`、
 `prototype/index.html`、`prototype/css/hud.css`、`prototype/js/main.js`、`prototype/js/audio.js`
 
+> **落库**：`git push origin main` → `151d260..0c0f65e`；annotated tag **`v1.20-保卫老人`**。
+> 本机「推不上去」的凭据坑解法（`GH_CONFIG_DIR` 指到工作区内 + 代理登录）见
+> [docs/本地环境与推送.md](docs/本地环境与推送.md) 第 2.1 节。
+
 ---
 
 ### 追加：《老人的一天》剧本进固定演示 + 播放器（v1.19 · 2026-10-04）
