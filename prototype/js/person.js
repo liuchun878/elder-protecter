@@ -23,6 +23,10 @@
  * 6. **任意落座点（v1.6）**：`presence.seat` 存在时，位置与朝向直接来自落座点；
  *    坐姿由落座点的 `surfaceY` 反解（家具表面）或走 `FLOOR_SIT`（点地板 → 席地而坐）。
  *    本文件仍然**不判断业务**：落座点从哪来（点击/开关）与它无关。
+ * 7. **「取药 · 喝水 · 吃药」动作链（v1.10）**：`beginTake(eventId)` 触发一次可见动作 ——
+ *    伸手 → 端杯 → 举到嘴边喝一口 → 放下 → 拿药 → 送到嘴边 → 回自然姿态。
+ *    实现方式是**在 state 决定的基线姿态上叠加关节偏移**（偏移归零 = 与从前逐位相同），
+ *    所以走位/坐姿/躺姿/席地而坐全不受影响；它只是动作进度，不是业务状态机。
  */
 
 import * as THREE from 'three';
@@ -226,9 +230,11 @@ function buildFigure() {
 
   const pelvis = new THREE.Group();
   pelvis.position.y = D.hip;
+  pelvis.name = 'wang-ayi-pelvis';
   body.add(pelvis);
 
   const spine = new THREE.Group();
+  spine.name = 'wang-ayi-spine';
   pelvis.add(spine);
 
   /* 躯干（衬衫，完整回转体） */
@@ -268,6 +274,7 @@ function buildFigure() {
   /* 颈 + 头 */
   const neck = new THREE.Group();
   neck.position.y = D.neckY;
+  neck.name = 'wang-ayi-neck';
   spine.add(neck);
 
   const neckMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.039, 0.047, 0.11, 14), M.skin);
@@ -276,13 +283,16 @@ function buildFigure() {
 
   const head = new THREE.Group();
   head.position.y = D.headPivotY;
+  head.name = 'wang-ayi-head';
   neck.add(head);
   buildHead(head);
 
-  /* 手臂 */
+  /* 手臂（关节组都带名字：录制/无头探针要按名字取世界坐标做断言） */
   const arms = [];
   for (const s of [-1, 1]) {
+    const side = s < 0 ? 'l' : 'r';
     const shoulder = new THREE.Group();
+    shoulder.name = `wang-ayi-shoulder-${side}`;
     shoulder.position.set(s * D.shoulderSpan, D.shoulderY, 0.002);
     spine.add(shoulder);
 
@@ -293,6 +303,7 @@ function buildFigure() {
     segment(shoulder, { r0: 0.044, r1: 0.038, length: D.upperArm, material: M.cardigan });
 
     const elbow = new THREE.Group();
+    elbow.name = `wang-ayi-elbow-${side}`;
     elbow.position.y = -D.upperArm;
     shoulder.add(elbow);
     elbow.add(ball(0.038, M.cardigan, 11));
@@ -305,6 +316,7 @@ function buildFigure() {
     elbow.add(cuff);
 
     const wrist = new THREE.Group();
+    wrist.name = `wang-ayi-wrist-${side}`;
     wrist.position.y = -D.forearm;
     elbow.add(wrist);
     wrist.add(ball(0.027, M.skin, 10));
@@ -316,7 +328,9 @@ function buildFigure() {
   /* 腿（挂在 pelvis 上：躯干前倾不会带着腿跑） */
   const legs = [];
   for (const s of [-1, 1]) {
+    const side = s < 0 ? 'l' : 'r';
     const hip = new THREE.Group();
+    hip.name = `wang-ayi-hip-${side}`;
     hip.position.set(s * D.hipSpan, -D.hipOffset, 0);
     pelvis.add(hip);
     hip.add(ellipsoid(0.069, 0.066, 0.068, M.trouser, 13));
@@ -324,6 +338,7 @@ function buildFigure() {
     segment(hip, { r0: 0.065, r1: 0.051, length: D.thigh, material: M.trouser });
 
     const knee = new THREE.Group();
+    knee.name = `wang-ayi-knee-${side}`;
     knee.position.y = -D.thigh;
     hip.add(knee);
     knee.add(ball(0.048, M.trouser, 11));
@@ -331,6 +346,7 @@ function buildFigure() {
     segment(knee, { r0: 0.049, r1: 0.033, length: D.shin, material: M.trouser });
 
     const ankle = new THREE.Group();
+    ankle.name = `wang-ayi-ankle-${side}`;
     ankle.position.y = -D.shin;
     knee.add(ankle);
     ankle.add(ball(0.031, M.trouser, 10));
@@ -475,12 +491,15 @@ function buildHair(head) {
 /* ── 手：掌 + 四指并拢 + 拇指 ───────────────────────────────────── */
 
 function buildHand(parent, s) {
+  const side = s < 0 ? 'l' : 'r';
   const hand = new THREE.Group();
+  hand.name = `wang-ayi-hand-${side}`;
   hand.position.y = -0.012;
   parent.add(hand);
 
   // 掌 + 四指做成一整块（分成两块会看成「两个球粘一起」）
   const palm = ellipsoid(0.021, 0.058, 0.028, M.skin, 12);
+  palm.name = `wang-ayi-palm-${side}`;
   palm.position.set(0, -0.046, 0.002);
   hand.add(palm);
 
@@ -670,6 +689,99 @@ function targetFor(conf, { moving, walkPhase }) {
   return target;
 }
 
+/* ── 「取药 · 喝水 · 吃药」动作链（**表现层的动作进度**，不是业务状态机）──
+ *
+ * 谁触发：装配层在「机器人已到位、把药与水递到她跟前」时调一次 `beginTake(eventId)`。
+ * 本文件**不判断她该不该吃药**——该不该是 `machine.js` 的业务判定（契约 §1）；
+ * 这里只是一个「动作播到第几帧」的进度，跟 `robot.js` 的门/托盘动画同一性质。
+ *
+ * 为什么用「加法偏移」而不是再写一套姿态：
+ *   基线姿态（坐/躺/走/站）永远由 `state` 决定，动作只在它上面**加**一组关节偏移。
+ *   偏移全为 0 时，`apply()` 写进去的角度与改动前**逐位相同** —— 动作结束即精确回到原姿态，
+ *   走位、坐姿、躺姿、席地而坐、`presence.seat` 反解都不受影响。
+ *
+ * 角度哪来的：按王阿姨的臂长做了离线反解（2 骨余弦定理 + 局部搜索），
+ * 把**掌心**分别送到「机器人托盘位置」「嘴边」，不是拍脑袋试出来的数字。
+ * 托盘侧掌心 ≈ (0.18, 0.70, 0.40) m；嘴边掌心 ≈ (0.11, 1.02, 0.18) m（局部坐标，脚底原点）。
+ */
+
+/** 五个相位与时长（秒）：reach 伸手 → cup 端杯 → drink 喝一口 → pill 拿药吃 → done 回位 */
+const TAKE_PHASES = [
+  { phase: 'reach', dur: 0.7 },
+  { phase: 'cup', dur: 0.5 },
+  { phase: 'drink', dur: 1.3 },
+  { phase: 'pill', dur: 1.1 },
+  { phase: 'done', dur: 0.6 },
+];
+const TAKE_TOTAL = TAKE_PHASES.reduce((sum, p) => sum + p.dur, 0); // 4.2 s
+const TAKE_PHASE_DUR = Object.fromEntries(TAKE_PHASES.map((p) => [p.phase, p.dur]));
+const TAKE_NEXT = {
+  reach: 'cup', cup: 'drink', drink: 'pill', pill: 'done', done: 'idle',
+};
+
+/**
+ * 动作关键帧：t 为动作链内的绝对秒数，与上面的相位边界对齐
+ * （reach 收在 0.70、cup 收在 1.20、drink 收在 2.50、pill 收在 3.60、done 收在 4.20）。
+ * r / l 是**相对基线姿态的加法偏移** `[肩前后, 肩内外, 肘屈伸]`（弧度）；
+ * head 里的 headX 正 = 低头、负 = 仰头，headY 正/负 = 头向左/右转。
+ */
+const TAKE_KEYS = [
+  { t: 0.00, r: [0.00, 0.00, 0.00], l: [0.00, 0.00, 0.00], headX: 0.00, headY: 0.00, neckX: 0.00, spineX: 0.00 },
+  // ① reach：右臂前伸到托盘（这一步的位移最大，肉眼一眼能看见）
+  { t: 0.70, r: [0.05, -0.01, -0.70], l: [0.00, 0.00, 0.00], headX: 0.14, headY: 0.04, neckX: 0.05, spineX: 0.03 },
+  // ② cup：手在托盘上端住杯子（肘略收，像握住杯身）
+  { t: 1.20, r: [-0.21, -0.05, -0.40], l: [0.00, 0.00, 0.00], headX: 0.10, headY: 0.04, neckX: 0.03, spineX: 0.02 },
+  // ③ drink：举到嘴边（低头就杯）→ 喝一口（再低一点）→ 抬回来
+  { t: 1.75, r: [-0.29, -1.50, -1.84], l: [0.00, -0.30, -0.90], headX: 0.17, headY: -0.16, neckX: 0.04, spineX: 0.02 },
+  { t: 2.08, r: [-0.36, -1.50, -1.96], l: [0.00, -0.34, -0.95], headX: 0.26, headY: -0.18, neckX: 0.06, spineX: 0.03 },
+  { t: 2.34, r: [-0.29, -1.50, -1.82], l: [0.00, -0.30, -0.90], headX: 0.14, headY: -0.16, neckX: 0.03, spineX: 0.02 },
+  { t: 2.50, r: [-0.30, -1.50, -1.86], l: [0.00, -0.30, -0.90], headX: 0.18, headY: -0.16, neckX: 0.04, spineX: 0.02 },
+  // ④ pill：放下杯子、手回托盘拿药 → 送到嘴边 → 仰头咽下
+  { t: 2.95, r: [-0.12, -0.02, -0.50], l: [0.00, 0.00, 0.00], headX: 0.16, headY: 0.02, neckX: 0.05, spineX: 0.04 },
+  { t: 3.35, r: [-0.34, -1.50, -1.92], l: [0.00, -0.14, -0.40], headX: 0.12, headY: -0.12, neckX: 0.03, spineX: 0.02 },
+  { t: 3.60, r: [-0.36, -1.50, -1.96], l: [0.00, -0.16, -0.44], headX: -0.10, headY: -0.10, neckX: -0.02, spineX: 0.01 },
+  // ⑤ done：回自然姿态（偏移归零 → 与动作前逐位相同）
+  { t: 4.20, r: [0.00, 0.00, 0.00], l: [0.00, 0.00, 0.00], headX: 0.00, headY: 0.00, neckX: 0.00, spineX: 0.00 },
+];
+
+/** 全零偏移（动作不活跃时**共用同一个常量对象**，不每帧新建） */
+const NO_GESTURE = Object.freeze({
+  armX: Object.freeze([0, 0]),
+  armZ: Object.freeze([0, 0]),
+  elbowX: Object.freeze([0, 0]),
+  headX: 0,
+  headY: 0,
+  neckX: 0,
+  spineX: 0,
+});
+
+/** 段内用平滑起停（3u²-2u³）：每段都「起步慢、收尾慢」，看着才像有人在做动作 */
+function smoothstep(u) {
+  const x = Math.min(1, Math.max(0, u));
+  return x * x * (3 - 2 * x);
+}
+
+/** 取动作链在 t 秒处的关节偏移（相位边界处两段共用同一关键帧 → 动作连续不跳变） */
+function takeGesture(t) {
+  const time = Math.min(Math.max(0, t), TAKE_TOTAL);
+  let i = 0;
+  while (i < TAKE_KEYS.length - 2 && time > TAKE_KEYS[i + 1].t) i += 1;
+  const a = TAKE_KEYS[i];
+  const b = TAKE_KEYS[i + 1];
+  const k = smoothstep((time - a.t) / ((b.t - a.t) || 1));
+  const mix = (p, q) => p + (q - p) * k;
+  return {
+    // 索引 0 = 左臂、索引 1 = 右臂（与 buildFigure 的 s = -1 / +1 一致）；右臂为主、左臂轻扶
+    armX: [mix(a.l[0], b.l[0]), mix(a.r[0], b.r[0])],
+    armZ: [mix(a.l[1], b.l[1]), mix(a.r[1], b.r[1])],
+    elbowX: [mix(a.l[2], b.l[2]), mix(a.r[2], b.r[2])],
+    headX: mix(a.headX, b.headX),
+    headY: mix(a.headY, b.headY),
+    neckX: mix(a.neckX, b.neckX),
+    spineX: mix(a.spineX, b.spineX),
+  };
+}
+
 /* ── 对外：createPerson ─────────────────────────────────────────── */
 
 function lerp(a, b, k) {
@@ -703,7 +815,63 @@ export function createPerson(sceneApi) {
     thigh: [0, 0],
     knee: [0, 0],
     ankle: [0, 0],
+    /** 「取药·喝水·吃药」动作链当前叠加的关节偏移（全零 = 与动作前完全一致） */
+    gesture: NO_GESTURE,
   };
+
+  /** 动作链进度（表现层，不是业务状态；`eventId` 只是原样带过来给外部对账） */
+  const action = { active: false, eventId: null, phase: 'idle', t: 0, elapsed: 0 };
+
+  /** 收尾：偏移归零、相位回 idle */
+  function endTake() {
+    action.active = false;
+    action.eventId = null;
+    action.phase = 'idle';
+    action.t = 0;
+    action.elapsed = 0;
+  }
+
+  function advanceAction(step) {
+    if (!action.active) return;
+    action.t += step;
+    action.elapsed += step;
+    // 一个 dt 可能跨过多个相位；顺序恒定 reach→cup→drink→pill→done→idle
+    while (action.active) {
+      const dur = TAKE_PHASE_DUR[action.phase] || 0;
+      if (action.t < dur) break;
+      if (action.phase === 'done') { endTake(); break; }
+      action.t -= dur;
+      action.phase = TAKE_NEXT[action.phase];
+    }
+  }
+
+  /**
+   * 开始一次「取药 · 喝水 · 吃药」动作（装配层在机器人到位、递上药与水时调一次）。
+   * 同一个 eventId 重复调用不会重头播；换 eventId 则重新开始。
+   * @param {string|null} eventId 业务事件 id（本文件只原样保存，不做任何判断）
+   */
+  function beginTake(eventId) {
+    const id = eventId == null ? null : String(eventId);
+    if (action.active && action.eventId === id) return getAction();
+    action.active = true;
+    action.eventId = id;
+    action.phase = 'reach';
+    action.t = 0;
+    action.elapsed = 0;
+    return getAction();
+  }
+
+  /** 动作进度快照（只读）：`t` = 当前相位内已过的秒数 */
+  function getAction() {
+    return {
+      active: action.active,
+      eventId: action.eventId,
+      phase: action.phase,
+      t: action.t,
+      elapsed: action.elapsed,
+      total: TAKE_TOTAL,
+    };
+  }
 
   /**
    * 走位（v1.9）：沿 navgrid 折线走，不再两点一线。
@@ -761,10 +929,12 @@ export function createPerson(sceneApi) {
   }
 
   function apply() {
-    spine.rotation.x = view.spineX;
-    neck.rotation.x = view.neckX;
-    head.rotation.y = view.headY + Math.sin(view.time * 0.55) * 0.05;
-    head.rotation.x = view.pose === 'sit' && !view.walking ? 0.04 : 0;
+    /** 动作链是**加法偏移**：不活跃时 g 的每一项都是 0，写进去的角度与从前逐位相同 */
+    const g = view.gesture;
+    spine.rotation.x = view.spineX + g.spineX;
+    neck.rotation.x = view.neckX + g.neckX;
+    head.rotation.y = view.headY + g.headY + Math.sin(view.time * 0.55) * 0.05;
+    head.rotation.x = (view.pose === 'sit' && !view.walking ? 0.04 : 0) + g.headX;
     body.rotation.x = view.bodyX;
     root.position.y = view.y;
     for (let i = 0; i < 2; i += 1) {
@@ -772,9 +942,9 @@ export function createPerson(sceneApi) {
       legs[i].hip.rotation.x = view.thigh[i];
       legs[i].knee.rotation.x = view.knee[i];
       legs[i].ankle.rotation.x = view.ankle[i];
-      arms[i].shoulder.rotation.x = view.armX[i];
-      arms[i].shoulder.rotation.z = side * view.armZ[i];
-      arms[i].elbow.rotation.x = view.elbowX[i];
+      arms[i].shoulder.rotation.x = view.armX[i] + g.armX[i];
+      arms[i].shoulder.rotation.z = side * (view.armZ[i] + g.armZ[i]);
+      arms[i].elbow.rotation.x = view.elbowX[i] + g.elbowX[i];
       arms[i].elbow.rotation.z = side * 0.06;
     }
   }
@@ -810,11 +980,16 @@ export function createPerson(sceneApi) {
     const presence = state.presence;
     const step = Math.max(0, dt);
     view.time += step;
+    // 动作链按真实 dt 推进（只在场时推进）；相位推进与姿态解算分开，姿态仍只由 state 决定
+    advanceAction(step);
 
     if (!presence.home) {
       root.visible = false;
       view.moving = false;
       view.walking = false;
+      // 人不在家，「取药·喝水·吃药」不可能继续：直接收尾（偏移归零）
+      if (action.active) endTake();
+      view.gesture = NO_GESTURE;
       return;
     }
     root.visible = true;
@@ -878,6 +1053,8 @@ export function createPerson(sceneApi) {
     const k = 1 - Math.exp(-step * rate);
     view.pose = conf.pose;
     view.walking = view.moving;
+    // 动作偏移：活跃时按动作链取，结束（或未开始）时用全零常量 → 精确回到基础姿态
+    view.gesture = action.active ? takeGesture(action.elapsed) : NO_GESTURE;
     view.y = lerp(view.y, target.y, k);
     view.bodyX = lerp(view.bodyX, target.bodyX, k);
     view.spineX = lerp(view.spineX, target.spineX, k);
@@ -895,7 +1072,13 @@ export function createPerson(sceneApi) {
     apply();
   }
 
-  return { group: root, update, id: 'wang-ayi' };
+  const api = { group: root, update, id: 'wang-ayi', beginTake, getAction };
+  /**
+   * 自动化入口（无头探针 / 录屏脚本用）：`object3D.userData.person` 直接拿到同一组 API。
+   * 只是把**已经导出**的接口挂到场景图上的角色对象上，不额外放宽任何权限、不新增业务规则。
+   */
+  root.userData.person = api;
+  return api;
 }
 
 export const person = { createPerson };

@@ -703,6 +703,57 @@ tasks:
            ⚠️ robot-3d 与新蛋形机的来源提交都属用户仓库；`grandma-web/` 是另一位同事的产物，本分支未改动。"
     status: done
 
+  # ═══ 分支 0000000（v1.14 · 与 YuMi-06 的机器人合并 + 老人吃药行为 + 两段童声）═══
+  - id: R15
+    title: 与 YuMi-06 的机器人合并（注水 + 蓝/绿眼表情 + setCargo）
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/robot.js, 契约-接口.md]
+    depends_on: [R14]
+    acceptance: "造型与动作以远端 main 的 0000000/index.html（= 111111.00/index.html，YuMi-06 2026-10-04 修复版）为准：对开门 + 导轨托盘 + 机器人停稳后**先给空杯注水约 2.5 s**（水面 0→0.8）+ 屏幕『蓝眼横线』→『取走后绿眼笑弧』；新增 robot.setCargo({cupTaken,pillTaken}) 只改可见性；robot.update(state,dt) 仍是 state 的纯函数；3D 里零文字几何体；行走/回桩/感应光锥/夜晚档一条不少"
+    note: "用户口径「重新合并一下 3D 场景与 YuMi-06 的机器人，分支名字是 0000000」。
+           ⚠️ 起因是本地从未 fetch：YuMi-06 10:12–10:15 把修复版推到远端 main（90c73f9），
+           新增 0000000/ 目录并修了语音队列（speech never cut off）；本地工作树当时没有这个目录。
+           ⚠️ 那版屏幕上的文字（请取药/已服药）依旧不采纳：3D 里不渲染文字、界面不得出现「已服下」。"
+    status: doing
+  - id: H15
+    title: 王阿姨「端杯 · 喝水 · 拿药吃」动作链（beginTake / getAction）
+    line: H
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/person.js, 契约-接口.md]
+    depends_on: [H4]
+    acceptance: "beginTake(eventId) 触发后按 idle→reach→cup→drink→pill→done→idle 走完约 4.2 s，右臂有可见的前伸/举杯/回位位移（末梢位移 > 0.2 m，回位误差 < 0.02 m）；getAction() 只读；不新增业务规则（该不该吃药仍由 machine.js 决定）；2D 降级通道不受影响"
+    note: "用户口径「当吃药时间到，老人会拿起杯子喝水和拿药吃」。
+           动作进度是**表现层**的，不是业务状态机；水杯/药的显隐由装配层调 robot.setCargo 处理。"
+    status: doing
+  - id: R16
+    title: 语音队列（不打断）+ 预录童声默认播
+    line: R
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/audio.js, 契约-接口.md]
+    depends_on: [R13]
+    acceptance: "audio.speak 在正在播时**排队而不是打断**；保险时长 = 真实时长 + 2.5 s；pendingSpeeches() 可查队列；?voiceclip=0 → 一律走 TTS 合规措辞（默认播 assets/voice/p1..p3.mp3）"
+    note: "照搬 YuMi-06 在 0000000/index.html 里的修复（旧实现下『开始吃药』与『吃完药』相隔几秒，第二句会被掐掉）。
+           ⚠️ 默认播录音是**用户裁定的显式红线偏离**：p1 含固定粒数『这三粒药』、p2 是『药都吃完啦』（= 已服下）。"
+    status: doing
+  - id: S19
+    title: 装配「到点吃药」：动作链触发 + 两段童声 + setCargo 同步
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/main.js]
+    depends_on: [R15, H15, R16]
+    acceptance: "有未确认事件且机器人到停靠点时调用 person.beginTake（每次事件一次）；相位 cup → 播 p2、相位 done → 播 p3（每个事件各一次）；相位越过后调 robot.setCargo({cupTaken,pillTaken})；debug.reset() 清空已说集合；不新增业务规则"
+    note: "判据与 v1.11 的 urgeAtSide 同一套（state.activeEventId + 到停靠点 ≤0.25 m）。"
+    status: doing
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

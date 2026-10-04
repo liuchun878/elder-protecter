@@ -3,25 +3,49 @@
 > **当前进度板。** 任何改变状态或阻塞的改动都必须同步更新本文件（见 [AGENTS.md](AGENTS.md) 第 7 节）。
 > 任务级真相在 [plan/tasks.yaml](plan/tasks.yaml)；本文件只记"现在到哪了、谁卡住了"。
 
-**最后更新**：2026-10-03 ｜ **更新人**：H（队长）
+**最后更新**：2026-10-04 ｜ **更新人**：H（队长）
 
 ---
 
-> 📦 **本分支本地状态（2026-10-03 收尾 · 明早可直接推）**
-> 分支 `feat/s-click-seat` 在 `ed919cc` 之上**三个提交**，**工作树干净**：
-> ① `feat: 可点击 3D 场景三轮收口 —— 看得见/走得对 + 换 PR #2 机器人 + 夜晚与童声 + 借 robot-3d 细节`
-> ② `feat(s): 交互场景页更名为「保卫老人.html」（保留 suite.html 一跳别名）`
-> ③ `docs: 记录本分支最终本地状态（… · 补丁搬运方案 · 隐私处理）`
+## 🔀 本轮（分支 `0000000` · 契约 v1.14）——与 YuMi-06 的机器人合并 + 老人吃药行为 + 两段童声
+
+用户三条口径：**①「重新合并一下 3D 场景与 YuMi-06 的机器人，分支名字是 `0000000`」
+②「当吃药时间到，老人会拿起杯子喝水和拿药吃」③「当吃药和吃完药的时候，机器人会说剩下两段话」**。
+
+**先纠一件事（不是合并丢了内容，是本地没 fetch）**：YuMi-06 在 **2026-10-04 10:12–10:15**
+把修好的机器人推到了**远端 `main`（`90c73f9`）**——新增 `0000000/`（`index.html` + `vendor/three.min.js`
++ `voice/p1..p3.mp3`），并修了**语音队列**（`robot: voice queue fix (speech never cut off)`，
+同时打在 `111111.00/` 与 `suite-3d/robot/`）。`0000000/index.html` 与 `111111.00/index.html`
+**逐字节相同**。本地此前从未 fetch，工作树里根本没有这个目录 → 已 `git merge origin/main` 并入。
+
+| 项 | 现状 |
+|---|---|
+| **R** | `robot.js` 合并 YuMi-06 的版本：停稳后**先给空杯注水约 2.5 s**、屏幕「蓝眼横线 → 取走后绿眼笑弧」（**依旧零文字**）、新增 `setCargo({cupTaken,pillTaken})`（只改可见性）；行走 / 回桩 / 感应光锥 / 夜晚档一条不少 |
+| **H** | `person.js` 新增 `beginTake(eventId)` / `getAction()`：`idle→reach→cup→drink→pill→done` 的**端杯 · 喝水 · 拿药吃**动作链（**表现层**，不是业务状态机） |
+| **S** | `main.js` 新增 `syncTake()`：到点且机器人到停靠点 → 触发动作链 → 相位 `cup` 播 **p2**、相位 `done` 播 **p3**；`controls`/拍摄模式不受影响 |
+| **R** | `audio.js` 改成**语音队列（正在播的绝不打断）**，保险时长 = 真实时长 + 2.5 s；预录童声 `p1..p3` **默认播** |
+| ⚠️ 红线偏离 | 用户裁定**默认播**那三段录音：`p1` 含固定粒数「这三粒药」、`p2` 是「药都吃完啦」（= 已服下）。合规兜底：网址加 **`?voiceclip=0`** → 走童声 TTS + 合规措辞。**责任在项目所有者** |
+| 契约 | `契约-接口.md` 升 **v1.14**（只加函数 / 只加表现，未改任何已有字段名、签名与状态语义） |
+
+> ⚠️ **仍未推送**：本地 `main` 与分支 `0000000` 都还没推到 GitHub（缺有效凭据）。
+> 远端 `main` 现在停在 YuMi-06 的 `90c73f9`，**不含**我们这轮的合并与三处改动。
+
+---
+
+> 📦 **本分支本地状态（2026-10-04 更新 · 记忆细节已按实测更正）**
+> 分支 `feat/s-click-seat` 在 `ed919cc` 之上**4 个提交**；本地 `main` 已把三支（`feat/robot-demo` / `feat/p1-skeleton` /
+> `feat/s-click-seat`）全部合并（`c22fe4e` → `e29ef77` → `1e1d9d6`，另有 `a3e326a` 合并记录、`c3e921d` .gitignore 修复）。
+> 工作树干净；两条分支都是**快进可推**。
 >
-> **明早怎么推（二选一）**：
-> 1. **联网 + 有凭据**（最省事）：`cd <仓库> && git push origin feat/s-click-seat`
->    （Username 填 `liuchun878`，Password 填 PAT：经典令牌勾 `repo`，或细粒度令牌给本仓库 **Contents: Read and write**）
-> 2. **这台机器连不上 GitHub**：把 `.tools/0001/0002/0003-*.patch` 拷到能连的机器 → `git am` 那三个补丁 → `git push`
->    （补丁已实测：在干净分支上打完，文件树与本地**逐字节一致**）
+> **⚠️ 更正我先前的错误结论**：本机**不是"没有 GitHub 凭据"** ——
+> ① `gh` **已安装**在 **`/Users/liuchun/.local/bin/gh`**（不在默认 PATH，所以早先搜不到）；
+> ② `~/.gitconfig` 已把 github.com 的凭据助手指向 `gh auth git-credential`（**git 不需要 PAT**）；
+> ③ 但**这个令牌当前是失效的**（走代理实测 `gh auth status` → *The token in default is invalid*，`gh api user` → `Requires authentication`）；
+> ④ **访问 GitHub 必须走本地代理 `http://127.0.0.1:7890`**（直连会超时）。
+> 修法一条命令：`HTTPS_PROXY=http://127.0.0.1:7890 /Users/liuchun/.local/bin/gh auth login -h github.com`
+> 详细备忘（环境/代理/凭据/端口/自检清单）见 **[docs/本地环境与推送.md](docs/本地环境与推送.md)**。
 >
-> ⚠️ **作者邮箱已改成 GitHub noreply**（`liuchun878@users.noreply.github.com`，并写进本仓库的本地 git 配置）——
-> 这样明早推上去的 3 个提交不带个人邮箱。注意：**更早的、已推送的提交里仍有个人邮箱与本机路径**，
-> 要彻底抹掉需重写远端历史并 force-push，本分支**没有**擅自做（要不要做由你定）。
+> ⚠️ **作者邮箱已改成 GitHub noreply**
 
 ## 当前里程碑
 
