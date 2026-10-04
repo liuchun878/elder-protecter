@@ -797,6 +797,18 @@ tasks:
            侧面全被挡死时退到沿轴的**过肩机位**。"
     status: done
 
+  - id: S22
+    title: 家属端改页内「手机屏」+ 所有小窗口可点击收起/展开
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/index.html, prototype/css/hud.css, prototype/js/main.js]
+    depends_on: [S20]
+    acceptance: "左下角按钮开出**页内手机壳**（iframe 同源加载 ?view=family，默认收起，实测展开 392×676）；展开时右下控制台自动收起让位；大字卡/控制台/控制条/手机屏各有一颗圆片，点一下收起、再点展开（body 状态 false→true→false，要素高 0px/33px）；拍摄模式不挂载；零控制台异常"
+    note: "用户口径「① 家属端副屏可以用一个手机屏幕展示 ② 所有小窗口都可以点击收起打开」。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

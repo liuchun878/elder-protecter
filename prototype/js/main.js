@@ -95,13 +95,49 @@ function mountBanner() {
 }
 
 /* ── 左下角演示控制条（v1.14 · 用户口径「左下角一个按键弹出家属端副屏」+「可切换模式」）──
- * 两个控件：① 模式分段（自主点击 / 固定演示）　② 家属端副屏按钮。
- * 它只转调已有命令与场景 API，不新增任何业务规则。 */
-function openFamilyScreen() {
-  const url = new URL('./?view=family', window.location.href).href;
-  // 副屏 = 一块手机大小的独立窗口；被弹窗拦截就退化成新标签页，不让按钮变成哑巴
-  const win = window.open(url, 'medbot-family', 'width=460,height=940,menubar=no,toolbar=no,noopener');
-  if (!win) window.open(url, '_blank', 'noopener');
+ * v1.16：**副屏改成页内「手机屏」**（用户口径「家属端副屏可以用一个手机屏幕展示」），
+ * 并且**所有小窗口都能点一下收起/展开**（用户口径「所有小窗口都可以点击收起打开」）。 */
+
+/** 页内手机壳（懒创建；`iframe` 同源加载 `?view=family`，零外部请求） */
+function ensurePhone() {
+  let phone = document.getElementById('phone');
+  if (phone) return phone;
+  phone = document.createElement('div');
+  phone.className = 'phone is-collapsed';
+  phone.id = 'phone';
+  phone.innerHTML = [
+    '<div class="phone__frame">',
+    '<div class="phone__notch"></div>',
+    '<div class="phone__title">家属端副屏（点右上 ⌄ 展开）</div>',
+    '<iframe class="phone__screen" title="家属端副屏（手机屏）" src="./?view=family"></iframe>',
+    '</div>',
+  ].join('');
+  document.body.appendChild(phone);
+  return phone;
+}
+
+/**
+ * 给任意窗口加一颗「收起 / 展开」圆片（用户口径：所有小窗口都可以点击收起打开）。
+ * 只是加一个 class + 同步 `aria-expanded`，不改任何布局逻辑与点击目标。
+ */
+function addCollapseToggle({ target, className, label, bodyClass = null, onToggle = null }) {
+  if (!target) return null;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `collapse-toggle ${className}`;
+  b.textContent = '▾';
+  b.title = `${label}：收起 / 展开`;
+  b.setAttribute('aria-label', `${label} 收起或展开`);
+  b.setAttribute('aria-expanded', 'true');
+  b.addEventListener('click', () => {
+    const collapsed = target.classList.toggle('is-collapsed');
+    if (bodyClass) document.body.classList.toggle(bodyClass, collapsed);
+    b.textContent = collapsed ? '▸' : '▾';
+    b.setAttribute('aria-expanded', String(!collapsed));
+    if (onToggle) onToggle(collapsed);
+  });
+  document.body.appendChild(b);
+  return b;
 }
 
 function mountDock({ getMode, setMode, onFamily }) {
@@ -126,7 +162,7 @@ function mountDock({ getMode, setMode, onFamily }) {
   const family = document.createElement('button');
   family.type = 'button';
   family.className = 'dock__button dock__button--family';
-  family.textContent = '家属端副屏';
+  family.textContent = '家属端手机屏';
   family.addEventListener('click', onFamily);
   root.appendChild(family);
 
@@ -353,11 +389,53 @@ function startMainView() {
   /* ── v1.14：可切换模式的平台（自主点击 / 固定演示）+ 左下角控制条 + 家属端副屏 ── */
   let mode = MODE;
   let prevCamMode = null;
+
+  /* v1.16：页内「手机屏」家属端 + 所有小窗口的收起/展开圆片（拍摄模式下不挂，免得进画面） */
+  let phone = null;
+  let phoneToggle = null;
+  function togglePhone(force) {
+    if (!phone) return null;
+    const next = typeof force === 'boolean' ? force : phone.classList.contains('is-collapsed'); // 收起→展开
+    phone.classList.toggle('is-collapsed', !next);
+    if (phoneToggle) {
+      phoneToggle.textContent = next ? '▾' : '▸';
+      phoneToggle.setAttribute('aria-expanded', String(next));
+    }
+    return next;
+  }
+  if (!FILM_MODE) {
+    phone = ensurePhone();
+    phoneToggle = addCollapseToggle({ target: phone, className: 'collapse-toggle--phone', label: '家属端副屏' });
+    phoneToggle.textContent = '▸';
+    phoneToggle.setAttribute('aria-expanded', 'false');
+    addCollapseToggle({
+      target: document.getElementById('hud'), className: 'collapse-toggle--hud', label: '长者端大字卡', bodyClass: 'is-hud-collapsed',
+    });
+    addCollapseToggle({
+      target: document.getElementById('console'), className: 'collapse-toggle--console', label: '演示控制台', bodyClass: 'is-console-collapsed',
+    });
+  }
+
   const dock = mountDock({
     getMode: () => mode,
     setMode: (next) => applyMode(next),
-    onFamily: openFamilyScreen,
+    onFamily: () => {
+      const open = togglePhone();
+      // 打开手机屏时把右下控制台收起来：两块面板都在右侧，会互相压住
+      if (open) {
+        const consoleEl = document.getElementById('console');
+        if (consoleEl && !consoleEl.classList.contains('is-collapsed')) {
+          const t = document.querySelector('.collapse-toggle--console');
+          if (t) t.click();
+        }
+      }
+    },
   });
+  if (!FILM_MODE) {
+    addCollapseToggle({
+      target: document.getElementById('dock'), className: 'collapse-toggle--dock', label: '演示控制条', bodyClass: 'is-dock-collapsed',
+    });
+  }
   const script = createDemoScript({
     clock, presence, store, person, scene, robot,
     onBeat: (beat) => dock.setHint(beat.label),
