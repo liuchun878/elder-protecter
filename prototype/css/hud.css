@@ -1147,3 +1147,131 @@ body.is-dock-collapsed .collapse-toggle--dock {
   background: #e2493f;
   box-shadow: 0 0 0 2px rgba(226, 73, 63, 0.25);
 }
+
+/* ══ v1.19：固定演示「播放器」+ 字幕条（用户口径：做成像视频一样能播的片子，随时暂停讲解）══ */
+.player {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 75;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(14, 18, 22, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+  color: #eef6f7;
+  font-size: 13px;
+  min-width: min(720px, 52vw);
+}
+
+.player__btn {
+  border: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #eef6f7;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.player__btn--play {
+  width: 42px;
+  height: 42px;
+  background: var(--brand, #2f7f86);
+  font-size: 15px;
+}
+
+.player__btn:hover {
+  filter: brightness(1.15);
+}
+
+.player__mid {
+  flex: 1;
+  min-width: 220px;
+}
+
+.player__chapter {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player__track {
+  margin-top: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.player__track > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--brand, #2f7f86);
+  transition: width 0.25s ease;
+}
+
+.player__count {
+  font-variant-numeric: tabular-nums;
+  color: #9fb3b8;
+  min-width: 44px;
+  text-align: right;
+}
+
+body.is-paused .player__btn--play {
+  background: #d8a12a;
+}
+
+/* 字幕条：旁白 + 小护 + 奶奶，三种文本分层显示，底部居中，大字（适老化） */
+.caption {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 74;
+  width: min(980px, 74vw);
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: rgba(10, 14, 17, 0.78);
+  color: #f4f9fa;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  pointer-events: none;
+}
+
+.caption.on {
+  opacity: 1;
+}
+
+.caption__narration {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+  font-style: italic;
+  color: #b9cdd2;
+  line-height: 1.5;
+}
+
+.caption__line {
+  margin: 2px 0;
+  line-height: 1.45;
+}
+
+.caption__line--robot {
+  font-size: 19px;
+  font-weight: 600;
+  color: #8fe3f0;
+}
+
+.caption__line--elder {
+  font-size: 17px;
+  color: #ffd9a8;
+}

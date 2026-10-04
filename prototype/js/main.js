@@ -24,7 +24,7 @@ import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
 import { createDemoScript } from './demo-script.js';
 
-const BUILD = 'v1.18';
+const BUILD = 'v1.19';
 if (typeof console !== 'undefined') console.info(`[medbot] build ${BUILD}`);
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
@@ -44,10 +44,11 @@ function seedDemoData() {
    * `plan.startDate > 事件日期`，`schedule.materializeToday()` 就会一条事件都不物化，
    * 于是**到点永远不触发**（2026-10-04 实测复现：events=0、activeEventId=null）。 */
   const startDate = DEFAULT_DEMO_START.slice(0, 10);
-  plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', startDate, slots: [{ time: '08:00', label: '早' }], notes: '饭后服' });
-  plan.create({ name: '二甲双胍', doseText: '0.5g', kind: 'regular', startDate, slots: [{ time: '12:00', label: '午' }], notes: '随餐' });
-  plan.create({ name: '华法林', doseText: '3mg', kind: 'regular', startDate, slots: [{ time: '20:00', label: '晚' }], notes: '' });
-  plan.create({ name: '阿托伐他汀钙', doseText: '20mg', kind: 'regular', startDate, slots: [{ time: '20:30', label: '睡前' }], notes: '睡前服' });
+  plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', startDate, slots: [{ time: '07:30', label: '晨起' }], notes: '饭后服' });
+  plan.create({ name: '二甲双胍', doseText: '0.5g', kind: 'regular', startDate, slots: [{ time: '10:00', label: '上午' }], notes: '随餐' });
+  plan.create({ name: '碳酸钙D3', doseText: '1片', kind: 'regular', startDate, slots: [{ time: '12:30', label: '午间' }], notes: '饭后半小时' });
+  plan.create({ name: '阿司匹林', doseText: '100mg', kind: 'regular', startDate, slots: [{ time: '16:00', label: '下午' }], notes: '温水送服' });
+  plan.create({ name: '阿托伐他汀钙', doseText: '20mg', kind: 'regular', startDate, slots: [{ time: '20:00', label: '晚间' }], notes: '睡前服' });
 }
 
 /* ── 顶栏提示（离线 / 存储不可用 / 3D 降级）────────────────────────── */
@@ -143,6 +144,87 @@ function addCollapseToggle({ target, className, label, bodyClass = null, onToggl
   return b;
 }
 
+
+/* ── v1.19：固定演示的「播放器」（用户口径：做成一段可以像视频一样播放的片子，
+ * 并且**随时可以暂停**方便讲解）──────────────────────────────────────────
+ * 它只转调剧本执行器的命令（play/pause/restart/jump），不写任何业务规则。
+ * 拍摄模式（?film=1）下不挂载 —— 录屏时要的是干净画面。 */
+function mountPlayer({ script, onSpeak }) {
+  const root = document.getElementById('player');
+  if (!root) return null;
+  root.hidden = false;
+  root.innerHTML = [
+    '<button type="button" class="player__btn" data-act="prev" title="上一场">⟨</button>',
+    '<button type="button" class="player__btn player__btn--play" data-act="toggle" title="播放 / 暂停（空格）">▶</button>',
+    '<button type="button" class="player__btn" data-act="next" title="下一场">⟩</button>',
+    '<button type="button" class="player__btn" data-act="restart" title="重播">↻</button>',
+    '<div class="player__mid"><div class="player__chapter"></div>',
+    '<div class="player__track"><i></i></div></div>',
+    '<div class="player__count"></div>',
+  ].join('');
+
+  const btn = (act) => root.querySelector(`[data-act="${act}"]`);
+  const glyph = () => {
+    const st = script.status();
+    btn('toggle').textContent = st.paused ? '▶' : '❚❚';
+  };
+
+  btn('toggle').addEventListener('click', () => { script.toggle(); glyph(); });
+  btn('restart').addEventListener('click', () => { script.restart(); glyph(); });
+  btn('prev').addEventListener('click', () => {
+    const st = script.status();
+    script.jump(Math.max(0, (st.index < 0 ? 0 : st.index) - 1));
+    glyph();
+  });
+  btn('next').addEventListener('click', () => {
+    const st = script.status();
+    script.jump(Math.min(st.total - 1, (st.index < 0 ? 0 : st.index) + 1));
+    glyph();
+  });
+
+  let lastSpoken = -1;
+  return {
+    /** 剧本拍子变化时刷新播放器与字幕（由 demo-script 的 onBeat 回调驱动） */
+    update(st) {
+      const { index = -1, total = 1, beat = null, paused = false } = st || {};
+      root.querySelector('.player__chapter').textContent = beat ? beat.label : '（待开始）';
+      root.querySelector('.player__count').textContent = `${Math.max(1, index + 1)} / ${total}`;
+      const pct = total > 1 ? (Math.max(0, index) / (total - 1)) * 100 : 0;
+      root.querySelector('.player__track > i').style.width = `${pct}%`;
+      glyph();
+      document.body.classList.toggle('is-paused', Boolean(paused));
+      if (beat && index !== lastSpoken) {
+        lastSpoken = index;
+        if (onSpeak) onSpeak(beat);
+      }
+    },
+  };
+}
+
+/** 字幕条：旁白（斜体小字）+ 小护台词 + 老人台词（用户剧本里的三种文本） */
+function mountCaptions() {
+  const el = document.createElement('div');
+  el.id = 'caption';
+  el.className = 'caption';
+  el.innerHTML = [
+    '<p class="caption__narration"></p>',
+    '<p class="caption__line caption__line--robot"></p>',
+    '<p class="caption__line caption__line--elder"></p>',
+  ].join('');
+  document.body.appendChild(el);
+  return {
+    update(beat) {
+      const n = el.querySelector('.caption__narration');
+      const r = el.querySelector('.caption__line--robot');
+      const e = el.querySelector('.caption__line--elder');
+      n.textContent = beat && beat.narration ? beat.narration : '';
+      r.textContent = beat && beat.robot ? `小护：${beat.robot}` : '';
+      e.textContent = beat && beat.elder ? `奶奶：${beat.elder}` : '';
+      el.classList.toggle('on', Boolean(beat));
+    },
+  };
+}
+
 function mountDock({ getMode, setMode, onFamily }) {
   const root = document.getElementById('dock');
   if (!root) return { setHint() {}, refresh() {} };
@@ -165,8 +247,8 @@ function mountDock({ getMode, setMode, onFamily }) {
   // v1.16：版本角标 —— 演示/答辩时一眼确认浏览器拿到的是**新版**（缓存排查用）
   const version = document.createElement('span');
   version.className = 'dock__version';
-  version.textContent = 'v1.18';
-  version.title = '当前构建：v1.18（2026-10-04）· 若这里不是 v1.18，请 Cmd+Shift+R 强刷';
+  version.textContent = 'v1.19';
+  version.title = '当前构建：v1.19（2026-10-04）· 若这里不是 v1.19，请 Cmd+Shift+R 强刷';
   root.appendChild(version);
   const family = document.createElement('button');
   family.type = 'button';
@@ -503,10 +585,32 @@ function startMainView() {
       target: document.getElementById('dock'), className: 'collapse-toggle--dock', label: '演示控制条', bodyClass: 'is-dock-collapsed',
     });
   }
+  let captions = null;
+  let player = null;
   const script = createDemoScript({
     clock, presence, store, person, scene, robot,
-    onBeat: (beat) => dock.setHint(beat.label),
+    onBeat: (st) => {
+      dock.setHint(st.beat ? st.beat.label : '');
+      if (captions) captions.update(st.beat);
+      if (player) player.update(st);
+    },
   });
+  if (!FILM_MODE) {
+    captions = mountCaptions();
+    player = mountPlayer({
+      script,
+      // 小护的台词：朗读出来（童声），同时字幕已在 captions 里显示
+      onSpeak: (beat) => { if (beat.robot) audio.speak(beat.robot, { force: true, style: 'child' }); },
+    });
+    // 空格 = 播放 / 暂停（讲解时最顺手的一个键）
+    window.addEventListener('keydown', (ev) => {
+      if (ev.code === 'Space' && mode === 'scripted' && !/INPUT|TEXTAREA/.test(ev.target.tagName)) {
+        ev.preventDefault();
+        script.toggle();
+        if (player) player.update(script.status());
+      }
+    });
+  }
   function applyMode(next) {
     mode = next === 'scripted' ? 'scripted' : 'interactive';
     document.body.classList.toggle('is-scripted', mode === 'scripted');

@@ -858,6 +858,20 @@ tasks:
     note: "用户口径「需要在手机端设置一个消息弹出提示家属」。何时通知仍由 escalate.js 决定（T+180s 未确认）。"
     status: done
 
+  - id: S26
+    title: 《老人的一天》剧本进固定演示 + 播放器（播放/暂停/重播/跳场 + 字幕）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/demo-script.js, prototype/js/main.js, prototype/index.html, prototype/css/hud.css]
+    depends_on: [S20]
+    acceptance: "固定演示按 5 场 + 结尾走完（07:30/10:00/12:30/16:00/20:00，每场等她真的取完药再走）；播放器有 ⟨ ❚❚ ⟩ ↻ + 进度 + 章节名 + n/6；字幕条同时显示旁白/小护/奶奶；**点暂停后 clock.isRunning()===false 且演示时间不再前进**，再点播放继续；空格键可暂停；零控制台异常"
+    note: "用户给的剧本《老人的一天》（5 场 + 结尾，2–3 分钟）。⚠️ 两处刻意对齐本项目的取舍：
+           ① 剧本人物是「李爷爷」，本项目 3D 演员是**女性**（王阿姨），故台词统一成「奶奶 / 王阿姨」；
+           ② 剧本第二场在**阳台**，套房户型里没有阳台 → 落到「客厅窗边」。要改成剧本原文口径说一声即可。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM
