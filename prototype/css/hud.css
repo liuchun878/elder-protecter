@@ -1379,3 +1379,46 @@ body.is-scripted .collapse-toggle--dock {
 .dock__seg--missed .dock__button:hover {
   background: rgba(216, 161, 42, 0.16);
 }
+
+/* v1.22：取药动作字幕（用户口径：看不出她在干什么）—— 大字、深底、居中偏下，一眼能读 */
+.act {
+  position: fixed;
+  left: 50%;
+  bottom: 218px;
+  transform: translate(-50%, 8px);
+  z-index: 76;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: rgba(12, 16, 20, 0.86);
+  border: 1px solid rgba(143, 227, 240, 0.35);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.act.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.act__who {
+  font-size: 15px;
+  color: #9fb3b8;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  padding-right: 10px;
+}
+
+.act__what {
+  font-size: 24px;
+  font-weight: 700;
+  color: #8fe3f0;
+  letter-spacing: 0.5px;
+}
+
+body.is-scripted .act {
+  bottom: 262px;
+}

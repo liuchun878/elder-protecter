@@ -216,6 +216,35 @@ function mountPlayer({ script, onSpeak }) {
   };
 }
 
+/**
+ * v1.22（用户口径「奶奶从托盘上拿药的动作太含糊，无法清楚知道她在干什么」）：
+ * **动作字幕** —— 把取药动作链的每一步直接打在大屏上（① 伸手到托盘 ② 端起水杯 ③ 喝水
+ * ④ 拿起药片·放入口中 ⑤ 放回水杯）。配合"动作放慢到 7 秒 + 幅度加大"，观众一眼能看懂。
+ */
+const TAKE_STEP_TEXT = {
+  reach: '① 伸手到托盘取药',
+  cup: '② 端起水杯',
+  drink: '③ 喝水送服',
+  pill: '④ 拿起药片 · 放入口中',
+  done: '⑤ 放回水杯',
+};
+
+function mountActionBanner() {
+  const el = document.createElement('div');
+  el.id = 'act';
+  el.className = 'act';
+  el.innerHTML = '<span class="act__who">王阿姨</span><span class="act__what"></span>';
+  document.body.appendChild(el);
+  return {
+    set(phase, active) {
+      if (!active || !TAKE_STEP_TEXT[phase]) { el.classList.remove('on'); return; }
+      el.querySelector('.act__what').textContent = TAKE_STEP_TEXT[phase];
+      el.classList.add('on');
+    },
+    hide() { el.classList.remove('on'); },
+  };
+}
+
 /** 字幕条：旁白（斜体小字）+ 小护台词 + 老人台词（用户剧本里的三种文本） */
 function mountCaptions() {
   const el = document.createElement('div');
@@ -677,6 +706,7 @@ function startMainView() {
   let player = null;
   /* v1.20：录视频时的**逐帧驱动总线** —— film.step() 每推进一帧就放行一次剧本的等待，
    * 于是"视频帧率"与"渲染速度"解耦（软渲染只有 2–3 fps，实时录只能出幻灯片）。 */
+  let actBanner = null;
   const stepBus = { cbs: [], seconds: 0, register(cb) { this.cbs.push(cb); }, fire() { const c = this.cbs; this.cbs = []; c.forEach((f) => f()); } };
   const script = createDemoScript({
     clock, presence, store, person, scene, robot,
@@ -690,6 +720,7 @@ function startMainView() {
   if (!FILM_MODE || RECORD) {
     captions = mountCaptions(); // 录制时要字幕进画面；纯拍摄模式(?film=1)保持干净
   }
+  if (!FILM_MODE || RECORD) actBanner = mountActionBanner(); // 动作字幕：交互与录制都要
   if (!FILM_MODE && !RECORD) {
     player = mountPlayer({
       script,
@@ -995,7 +1026,16 @@ function startMainView() {
         syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
         settleShot(); // v1.20：机器人回桩后才结束特写
     watchMissedScenario(); // v1.21：没吃药情景——每 2 分钟督促 / 10 分钟收托盘
+    if (actBanner) {
+      const a = person.getAction ? person.getAction() : null;
+      actBanner.set(a ? a.phase : 'idle', Boolean(a && a.active));
+    }
         watchMissedScenario(); // v1.21：没吃药情景——每 2 分钟督促 / 10 分钟收托盘
+    if (actBanner) {
+      const a = person.getAction ? person.getAction() : null;
+      actBanner.set(a ? a.phase : 'idle', Boolean(a && a.active));
+    }
+        if (actBanner) actBanner.set(action ? action.phase : 'idle', Boolean(action && action.active));
         watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
         // v1.20：录制时的自动运镜 —— 没有递药近景时，每秒把机位重算到"看得见她"的位置
         // （机器人就在旁边时把两个人一起框；复用 focusSeat/focusPair 的可见性判据）
@@ -1111,6 +1151,10 @@ function startMainView() {
     syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
     settleShot(); // v1.20：机器人回桩后才结束特写
     watchMissedScenario(); // v1.21：没吃药情景——每 2 分钟督促 / 10 分钟收托盘
+    if (actBanner) {
+      const a = person.getAction ? person.getAction() : null;
+      actBanner.set(a ? a.phase : 'idle', Boolean(a && a.active));
+    }
     watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
     scene.render(latest, dt);
     window.requestAnimationFrame(frame);
