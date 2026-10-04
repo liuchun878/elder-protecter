@@ -809,6 +809,18 @@ tasks:
     note: "用户口径「① 家属端副屏可以用一个手机屏幕展示 ② 所有小窗口都可以点击收起打开」。"
     status: done
 
+  - id: S23
+    title: 禁缓存本地服务器 + 页面版本角标（修"刷新还是旧版"）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [scripts/serve-nocache.py, prototype/js/main.js, prototype/css/hud.css]
+    depends_on: [S22]
+    acceptance: "python3 scripts/serve-nocache.py prototype 8000 起服务后，任意 JS 响应含 Cache-Control: no-store, must-revalidate；控制条显示版本角标 v1.16 且 console 输出 [medbot] build v1.16；全新浏览器打开即拿到新版"
+    note: "用户实测「我要修改后的新版,不要旧版」——根因是 http.server 的启发式缓存把 js/main.js 缓存住了。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

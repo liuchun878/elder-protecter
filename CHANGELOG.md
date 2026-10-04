@@ -9,6 +9,21 @@
 
 ---
 
+### 追加：禁缓存本地服务器 + 页面版本角标（v1.16 · 2026-10-04）
+
+**症状**：代码改完后用户刷新仍看到**旧版**（"新按钮不出现 / 还是旧行为"）。
+**根因**：`python3 -m http.server` 只发 `Last-Modified`，Chrome 对 ES module 走*启发式缓存*
+（无 `Cache-Control` 时按文件年龄的 10% 缓存），`js/main.js` 被缓存住了。
+
+**做法**：① 新增 `scripts/serve-nocache.py`（等价于 `http.server`，但每个响应都带
+`Cache-Control: no-store, must-revalidate` + `Pragma: no-cache` + `Expires: 0`）；
+演示用 `python3 scripts/serve-nocache.py prototype 8000`；
+② 左下角控制条加**版本角标 `v1.16`** + `console.info('[medbot] build v1.16')` ——
+一眼确认浏览器拿到的是不是新版；不是就 Cmd+Shift+R 强刷。
+
+实测：`curl -I http://localhost:8000/js/main.js` 返回 `Cache-Control: no-store, must-revalidate`；
+全新无头浏览器打开即拿到 `v1.16`。
+
 ## 分支 `0000000` 追加（v1.16 · 2026-10-04）——家属端页内「手机屏」+ 所有小窗口可点击收起/展开
 
 用户两条口径：**①「家属端副屏可以用一个手机屏幕展示」②「所有小窗口都可以点击收起打开」**。
