@@ -1138,7 +1138,90 @@ function startMainView() {
       window.film.grab = (dt = 1 / 12) => {
         window.film.step(dt);
         const cv = document.querySelector('#scene canvas');
-        return cv && cv.toDataURL ? cv.toDataURL('image/jpeg', 0.86) : null;
+        if (!cv || !cv.toDataURL) return null;
+        /* v1.22：**把 HTML 叠层（旁白/小护台词/奶奶台词/动作提示）合成进帧** ——
+         * canvas.toDataURL() 只能抓到 3D 画面，HTML 字幕本来不会进视频（实测第一版就是白板）。
+         * 这里在页内用 2D canvas 把文字画上去，比走 CDP 截图快一个数量级（0.2s vs 5s/帧）。 */
+        const W = cv.width;
+        const H = cv.height;
+        const out = document.createElement('canvas');
+        out.width = W;
+        out.height = H;
+        const x = out.getContext('2d');
+        x.drawImage(cv, 0, 0, W, H);
+        const k = W / 960; // 以 960×540 为设计基准等比缩放
+        const font = (px, bold) => `${bold ? '700 ' : ''}${Math.round(px * k)}px "PingFang SC","Microsoft YaHei",sans-serif`;
+        const center = (text, y, f, color, stroke) => {
+          x.font = f;
+          x.textAlign = 'center';
+          if (stroke) { x.lineWidth = 4 * k; x.strokeStyle = 'rgba(0,0,0,.55)'; x.strokeText(text, W / 2, y); }
+          x.fillStyle = color;
+          x.fillText(text, W / 2, y);
+        };
+        // ① 动作提示（她正在做什么）—— 深色胶囊 + 亮青字，居中偏下
+        const act = document.getElementById('act');
+        if (act && act.classList.contains('on')) {
+          const what = act.querySelector('.act__what').textContent;
+          const y = H - 150 * k;
+          x.font = font(24, true);
+          const tw = x.measureText(what).width;
+          x.fillStyle = 'rgba(12,16,20,.86)';
+          const padX = 18 * k;
+          const boxW = tw + padX * 2 + 60 * k;
+          const boxH = 44 * k;
+          const bx = W / 2 - boxW / 2;
+          const by = y - boxH * 0.72;
+          x.beginPath();
+          if (x.roundRect) x.roundRect(bx, by, boxW, boxH, boxH / 2); else x.rect(bx, by, boxW, boxH);
+          x.fill();
+          x.strokeStyle = 'rgba(143,227,240,.45)';
+          x.lineWidth = 2 * k;
+          x.stroke();
+          x.textAlign = 'right';
+          x.font = font(15);
+          x.fillStyle = '#9fb3b8';
+          x.fillText('王阿姨', W / 2 - tw / 2 - 12 * k, y);
+          x.textAlign = 'left';
+          x.font = font(24, true);
+          x.fillStyle = '#8fe3f0';
+          x.fillText(what, W / 2 - tw / 2, y);
+        }
+        // ② 字幕条（旁白 / 小护 / 奶奶）
+        const cap = document.getElementById('caption');
+        if (cap && cap.classList.contains('on')) {
+          const lines = [];
+          const narr = cap.querySelector('.caption__narration').textContent.trim();
+          const rob = cap.querySelector('.caption__line--robot').textContent.trim();
+          const eld = cap.querySelector('.caption__line--elder').textContent.trim();
+          const wrap = (t, f, maxW) => {
+            x.font = f;
+            const out2 = [];
+            let cur = '';
+            for (const ch of t) {
+              if (x.measureText(cur + ch).width > maxW && cur) { out2.push(cur); cur = ch; } else cur += ch;
+            }
+            if (cur) out2.push(cur);
+            return out2;
+          };
+          const maxW = W * 0.66; // 留出左右边距，别贴边
+          if (narr) for (const l of wrap(narr, font(14), maxW)) lines.push({ t: l, f: font(14), c: '#b9cdd2' });
+          if (rob) for (const l of wrap(rob, font(18, true), maxW)) lines.push({ t: l, f: font(18, true), c: '#8fe3f0' });
+          if (eld) for (const l of wrap(eld, font(16), maxW)) lines.push({ t: l, f: font(16), c: '#ffd9a8' });
+          if (lines.length) {
+            const lh = 24 * k;
+            const boxH = lines.length * lh + 16 * k;
+            const top = H - 52 * k - boxH;
+            x.fillStyle = 'rgba(10,14,17,.78)';
+            x.fillRect(W * 0.145, top, W * 0.71, boxH);
+            lines.forEach((l, i) => center(l.t, top + 14 * k + lh * (i + 0.78), l.f, l.c, true));
+          }
+        }
+        // ③ 角标
+        x.textAlign = 'left';
+        x.font = font(13, true);
+        x.fillStyle = 'rgba(143,227,240,.8)';
+        x.fillText('保卫老人 · 居家送药机器人', 14 * k, 24 * k);
+        return out.toDataURL('image/jpeg', 0.86);
       };
       window.film.scriptStart = (i = 0) => script.start(i);
       script.start(0);
