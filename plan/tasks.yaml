@@ -834,6 +834,30 @@ tasks:
            ⚠️ 队友那份界面里有「已服药」「依从率」「剂量」等本项目红线字样，属**用户裁定的显式偏离**，已在契约/CHANGELOG 留痕。"
     status: done
 
+  - id: H16
+    title: 新增「卫生间」位置（老人进卫 C；机器人停在门外）
+    line: H
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/presence.js, prototype/js/room.js, 契约-接口.md]
+    depends_on: [H2]
+    acceptance: "LOCATIONS 增加 bathroom 且 home 仍为 true；WAYPOINTS.bathroom=(1.15,5.60)（卫 C 内）、APPROACH_POINTS.bathroom 经 nearestWalkable 落在**卫生间门外走廊**(实测 2.97,4.87，x>2.3)；控制台与调试抽屉的位置按钮自动多出「卫生间」"
+    note: "用户口径「老人由于在**卫生间**或者出门了导致未吃药」。原先 4 个位置里没有卫生间。
+           机器人**不进入私人区域**，只在门口递药（与队友家属端 App 的口径一致）。"
+    status: done
+  - id: S25
+    title: 家属端手机推送（未确认 → 手机弹出提示家属）
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/main.js, prototype/css/hud.css]
+    depends_on: [S24, H16]
+    acceptance: "读 state.notifications（to=family）→ 在手机屏之上弹出推送卡：标题「用药提醒未确认」、正文=通知原文+原因（卫生间/出门/一直没取走）、时间、知道了按钮；手机屏收着时按钮留红点、固定演示模式自动弹开；15 秒自动收起；**不改队友的 family-app/**、不新增业务判据；零控制台异常"
+    note: "用户口径「需要在手机端设置一个消息弹出提示家属」。何时通知仍由 escalate.js 决定（T+180s 未确认）。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM

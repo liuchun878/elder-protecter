@@ -24,7 +24,7 @@ import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
 import { createDemoScript } from './demo-script.js';
 
-const BUILD = 'v1.17';
+const BUILD = 'v1.18';
 if (typeof console !== 'undefined') console.info(`[medbot] build ${BUILD}`);
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
@@ -165,8 +165,8 @@ function mountDock({ getMode, setMode, onFamily }) {
   // v1.16：版本角标 —— 演示/答辩时一眼确认浏览器拿到的是**新版**（缓存排查用）
   const version = document.createElement('span');
   version.className = 'dock__version';
-  version.textContent = 'v1.17';
-  version.title = '当前构建：v1.17（2026-10-04）· 若这里不是 v1.17，请 Cmd+Shift+R 强刷';
+  version.textContent = 'v1.18';
+  version.title = '当前构建：v1.18（2026-10-04）· 若这里不是 v1.18，请 Cmd+Shift+R 强刷';
   root.appendChild(version);
   const family = document.createElement('button');
   family.type = 'button';
@@ -423,6 +423,64 @@ function startMainView() {
     addCollapseToggle({
       target: document.getElementById('console'), className: 'collapse-toggle--console', label: '演示控制台', bodyClass: 'is-console-collapsed',
     });
+  }
+
+  /* ── v1.18：家属端「手机推送」 ───────────────────────────────────────
+   * 用户口径：**「当吃药时间到，但老人由于在卫生间或者出门了导致未吃药，
+   * 需要在手机端设置一个消息弹出提示家属」**。
+   * 数据来源是**已有的业务状态** `state.notifications`（escalate.js 在「一直未确认」时
+   * 产生的 level 2 家属通知）—— 这里只把它**显示成手机上的推送**，不新增任何业务判据。
+   * 触发原因（卫生间 / 出门 / 一直没取走）由 `state.presence.location` 决定，属于表现层措辞。 */
+  const seenNtf = new Set();
+  let pushTimer = null;
+  function setFamilyBadge(on) {
+    const famBtn = document.querySelector('.dock__button--family');
+    if (famBtn) famBtn.classList.toggle('has-badge', Boolean(on));
+  }
+  function hidePhonePush() {
+    const box = phone ? phone.querySelector('.phone__push') : null;
+    if (box) box.classList.remove('on');
+    setFamilyBadge(false);
+  }
+  function showPhonePush(ntf) {
+    if (!phone) return;
+    let box = phone.querySelector('.phone__push');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'phone__push';
+      box.innerHTML = [
+        '<div class="phone__push-head"><span class="phone__push-app">家属端</span>'
+        + '<span class="phone__push-time"></span></div>',
+        '<div class="phone__push-title"></div>',
+        '<div class="phone__push-body"></div>',
+        '<div class="phone__push-actions">'
+        + '<button type="button" class="phone__push-ok">知道了</button></div>',
+      ].join('');
+      phone.querySelector('.phone__frame').appendChild(box);
+      box.querySelector('.phone__push-ok').addEventListener('click', hidePhonePush);
+    }
+    const loc = latest.presence.location;
+    const why = loc === 'bathroom'
+      ? '她现在在卫生间，机器人没有进入私人区域，暂时无法送达'
+      : (loc === 'away' ? '她出门在外，机器人无法送达' : '机器人已提醒多次，一直没有取走');
+    box.querySelector('.phone__push-title').textContent = '用药提醒未确认';
+    box.querySelector('.phone__push-body').textContent = `${ntf.text}。${why}。`;
+    box.querySelector('.phone__push-time').textContent = String(ntf.createdAtDemo || '').slice(11, 16);
+    box.classList.add('on');
+    // 手机屏收着时：固定演示模式自动弹开给观众看，其它模式在按钮上留红点
+    if (phone.classList.contains('is-collapsed') && mode === 'scripted') togglePhone(true);
+    setFamilyBadge(!phone.classList.contains('is-collapsed') ? false : true);
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(hidePhonePush, 15000);
+  }
+  function watchFamilyNotifications() {
+    const list = latest.notifications || [];
+    if (!list.length) { seenNtf.clear(); setFamilyBadge(false); return; }
+    for (const n of list) {
+      if (seenNtf.has(n.id)) continue;
+      seenNtf.add(n.id);
+      if (n.to === 'family') showPhonePush(n);
+    }
   }
 
   const dock = mountDock({
@@ -695,6 +753,8 @@ function startMainView() {
         person.update(latest, dt);
         urgeAtSide(); // 走到她身边就督促（童声）
         syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
+    watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
+        watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
         scene.render(latest, dt);
       },
       /** 推进演示时钟（秒）——会触发到点判定，等同演示者拨表 */
@@ -759,6 +819,7 @@ function startMainView() {
     person.update(latest, dt);
     urgeAtSide(); // 走到她身边就督促（童声）
     syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
+    watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
     scene.render(latest, dt);
     window.requestAnimationFrame(frame);
   }
