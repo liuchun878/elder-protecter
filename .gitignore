@@ -1,1 +1,45 @@
+# SolidWorks 临时/备份文件
+~$*.SLDPRT
+~$*.SLDASM
+*.SLDPRT.bak
+*.SLDASM.bak
+*.swp
 
+# Windows / 编辑器
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# DSH / 工具产物
+__pycache__/
+*.pyc
+
+# ── 以下来自仿真原型分支（prototype/ 的本地工具 / macOS 产物）──
+# macOS
+._*
+.Spotlight-V100
+.Trashes
+# 编辑器 / 工具
+.vscode/
+.idea/
+# 会话与工具配置（不属于项目内容）
+.dsh/
+# 依赖与缓存
+node_modules/
+.cache/
+# 日志与临时文件
+*.log
+*.tmp
+# 凭据（绝对不得提交）
+.env
+.env.*
+*.pem
+*.key
+credentials*
+# 演示临时产物
+prototype/.server.pid
+recordings/*.tmp
+# 本地校验工具（临时安装，不入库）
+.tools/
+# 建模预览（仅本地开发用：model.html / shoot.mjs / 对比截图，不属于交付物）
+.preview/
