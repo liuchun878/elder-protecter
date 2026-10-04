@@ -269,7 +269,46 @@ function mountCaptions() {
   };
 }
 
-function mountDock({ getMode, setMode, onFamily, onMissed }) {
+/**
+ * v1.23（用户口径「演绎场景那里使用这个视频」）：**概念片**浮层。
+ * 源视频是用户给的 HEVC/H.265，已用 macOS 自带 `avconvert` 转成 H.264/AAC 放到
+ * `recordings/概念片-720p.mp4`（本地文件、由同一个静态服务器提供 → 仍然零外部请求）。
+ */
+const CONCEPT_SRC = '/recordings/概念片-720p.mp4';
+function ensureConcept() {
+  let el = document.getElementById('concept');
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'concept';
+  el.className = 'concept';
+  el.innerHTML = [
+    '<div class="concept__box">',
+    '<div class="concept__head"><b>保卫老人 · 概念片</b><span>15 秒 · 演绎场景前置</span>',
+    '<button type="button" class="concept__close">关闭 ✕</button></div>',
+    `<video class="concept__video" src="${CONCEPT_SRC}" controls playsinline preload="metadata"></video>`,
+    '</div>',
+  ].join('');
+  document.body.appendChild(el);
+  el.querySelector('.concept__close').addEventListener('click', () => {
+    const v = el.querySelector('video');
+    try { v.pause(); } catch (err) { /* 忽略 */ }
+    el.classList.remove('on');
+    if (typeof el.__onClose === 'function') el.__onClose();
+  });
+  return el;
+}
+function toggleConcept(force, onClose) {
+  const el = ensureConcept();
+  const want = typeof force === 'boolean' ? force : !el.classList.contains('on');
+  const v = el.querySelector('video');
+  el.classList.toggle('on', want);
+  el.__onClose = onClose || null;
+  if (want) { try { v.currentTime = 0; v.play().catch(() => {}); } catch (err) { /* 忽略 */ } }
+  else { try { v.pause(); } catch (err) { /* 忽略 */ } }
+  return want;
+}
+
+function mountDock({ getMode, setMode, onFamily, onMissed, onConcept }) {
   const root = document.getElementById('dock');
   if (!root) return { setHint() {}, refresh() {} };
   const seg = document.createElement('div');
@@ -294,6 +333,14 @@ function mountDock({ getMode, setMode, onFamily, onMissed }) {
   version.textContent = 'v1.20';
   version.title = '当前构建：v1.19（2026-10-04）· 若这里不是 v1.19，请 Cmd+Shift+R 强刷';
   root.appendChild(version);
+  if (onConcept) {
+    const concept = document.createElement('button');
+    concept.type = 'button';
+    concept.className = 'dock__button dock__button--family';
+    concept.textContent = '概念片';
+    concept.addEventListener('click', onConcept);
+    root.appendChild(concept);
+  }
   const family = document.createElement('button');
   family.type = 'button';
   family.className = 'dock__button dock__button--family';
@@ -701,6 +748,7 @@ function startMainView() {
     getMode: () => mode,
     setMode: (next) => applyMode(next),
     onMissed: (where) => startMissedScenario(where),
+    onConcept: () => toggleConcept(),
     onFamily: () => {
       const open = togglePhone();
       // 打开手机屏时把右下控制台收起来：两块面板都在右侧，会互相压住
@@ -766,7 +814,23 @@ function startMainView() {
       // v1.21：固定演示按**真实时间**走（1×）。原先沿用 60×，于是"10:00 的事件"会在第一场
       // 还没演完时就触发 —— 语音重复、家属推送乱弹。剧本本来就会逐场拨表，不需要快进。
       clock.setAcceleration(1);
-      if (script && typeof script.start === 'function') script.start();
+      // v1.23：固定演示**先用概念片当序幕**（15 秒），播完或关掉再开始 3D 演绎；
+      // 视频加载失败/被拦时 22 秒兜底自动开演，不让演示卡住。
+      let started = false;
+      const startScript = () => {
+        if (started) return;
+        started = true;
+        if (script && typeof script.start === 'function') script.start();
+      };
+      if (!RECORD) {
+        const el = ensureConcept();      // ⚠️ toggleConcept 返回布尔值，这里要的是元素
+        toggleConcept(true, startScript);
+        const v = el.querySelector('video');
+        if (v) v.addEventListener('ended', startScript, { once: true });
+        window.setTimeout(startScript, 22000); // 兜底
+      } else {
+        startScript();
+      }
     } else {
       if (script && typeof script.stop === 'function') script.stop();
       clock.setAcceleration(60); // 回到交互演示的 60×
@@ -1216,7 +1280,30 @@ function startMainView() {
             lines.forEach((l, i) => center(l.t, top + 14 * k + lh * (i + 0.78), l.f, l.c, true));
           }
         }
-        // ③ 角标
+        // ③ v1.24 写实化：暗角 + 极轻颗粒（让画面像拍出来的，而不是画出来的）
+        const grd = x.createRadialGradient(W / 2, H * 0.48, Math.min(W, H) * 0.30, W / 2, H * 0.48, Math.max(W, H) * 0.62);
+        grd.addColorStop(0, 'rgba(0,0,0,0)');
+        grd.addColorStop(0.72, 'rgba(0,0,0,0.14)');
+        grd.addColorStop(1, 'rgba(0,0,0,0.30)');
+        x.fillStyle = grd;
+        x.fillRect(0, 0, W, H);
+        if (!window.__grain) {
+          const gc = document.createElement('canvas');
+          gc.width = 160;
+          gc.height = 90;
+          const gx = gc.getContext('2d');
+          const im = gx.createImageData(160, 90);
+          for (let i = 0; i < im.data.length; i += 4) {
+            const v = 120 + Math.random() * 70;
+            im.data[i] = v; im.data[i + 1] = v; im.data[i + 2] = v; im.data[i + 3] = 26;
+          }
+          gx.putImageData(im, 0, 0);
+          window.__grain = gc;
+        }
+        x.globalAlpha = 0.5;
+        x.drawImage(window.__grain, 0, 0, W, H);
+        x.globalAlpha = 1;
+        // ④ 角标
         x.textAlign = 'left';
         x.font = font(13, true);
         x.fillStyle = 'rgba(143,227,240,.8)';

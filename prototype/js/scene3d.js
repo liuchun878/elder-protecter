@@ -61,7 +61,8 @@ const CAMERA_PRESETS = {
  *       曝光再压一档 —— 这样窗洞是深蓝夜色、屋里是暖黄灯，一眼能看出"天黑了、家里开着灯"。
  */
 const TIME_OF_DAY = {
-  day: { sun: 0xfff0d8, sunI: 2.35, sunPos: [-9, 13, -11], hemi: 0.72, fill: 0.42, amb: 0.24, exposure: 1.06, bg: 0xd9d6d1, interior: 1.0, interiorOn: false, moon: 0 },
+  // v1.24 写实化：主光更强、环境光更少 —— 明暗对比更像真实室内（原来偏平光）
+  day: { sun: 0xfff0d8, sunI: 2.70, sunPos: [-9, 13, -11], hemi: 0.52, fill: 0.34, amb: 0.20, exposure: 1.02, bg: 0xd9d6d1, interior: 1.0, interiorOn: false, moon: 0 },
   dusk: { sun: 0xffc07a, sunI: 2.30, sunPos: [-15, 4.5, -3], hemi: 0.40, fill: 0.30, amb: 0.22, exposure: 1.04, bg: 0xcfc3b4, interior: 0.8, interiorOn: true, moon: 0 },
   night: { sun: 0xaec4e6, sunI: 0.30, sunPos: [-7, 11, -9], hemi: 0.20, fill: 0.10, amb: 0.13, exposure: 0.88, bg: 0x1a2130, interior: 1.75, interiorOn: true, moon: 1 },
 };
@@ -80,7 +81,7 @@ export function createScene3D({ container }) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: RECORDING, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = TIME_OF_DAY.day.exposure;
+  renderer.toneMappingExposure = TIME_OF_DAY.day.exposure; // v1.24：曝光在 TIME_OF_DAY 里统一调
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -145,7 +146,7 @@ export function createScene3D({ container }) {
   sun.shadow.camera.far = 55;
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.028;
-  sun.shadow.radius = 2.2;
+  sun.shadow.radius = 3.4; // v1.24：阴影更柔（硬边阴影最容易显假）
   sun.target.position.set(0, 0, 0);
   scene.add(sun);
   scene.add(sun.target);

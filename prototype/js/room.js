@@ -79,7 +79,8 @@ let M;
 function buildMaterials() {
   M = {
     wall: new THREE.MeshStandardMaterial({ map: tex(plasterCanvas(), 6, 3), color: 0xf7f2e9, roughness: 0.95, metalness: 0, envMapIntensity: 0.55 }),
-    wood: new THREE.MeshStandardMaterial({ map: tex(woodCanvas(), 1.4, 1.4), roughness: 0.58, metalness: 0, envMapIntensity: 0.5 }),
+    // v1.24 写实化：木纹在暖光下会过曝成亮黄 —— 加一层灰化（color 乘算）把饱和度压回真实木色
+    wood: new THREE.MeshStandardMaterial({ map: tex(woodCanvas(), 1.4, 1.4), color: 0xc9c2b8, roughness: 0.62, metalness: 0, envMapIntensity: 0.42 }),
     slate: new THREE.MeshStandardMaterial({ map: tex(slateCanvas(), 2, 2), roughness: 0.42, metalness: 0.04, envMapIntensity: 0.7 }),
     stone: new THREE.MeshStandardMaterial({ map: tex(stoneCanvas(), 1, 1), roughness: 0.88, metalness: 0, envMapIntensity: 0.45 }),
     oak: new THREE.MeshStandardMaterial({ color: 0xc08d5a, roughness: 0.52, metalness: 0, envMapIntensity: 0.5 }),
@@ -98,6 +99,9 @@ function buildMaterials() {
     paper: new THREE.MeshStandardMaterial({ color: 0xf0ece4, roughness: 0.9 }),
     lamp: new THREE.MeshStandardMaterial({ color: 0xfdf3e0, roughness: 0.5, emissive: 0xffd9a0, emissiveIntensity: 0.38 }),
     brass: new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.34, metalness: 0.88, envMapIntensity: 1.0 }),
+    // v1.24 写实化：门窗型材 —— 原来用黄铜(brass)，在暖光下变成亮金色，最显"卡通"；
+    // 换成真实门窗的暖白型材（低金属度、稍高粗糙度）
+    frame: new THREE.MeshStandardMaterial({ color: 0xf3efe8, roughness: 0.58, metalness: 0.04, envMapIntensity: 0.5 }),
     terra: new THREE.MeshStandardMaterial({ color: 0xb2603f, roughness: 0.9, metalness: 0 }),
     mustard: new THREE.MeshStandardMaterial({ color: 0xc99a3f, roughness: 0.92, metalness: 0 }),
     sage: new THREE.MeshStandardMaterial({ color: 0x8d9b83, roughness: 0.93, metalness: 0 }),
@@ -115,6 +119,106 @@ function buildMaterials() {
     matBoot: new THREE.MeshStandardMaterial({ color: 0x565f63, roughness: 0.92 }),
     screen: new THREE.MeshStandardMaterial({ color: 0x11151a, roughness: 0.22, metalness: 0.3, emissive: 0x0b1016, emissiveIntensity: 0.6 }),
   };
+}
+
+
+/* ── v1.24 写实化：生活化道具 ──────────────────────────────────────────
+ * 用户口径「给整个场景制作的更写实一点」。房间里"有没有人住"的气质主要来自**杂物**：
+ * 书/杯/果盘/毯子/挂画/窗帘/台灯/毛巾瓶罐…… 全部程序化几何 + 已有材质，零外部资产。
+ * ⚠️ 都挂在 FURN 组里，会参与 navgrid 的家具占位 —— 所以只放在**家具台面上或贴墙**，
+ *    不占用通行区域（改完实测连通性不下降）。 */
+function props() {
+  // ① 客厅：茶几上的书堆 / 马克杯 / 果盘
+  {
+    const g = new THREE.Group();
+    g.position.set(wx(10.35), 0, wz(8.85));
+    FURN.add(g);
+    box(0.20, 0.028, 0.14, M.paper, -0.16, 0.455, 0.10, g).rotation.y = 0.12;
+    box(0.19, 0.026, 0.13, M.mustard, -0.15, 0.483, 0.09, g).rotation.y = -0.08;
+    box(0.18, 0.024, 0.12, M.sage, -0.16, 0.508, 0.10, g).rotation.y = 0.04;
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.032, 0.085, 16), M.ceramic);
+    cup.position.set(0.26, 0.47, 0.10); cup.castShadow = true; g.add(cup);
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.075, 0.055, 18), M.ceramic);
+    bowl.position.set(0.05, 0.455, -0.14); bowl.castShadow = true; g.add(bowl);
+    [[-0.03, 0.03], [0.05, -0.02], [0.09, 0.05]].forEach((p2, i) => {
+      const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.036, 12, 10), i === 1 ? M.terra : M.sage);
+      fruit.position.set(0.05 + p2[0], 0.50, -0.14 + p2[1]); fruit.castShadow = true; g.add(fruit);
+    });
+  }
+  // ② 客厅：沙发扶手上的毯子（斜搭）
+  box(0.62, 0.05, 0.86, M.blanket, wx(9.85), 0.72, wz(8.60), FURN).rotation.set(0.06, 0.3, 0.02);
+  // ③ 客厅：电视柜上的机顶盒 + 遥控器
+  box(0.30, 0.05, 0.20, M.dark, wx(12.72), 0.50, wz(9.05), FURN);
+  box(0.16, 0.022, 0.05, M.metal, wx(12.60), 0.52, wz(8.80), FURN).rotation.y = 0.5;
+  // ④ 客厅：墙面挂画两幅（高 1.35 / 1.55，不参与碰撞 —— 高于 2.0 m 的会滤掉，这里贴墙无所谓）
+  [[11.10, 4.62, 0.60, 0.46, M.art], [11.90, 4.62, 0.42, 0.34, M.pattern]].forEach((a) => {
+    box(a[2] + 0.06, a[3] + 0.06, 0.035, M.walnut, wx(a[0]), 1.55, wz(a[1]), FURN);
+    box(a[2], a[3], 0.02, a[4], wx(a[0]), 1.55, wz(a[1]) + 0.025, FURN);
+  });
+  // ⑤ 客厅：窗两侧的窗帘（落地，贴墙）
+  [[10.20, 4.36], [12.30, 4.36]].forEach((c) => {
+    softBox(0.34, 2.10, 0.16, M.cream, wx(c[0]), 1.05, wz(c[1]), FURN, 0.04);
+  });
+  // ⑥ 客厅：落地灯（沙发与墙之间，细杆不挡路）
+  {
+    const g = new THREE.Group();
+    g.position.set(wx(8.05), 0, wz(9.85));
+    FURN.add(g);
+    box(0.28, 0.03, 0.28, M.metal, 0, 0.015, 0, g);
+    box(0.035, 1.42, 0.035, M.brass, 0, 0.72, 0, g);
+    const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.20, 0.26, 20, 1, true), M.lamp);
+    shade.position.y = 1.50; shade.castShadow = true; g.add(shade);
+  }
+  // ⑦ 餐区：桌布 + 盘子 + 杯子 + 中间果篮
+  {
+    const g = new THREE.Group();
+    g.position.set(wx(7.10), 0, wz(5.35));
+    FURN.add(g);
+    box(1.66, 0.012, 0.86, M.cream, 0, 0.746, 0, g);
+    [[-0.52, -0.20], [-0.52, 0.20], [0.52, -0.20], [0.52, 0.20]].forEach((p2) => {
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.10, 0.018, 18), M.ceramic);
+      plate.position.set(p2[0], 0.762, p2[1]); plate.castShadow = true; g.add(plate);
+      const c2 = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.030, 0.080, 14), M.ceramic);
+      c2.position.set(p2[0] + 0.17, 0.79, p2[1] + 0.02); c2.castShadow = true; g.add(c2);
+    });
+    const basket = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.10, 0.07, 18), M.brass);
+    basket.position.set(0, 0.785, 0); basket.castShadow = true; g.add(basket);
+  }
+  // ⑧ 卧室 C：床头柜台灯 + 书 + 床尾毯子
+  {
+    const g = new THREE.Group();
+    g.position.set(wx(2.65), 0, wz(8.55));
+    FURN.add(g);
+    box(0.16, 0.02, 0.16, M.brass, 0, 0.44, 0, g);
+    box(0.03, 0.22, 0.03, M.brass, 0, 0.56, 0, g);
+    const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.16, 18, 1, true), M.lamp);
+    shade.position.y = 0.74; shade.castShadow = true; g.add(shade);
+    box(0.17, 0.03, 0.13, M.paper, 0.20, 0.455, 0.02, g).rotation.y = -0.2;
+  }
+  box(0.90, 0.045, 0.42, M.blanket, wx(1.60), 0.585, wz(9.95), FURN).rotation.y = 0.04;
+  // ⑨ 卫生间 C：毛巾 + 洗剂瓶 + 地垫
+  {
+    const g = new THREE.Group();
+    g.position.set(wx(1.15), 0, wz(5.05));
+    FURN.add(g);
+    box(0.34, 0.028, 0.22, M.cream, 0, 0.02, 0, g);
+    softBox(0.30, 0.10, 0.20, M.cream, 0.62, 1.02, 0.55, g, 0.03);
+    softBox(0.30, 0.10, 0.20, M.sage, 0.62, 0.90, 0.55, g, 0.03);
+    [[0.0, 0.02, 0.055, M.ceramic], [0.10, -0.02, 0.05, M.terra], [0.18, 0.03, 0.045, M.ceramic]].forEach((b) => {
+      const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.030, b[2] * 2.6, 12), b[3]);
+      bottle.position.set(b[0], 0.06 + b[2], b[1]); bottle.castShadow = true; g.add(bottle);
+    });
+  }
+  // ⑩ 书房：桌面笔记本 + 台灯 + 便签
+  {
+    const g = new THREE.Group();
+    g.position.set(wx(6.20), 0, wz(8.95));
+    FURN.add(g);
+    box(0.34, 0.018, 0.24, M.dark, 0.10, 0.755, 0.02, g);
+    box(0.34, 0.22, 0.012, M.dark, 0.10, 0.865, -0.10, g).rotation.x = -0.18;
+    box(0.06, 0.30, 0.06, M.metal, -0.42, 0.90, -0.14, g);
+    box(0.20, 0.02, 0.14, M.paper, -0.30, 0.768, 0.10, g).rotation.y = 0.22;
+  }
 }
 
 /* ── 几何工具 ─────────────────────────────────────────────────────── */
@@ -781,6 +885,20 @@ function placeFurniture() {
   // 机器人过不去 → A* 无解 → 退回直线就会穿墙。挪到北墙边柜东侧，让这条主通道保持通畅。
   plant(wx(9.25), wz(4.70), 0, FURN, 0.85);
   sideboard(0.90, 8.10, 4.42, 0);
+  props(); // v1.24：生活化道具（写实化）
+  // v1.24：顶灯（发光灯具本身，只做视觉 —— 高于 2.0 m 的家具占位会被 navgrid 滤掉）
+  [[10.35, 8.85], [1.55, 2.05], [11.85, 2.05], [1.60, 8.85], [7.10, 5.35]].forEach((c) => {
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.035, 22), M.cream);
+    ring.position.set(wx(c[0]), 2.42, wz(c[1]));
+    ring.castShadow = false;
+    FURN.add(ring);
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.012, 22), M.lamp);
+    disc.position.set(wx(c[0]), 2.40, wz(c[1]));
+    FURN.add(disc);
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.24, 8), M.dark);
+    cord.position.set(wx(c[0]), 2.54, wz(c[1]));
+    FURN.add(cord);
+  });
 
   // 窗帘
   curtain(0.92, 0.32, 0, 1.05);
@@ -974,7 +1092,7 @@ export function buildRoom() {
       const fw = 0.055;
       const fd = wl.t + 0.03;
       const mk = (w, h, y, x) => {
-        const m = new THREE.Mesh(boxGeo(w, h, fd), M.brass);
+        const m = new THREE.Mesh(boxGeo(w, h, fd), M.frame);
         m.position.set(x, y, 0);
         m.castShadow = true;
         g.add(m);
@@ -987,7 +1105,7 @@ export function buildRoom() {
         const gl = new THREE.Mesh(new THREE.PlaneGeometry(len - fw * 2, hgt - fw * 2), M.glass);
         gl.position.set(0, sill + hgt / 2, 0);
         g.add(gl);
-        const vbar = new THREE.Mesh(boxGeo(fw * 0.7, hgt - fw * 2, fd * 0.7), M.brass);
+        const vbar = new THREE.Mesh(boxGeo(fw * 0.7, hgt - fw * 2, fd * 0.7), M.frame);
         vbar.position.set(0, sill + hgt / 2, 0);
         g.add(vbar);
         const sillM = new THREE.Mesh(boxGeo(len + 0.12, 0.04, wl.t + 0.22), M.wall);

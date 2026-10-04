@@ -1422,3 +1422,79 @@ body.is-scripted .collapse-toggle--dock {
 body.is-scripted .act {
   bottom: 262px;
 }
+
+/* v1.23：概念片浮层（用户给的视频，已转 H.264 放在 recordings/） */
+.concept {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 9, 12, 0.82);
+}
+
+.concept.on {
+  display: flex;
+}
+
+.concept__box {
+  width: min(1040px, 86vw);
+  border-radius: 16px;
+  background: #0d1114;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.concept__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  color: #e8f1f2;
+  font-size: 14px;
+}
+
+.concept__head span {
+  color: #9fb3b8;
+  font-size: 12.5px;
+}
+
+.concept__head b {
+  color: #8fe3f0;
+}
+
+.concept__close {
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: #dfeaec;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.concept__video {
+  display: block;
+  width: 100%;
+  max-height: 72vh;
+  background: #000;
+}
+
+/* 录制模式（出片）里不出现概念片浮层 */
+body.is-record .concept {
+  display: none !important;
+}
+
+/* v1.24 写实化：镜头暗角（纯 CSS 叠层，pointer-events:none，不影响点击） */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 95;
+  background: radial-gradient(ellipse at 50% 48%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.16) 82%, rgba(0, 0, 0, 0.30) 100%);
+}
