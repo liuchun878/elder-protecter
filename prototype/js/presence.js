@@ -11,12 +11,13 @@
 import { store } from './store.js';
 
 /** 合法位置（契约 §2）：away 等价于 home:false */
-export const LOCATIONS = ['living_room', 'bedroom', 'kitchen', 'away'];
+export const LOCATIONS = ['living_room', 'bedroom', 'kitchen', 'bathroom', 'away'];
 
 export const LOCATION_LABEL = {
   living_room: '客厅',
   bedroom: '卧室',
   kitchen: '餐区 · 餐桌',
+  bathroom: '卫生间',
   away: '出门',
 };
 
