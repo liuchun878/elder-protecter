@@ -1,0 +1,51 @@
+# CODEOWNERS —— 三线归属
+#
+# ⚠️ 必读：邀请队员后，把下面的 @TODO-R / @TODO-S 换成真实 GitHub 用户名，
+#          否则 GitHub 不会自动请求对应的 owner 做 review（占位 handle 不存在）。
+#
+# 规则：后面的模式覆盖前面的；一条路径只归一条线。
+# 归属表与理由见 docs/三线分工与并行开发规范.md 第 3 节。
+
+# 兜底：未显式列出的路径归队长（H）
+*                                   @liuchun878
+
+# ── H · 人线（队长）────────────────────────────────────────────────────────
+/契约-接口.md                        @liuchun878
+/plan/                              @liuchun878
+/STATUS.md                          @liuchun878
+/prototype/js/store.js              @liuchun878
+/prototype/js/plan.js               @liuchun878
+/prototype/js/presence.js           @liuchun878
+/prototype/js/schedule.js           @liuchun878
+/prototype/js/machine.js            @liuchun878
+/prototype/js/log.js                @liuchun878
+/prototype/js/escalate.js           @liuchun878
+/prototype/js/family.js             @liuchun878
+/prototype/js/person.js             @liuchun878
+/docs/演示脚本.md                    @liuchun878
+/docs/简报卡.md                      @liuchun878
+
+# ── R · 机器人线 ───────────────────────────────────────────────────────────
+/prototype/js/robot.js              @TODO-R
+/prototype/js/hud.js                @TODO-R
+/prototype/js/audio.js              @TODO-R
+/prototype/index.html               @TODO-R
+/prototype/css/                     @TODO-R
+
+# ── S · 场景线 ─────────────────────────────────────────────────────────────
+/prototype/js/scene3d.js            @TODO-S
+/prototype/js/room.js               @TODO-S
+/prototype/js/scene2d.js            @TODO-S
+/prototype/js/clock.js              @TODO-S
+/prototype/js/main.js               @TODO-S
+/prototype/vendor/                  @TODO-S
+/prototype/AGENTS.md                @TODO-S
+/scripts/                           @TODO-S
+/.github/                           @TODO-S
+/recordings/                        @TODO-S
+/docs/演示机预检.md                  @TODO-S
+
+# ── 公共（三人共管，任一人 review 即可）─────────────────────────────────────
+/README.md                          @liuchun878
+/CHANGELOG.md                       @liuchun878
+/AGENTS.md                          @liuchun878
