@@ -93,18 +93,28 @@ body.view-family {
 }
 
 .hud__card {
-  /* v1.11：用户口径「左上角时间确认的屏幕缩小一点」——
-     只收**卡片占位**（宽/内边距/外边距）与**次要文字**，主文案与点击目标仍按适老化硬数值：
-     大字 ≥18pt（这里 38px）、正文 ≥22px、一键确认 ≥60×60（这里 72×…）。 */
+  /* v1.11：用户口径「左上角时间确认的屏幕缩小一点」；v1.14 再收一轮
+     （用户口径「左上角提示屏和右下角控制台再缩小一点，让观众看清主要场景」）——
+     继续只收**卡片占位**（宽/内边距/外边距）与次要文字：
+     主文案 38px、正文 22px、一键确认 ≥60×60 这三条适老化硬数值**不动**。 */
   position: absolute;
-  top: 22px;
-  left: 22px;
-  width: min(500px, 34vw);
-  padding: 18px 22px 20px;
+  top: 14px;
+  left: 14px;
+  width: min(392px, 26vw);
+  padding: 12px 16px 14px;
   border-radius: var(--radius);
   background: var(--paper);
   box-shadow: var(--shadow);
   pointer-events: auto;
+}
+
+/* 固定演示模式：整块再缩一档（缩放不改字号，只改占位）。
+ * ⚠️ 用 `body.is-scripted` 而不是给卡片加类 —— 大字卡每次 `hud.render()` 都会被重建，
+ * 加在元素上的类会被冲掉（实测过）。 */
+body.is-scripted .hud__card,
+.hud__card--compact {
+  transform: scale(0.82);
+  transform-origin: 14px 14px;
 }
 
 .hud__card--idle {
@@ -622,19 +632,103 @@ body.view-family {
 .console {
   position: fixed;
   /* 放右下角：左上是长者端大字卡，右上是演示时钟/语音角标，只有右下是空的 */
-  right: 18px;
-  bottom: 30px;
+  right: 14px;
+  bottom: 24px;
   z-index: 60;
-  width: min(392px, 32vw);
-  max-height: min(74vh, 668px);
+  /* v1.14：再收一档（用户口径「右下角控制台再缩小一点」）——它是给演示者用的，不是给观众看的 */
+  width: min(322px, 24vw);
+  max-height: min(62vh, 560px);
   overflow: auto;
-  padding: 12px 14px 14px;
+  padding: 9px 11px 10px;
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow);
   border: 1px solid var(--line);
-  font-size: 15px;
-  line-height: 1.4;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.console--compact {
+  transform: scale(0.86);
+  transform-origin: bottom right;
+}
+
+/* ── v1.14：左下角演示控制条（模式切换 + 家属端副屏）────────────────────
+ * 用户口径「左下角设置一个按键，点击即可弹出家属端副屏」+「做成可切换模式的平台」。
+ * 它只有两个控件，放在左下角的空白处，不遮主场景。 */
+.dock {
+  position: fixed;
+  left: 14px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  font-size: 13.5px;
+}
+
+.dock__seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dock__button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 7px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dock__button[aria-pressed="true"] {
+  background: var(--brand, #2f7f86);
+  color: #fff;
+}
+
+.dock__button--family {
+  border: 1px solid var(--brand, #2f7f86);
+  border-radius: 999px;
+  color: var(--brand, #2f7f86);
+  font-weight: 600;
+}
+
+.dock__button:hover {
+  filter: brightness(1.06);
+}
+
+.dock__hint {
+  color: var(--ink-2, #5b6b6f);
+  padding-left: 4px;
+}
+
+/* ── v1.14：取药特写（`body.shot-delivery`）──────────────────────────────
+ * 用户口径「让观众看清机器人如何递药和水、老人拿起药和水食用，不要有遮挡」。
+ * 递药那几秒里：演示者的控制台压到几乎看不见、调试抽屉与大字卡让位，画面留给取药动作。
+ * 只是透明度，不改任何布局与点击（控制台仍可用）。 */
+body.shot-delivery .console {
+  opacity: 0.16;
+}
+
+body.shot-delivery .hud__card {
+  opacity: 0.62;
+}
+
+body.shot-delivery .debug {
+  opacity: 0.2;
+}
+
+/* 固定演示模式：控制台本来就只是演示者用的，整体再收一点 */
+body.is-scripted .console {
+  opacity: 0.72;
 }
 
 .console__button {

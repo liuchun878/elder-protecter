@@ -22,6 +22,7 @@ import { mountHud } from './hud.js';
 import { mountConsole } from './controls.js';
 import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
+import { createDemoScript } from './demo-script.js';
 
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
@@ -91,6 +92,51 @@ function mountBanner() {
   window.addEventListener('offline', refreshOffline);
   store.subscribe(refreshOffline);
   refreshOffline();
+}
+
+/* ── 左下角演示控制条（v1.14 · 用户口径「左下角一个按键弹出家属端副屏」+「可切换模式」）──
+ * 两个控件：① 模式分段（自主点击 / 固定演示）　② 家属端副屏按钮。
+ * 它只转调已有命令与场景 API，不新增任何业务规则。 */
+function openFamilyScreen() {
+  const url = new URL('./?view=family', window.location.href).href;
+  // 副屏 = 一块手机大小的独立窗口；被弹窗拦截就退化成新标签页，不让按钮变成哑巴
+  const win = window.open(url, 'medbot-family', 'width=460,height=940,menubar=no,toolbar=no,noopener');
+  if (!win) window.open(url, '_blank', 'noopener');
+}
+
+function mountDock({ getMode, setMode, onFamily }) {
+  const root = document.getElementById('dock');
+  if (!root) return { setHint() {}, refresh() {} };
+  const seg = document.createElement('div');
+  seg.className = 'dock__seg';
+  root.appendChild(seg);
+  const buttons = {};
+  for (const [mode, label] of [['interactive', '自主点击'], ['scripted', '固定演示']]) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dock__button';
+    b.textContent = label;
+    b.addEventListener('click', () => setMode(mode));
+    seg.appendChild(b);
+    buttons[mode] = b;
+  }
+  const hint = document.createElement('span');
+  hint.className = 'dock__hint';
+  root.appendChild(hint);
+  const family = document.createElement('button');
+  family.type = 'button';
+  family.className = 'dock__button dock__button--family';
+  family.textContent = '家属端副屏';
+  family.addEventListener('click', onFamily);
+  root.appendChild(family);
+
+  return {
+    setHint(text) { hint.textContent = text || ''; },
+    refresh() {
+      const mode = getMode();
+      for (const key of Object.keys(buttons)) buttons[key].setAttribute('aria-pressed', String(key === mode));
+    },
+  };
 }
 
 /* ── 调试抽屉（默认隐藏，契约 §8）────────────────────────────────── */
@@ -260,6 +306,9 @@ let clock;
 /** v1.13：本轮已说过的话（`事件 id|p2` / `|p3`）——复位时清空，保证下一轮还能说 */
 const takenSaid = new Set();
 
+/** v1.14：模式（`?mode=scripted` 开固定演示；默认自主点击） */
+const MODE = params.get('mode') === 'scripted' ? 'scripted' : 'interactive';
+
 /* ── 启动 ───────────────────────────────────────────────────────────── */
 
 function startMainView() {
@@ -300,6 +349,38 @@ function startMainView() {
   });
 
   mountDebugDrawer({ scene, clock });
+
+  /* ── v1.14：可切换模式的平台（自主点击 / 固定演示）+ 左下角控制条 + 家属端副屏 ── */
+  let mode = MODE;
+  let prevCamMode = null;
+  const dock = mountDock({
+    getMode: () => mode,
+    setMode: (next) => applyMode(next),
+    onFamily: openFamilyScreen,
+  });
+  const script = createDemoScript({
+    clock, presence, store, person, scene, robot,
+    onBeat: (beat) => dock.setHint(beat.label),
+  });
+  function applyMode(next) {
+    mode = next === 'scripted' ? 'scripted' : 'interactive';
+    document.body.classList.toggle('is-scripted', mode === 'scripted');
+    const card = document.querySelector('.hud__card');
+    if (card) card.classList.toggle('hud__card--compact', mode === 'scripted');
+    const consoleEl = document.getElementById('console');
+    if (consoleEl) consoleEl.classList.toggle('console--compact', mode === 'scripted');
+    if (mode === 'scripted') {
+      debugApi.reset(); // 回到演示初始态：清事件、时钟复位、她回客厅，然后按剧本从头走
+      script.start();
+    } else {
+      script.stop();
+      dock.setHint('');
+    }
+    dock.refresh();
+    return mode;
+  }
+  window.demoMode = { get: () => mode, set: applyMode, script: () => script.status() };
+  dock.refresh();
   // 交互控制台：拍摄模式下不挂载（会进画面，也会破坏逐帧可复现）
   if (!FILM_MODE) {
     mountConsole(document.getElementById('console'), {
@@ -459,12 +540,28 @@ function startMainView() {
         }
         person.beginTake(id);
         action = person.getAction(); // ⚠️ 刚启动：必须重读，否则下面会当成"已结束"立刻清掉目标
+        /* v1.14（用户口径「吃药时把镜头移到老人与机器人，让观众看清递药，不要有遮挡」）：
+         * 递药这一刻把**她 + 机器人**一起框进画面（`scene.focusPair` 会挑一个"视线不隔墙、
+         * 不陷在家具里"的侧面机位；找不到就保持原机位，不硬凑）。
+         * 同时给 body 加 `shot-delivery`：右下角控制台压暗，别挡着观众看取药。 */
+        if (typeof scene.focusPair === 'function') {
+          const her = latest.presence.seat || scene.getWaypoint(latest.presence.location);
+          const rp = scene.getActorPosition('robot');
+          prevCamMode = typeof scene.getCameraMode === 'function' ? scene.getCameraMode() : 'wide';
+          if (her && rp && scene.focusPair(her, rp)) document.body.classList.add('shot-delivery');
+        }
       }
     }
 
     if (!action.active) {
       if (typeof person.setTakeTarget === 'function') person.setTakeTarget(null);
       returnCupToTray();
+      // 取药特写结束：镜头还给原来的机位，控制台恢复
+      if (document.body.classList.contains('shot-delivery')) {
+        document.body.classList.remove('shot-delivery');
+        if (prevCamMode && typeof scene.setCameraMode === 'function') scene.setCameraMode(prevCamMode);
+        prevCamMode = null;
+      }
       // 动作收尾：**本轮事件还没收口**就别把杯子/药放回托盘（她刚拿走的东西不该又冒出来），
       // 等事件结束（activeEventId 清空 → 托盘回舱）再复位，准备下一轮。
       if (!id && typeof robot.setCargo === 'function') robot.setCargo({ cupTaken: false, pillTaken: false });
@@ -565,6 +662,8 @@ function startMainView() {
   }
 
   clock.start();
+  // 固定演示：从初始态开始按剧本走（`?mode=scripted` 或左下角按钮切的）
+  if (mode === 'scripted') applyMode('scripted');
   let last = performance.now();
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.1);
