@@ -62,8 +62,22 @@ function mountBanner() {
   function refreshOffline() {
     const offline = !navigator.onLine || store.getState().offline;
     offlineNote.hidden = !offline;
-    banner.hidden = !offline && !storageNote;
+    banner.hidden = !offline && !storageNote && voiceNote.hidden;
   }
+
+  /* v1.14：浏览器要求"先有用户手势"才允许出声，而"到吃药时间"是**自动发生**的 ——
+   * 没有任何点击时，语音会被自动播放策略掐掉（用户实测："到吃药时间没有声音"）。
+   * 这里明示一句，并在首次点击/按键后隐藏；`audio.attachUnlock()` 会把被掐掉的那句补播一次。 */
+  const voiceNote = document.createElement('p');
+  voiceNote.className = 'banner__item';
+  voiceNote.textContent = '点一下页面即可听到语音（浏览器要求先有一次交互）';
+  banner.appendChild(voiceNote);
+  const hideVoiceNote = () => {
+    voiceNote.hidden = true;
+    refreshOffline();
+  };
+  window.addEventListener('pointerdown', hideVoiceNote, { once: true });
+  window.addEventListener('keydown', hideVoiceNote, { once: true });
 
   if (storageNote) {
     const notice = document.createElement('p');
@@ -347,8 +361,10 @@ function startMainView() {
     urgedKeys.add(key);
     const plan = latest.plans.find((p) => p.id === event.planId) || null;
     const parts = [event.slotTime, plan ? plan.name : '', plan ? plan.doseText : ''].filter(Boolean);
+    // v1.14：**到点那一句**已经由 HUD 播了用户录的 `p1`（"该吃药啦…"）；
+    // 走到她身边这句是"换一个通道再督促一次"，用合成童声说合规措辞，**不再重复播同一段录音**。
     audio.speak(`奶奶，药已经放在托盘上了。${parts.join('，')}，请取走`, {
-      force: true, style: 'child', clip: 'p1',
+      force: true, style: 'child',
     });
   }
 
@@ -365,9 +381,48 @@ function startMainView() {
    * 杯子和药从托盘上"被拿走"也只是可见性，由 `robot.setCargo` 处理，不参与业务判断。
    */
   const TAKE_PHASES = ['idle', 'reach', 'cup', 'drink', 'pill', 'done'];
+
+  /**
+   * 把托盘上的杯子**交到她手里**（v1.14 · 用户口径「端杯子喝水」）。
+   * 纯表现：`attach` 到右手掌心节点（世界变换自动重算），并把落点摆进掌心；
+   * `returnCupToTray()` 用记录下来的父节点 + 局部变换**逐位还原**，托盘一侧的状态一点不改。
+   */
+  let cupRig = null;
+  function holdCup() {
+    if (cupRig) return;
+    if (typeof person.getHandAnchor !== 'function' || typeof robot.getCargoNodes !== 'function') return;
+    const hand = person.getHandAnchor();
+    const nodes = robot.getCargoNodes();
+    if (!hand || !nodes) return;
+    const list = [nodes.cup, nodes.cupBottom, nodes.water].filter(Boolean);
+    if (!list.length) return;
+    cupRig = list.map((node) => {
+      const rec = {
+        node, parent: node.parent, position: node.position.clone(), quaternion: node.quaternion.clone(), scale: node.scale.clone(),
+      };
+      hand.attach(node);
+      node.visible = true;
+      node.position.set(0, -0.052, 0.022); // 落在掌心里（掌心节点在腕下 ~0.05 m）
+      node.quaternion.identity();
+      return rec;
+    });
+  }
+  function returnCupToTray() {
+    if (!cupRig) return;
+    for (const rec of cupRig) {
+      if (!rec.parent) continue;
+      rec.parent.attach(rec.node);
+      rec.node.position.copy(rec.position);
+      rec.node.quaternion.copy(rec.quaternion);
+      rec.node.scale.copy(rec.scale);
+      rec.node.visible = true;
+    }
+    cupRig = null;
+  }
+
   function syncTake() {
     if (typeof person.getAction !== 'function' || typeof person.beginTake !== 'function') return;
-    const action = person.getAction();
+    let action = person.getAction();
     const id = latest.activeEventId;
     const event = id ? latest.events.find((e) => e.id === id) : null;
 
@@ -378,10 +433,24 @@ function startMainView() {
       // ⚠️ 时序：机器人**先把水注好**，她再端杯 —— 否则"她拿走杯子"会把注水打断（水面只涨到 0.22）。
       // 这只是表现层的先后次序，不是业务判据。
       const poured = typeof robot.isPoured !== 'function' || robot.isPoured();
-      if (atSide && poured) person.beginTake(id);
+      if (atSide && poured) {
+        // 把**托盘的真实世界位置**告诉她：她要"上前一步、伸手够到托盘"（纯表现位移，不改 presence）
+        if (typeof person.setTakeTarget === 'function' && typeof robot.getCargoNodes === 'function') {
+          const nodes = robot.getCargoNodes();
+          const tray = nodes && nodes.tray;
+          if (tray) {
+            const wp = tray.getWorldPosition(tray.position.clone());
+            person.setTakeTarget({ x: wp.x, y: wp.y, z: wp.z });
+          }
+        }
+        person.beginTake(id);
+        action = person.getAction(); // ⚠️ 刚启动：必须重读，否则下面会当成"已结束"立刻清掉目标
+      }
     }
 
     if (!action.active) {
+      if (typeof person.setTakeTarget === 'function') person.setTakeTarget(null);
+      returnCupToTray();
       // 动作收尾：**本轮事件还没收口**就别把杯子/药放回托盘（她刚拿走的东西不该又冒出来），
       // 等事件结束（activeEventId 清空 → 托盘回舱）再复位，准备下一轮。
       if (!id && typeof robot.setCargo === 'function') robot.setCargo({ cupTaken: false, pillTaken: false });
@@ -389,6 +458,8 @@ function startMainView() {
     }
 
     const step = TAKE_PHASES.indexOf(action.phase);
+    const holdingCup = step >= TAKE_PHASES.indexOf('cup') && action.phase !== 'done';
+    if (holdingCup) holdCup(); else returnCupToTray();
     if (step >= TAKE_PHASES.indexOf('cup') && !takenSaid.has(`${action.eventId}|p2`)) {
       takenSaid.add(`${action.eventId}|p2`);
       audio.speak('奶奶真棒，慢慢喝口水，把药吃下去', { force: true, style: 'child', clip: 'p2' });

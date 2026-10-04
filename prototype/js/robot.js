@@ -74,6 +74,7 @@ const PROFILE = [
 const DOOR_PROFILE = [[DOOR.y0, 0.1952], [0.235, 0.1950], [DOOR.y1, 0.1912]];
 
 const SPEED = 1.2; // m/s（预置路径动画，不宣称导航能力）
+const DELIVER_RANGE = 0.55; // v1.14：递药时与她保持的距离（米）——托盘前伸 0.2 m 后落进她伸手范围内
 const OPEN_TIME = 0.9; // 从"收好"到"递到位"的全程时间，秒
 // v1.14（YuMi-06 `0000000/index.html` 第 227–230、394–397 行）：注水约 2.5 s，
 // 水面从 0.001 涨到 0.8 就停住（`water.scale.y` 是视觉量，不是业务量）。
@@ -551,12 +552,21 @@ export function createRobot(sceneApi) {
   function applyCargo() {
     const out = view.tray > 0.02;
     const showCup = out && !taken.cup;
-    cup.visible = showCup;
-    cupBottom.visible = showCup;
-    water.visible = showCup && water.scale.y > 0.006;
+    // v1.14：杯子被装配层 `attach` 到她手上之后（parent 不再是托盘），本文件**不再管它的可见性** ——
+    // 否则「她端着杯子喝水」会被这里每帧设成 invisible。
+    if (cup.parent === tray) {
+      cup.visible = showCup;
+      cupBottom.visible = showCup;
+      water.visible = showCup && water.scale.y > 0.006;
+    }
     pills.visible = out && !taken.pills;
     pillBox.visible = out && !taken.pills;
     stream.visible = out && !taken.cup && view.pour > 0.001 && !view.filled;
+  }
+
+  /** v1.14：货架上的节点（只读）——装配层把杯子 attach 到她手上时要用 */
+  function getCargoNodes() {
+    return { cup, cupBottom, water, pills, pillBox, tray };
   }
 
   /** 把进度摆到机构上（对开门绕外侧竖边摆开 + 托盘沿导轨前伸 + 水位） */
@@ -642,7 +652,26 @@ export function createRobot(sceneApi) {
     const attending = Boolean(seat);
     const nearby = carrying || attending;
 
-    const target = nearby ? sceneApi.getApproachPoint(location, seat) : dock;
+    // v1.14：**递药时贴身停下** —— 场景给的停靠点是「绕开家具能站」的位置，实测离她 ~0.9 m，
+    // 她伸手够不到托盘（用户口径「奶奶需要伸手拿托盘上的药」）。所以在同一条
+    // 「她 → 停靠点」的方向上再往前走一段，走到 ≈0.55 m；**只在可通行网格允许时才往前**，
+    // 不允许（例如她坐进沙发、再往前是家具）就退回场景给的停靠点。这不是业务判据。
+    const stand = nearby ? sceneApi.getApproachPoint(location, seat) : null;
+    let target = nearby ? stand : dock;
+    if (carrying && stand) {
+      const person = seat || sceneApi.getWaypoint(location);
+      if (person) {
+        const dx = stand.x - person.x;
+        const dz = stand.z - person.z;
+        const d = Math.hypot(dx, dz) || 1;
+        if (d > DELIVER_RANGE) {
+          const k = DELIVER_RANGE / d;
+          const closer = { x: person.x + dx * k, z: person.z + dz * k };
+          const ok = typeof sceneApi.isWalkable !== 'function' || sceneApi.isWalkable(closer.x, closer.z);
+          if (ok) target = closer;
+        }
+      }
+    }
 
     const arrived = stepTowards(target, dt);
 
@@ -763,7 +792,7 @@ export function createRobot(sceneApi) {
     return view.filled;
   }
 
-  return { group, update, setCargo, isPoured, id: 'robot' };
+  return { group, update, setCargo, isPoured, getCargoNodes, id: 'robot' };
 }
 
 export const robot = { createRobot };
