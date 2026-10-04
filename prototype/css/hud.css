@@ -886,3 +886,171 @@ body.is-scripted .console {
     right: 12px;
   }
 }
+
+/* ══ v1.16：页内「手机屏」家属端 + 所有小窗口可点击收起/展开 ═══════════════
+ * 用户口径：①「家属端副屏可以用一个手机屏幕展示」②「所有小窗口都可以点击收起打开」。
+ * 一律只改**表现**：收起只是 `display:none` / 高度归零，功能与控制台命令一条不少。 */
+
+/* 手机壳：右侧竖屏，窄视口自动收窄 */
+.phone {
+  position: fixed;
+  right: 14px;
+  top: 12px;
+  bottom: 12px;
+  z-index: 70;
+  width: min(392px, 30vw);
+  display: flex;
+  align-items: stretch;
+  transition: width 0.18s ease, height 0.18s ease;
+}
+
+.phone__frame {
+  position: relative;
+  flex: 1;
+  border-radius: 38px;
+  background: #0d1114;
+  padding: 12px 10px 16px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+  border: 1px solid #232a2f;
+  overflow: hidden;
+}
+
+/* 听筒/刘海 */
+.phone__notch {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96px;
+  height: 18px;
+  border-radius: 0 0 12px 12px;
+  background: #05080a;
+}
+
+.phone__screen {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 26px;
+  background: #fff;
+  display: block;
+}
+
+/* 收起后只剩一条窄条 */
+.phone.is-collapsed {
+  bottom: auto;
+  height: 46px;
+}
+
+.phone.is-collapsed .phone__frame {
+  border-radius: 14px;
+  padding: 6px 10px;
+}
+
+.phone.is-collapsed .phone__screen,
+.phone.is-collapsed .phone__notch {
+  display: none;
+}
+
+.phone.is-collapsed .phone__title {
+  display: block;
+}
+
+.phone__title {
+  display: none;
+  color: #e8f1f2;
+  font-size: 13.5px;
+  line-height: 22px;
+  text-align: center;
+}
+
+/* 收起/展开按钮：小圆片，跟着各窗口 */
+.collapse-toggle {
+  position: fixed;
+  z-index: 80;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collapse-toggle--hud {
+  top: 16px;
+  left: 414px;
+}
+
+body.is-hud-collapsed .collapse-toggle--hud {
+  left: 16px;
+}
+
+#hud.is-collapsed .hud__card,
+#hud.is-collapsed .hud__clock,
+#hud.is-collapsed .hud__voice {
+  display: none;
+}
+
+.collapse-toggle--console {
+  right: 344px;
+  bottom: 30px;
+}
+
+body.is-console-collapsed .collapse-toggle--console {
+  right: 16px;
+}
+
+/* 控制台收起：只留那颗圆片（其余全部隐藏） */
+.console.is-collapsed > *:not(.collapse-toggle) {
+  display: none;
+}
+
+.console.is-collapsed {
+  width: auto;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.collapse-toggle--dock {
+  left: 14px;
+  bottom: 82px;
+}
+
+body.is-dock-collapsed .collapse-toggle--dock {
+  bottom: 24px;
+}
+
+.dock.is-collapsed .dock__seg,
+.dock.is-collapsed .dock__hint,
+.dock.is-collapsed .dock__button--family {
+  display: none;
+}
+
+.dock.is-collapsed {
+  padding: 6px 8px;
+}
+
+.dock.is-collapsed::before {
+  content: '控制条已收起';
+  color: var(--ink-2, #5b6b6f);
+  font-size: 13px;
+}
+
+.collapse-toggle--phone {
+  right: 16px;
+  top: 22px;
+}
+
+.phone.is-collapsed .collapse-toggle--phone {
+  top: 18px;
+}
