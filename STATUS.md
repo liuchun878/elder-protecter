@@ -41,6 +41,15 @@
 - **①** 家属端副屏改成**页内手机屏**（手机壳 + `iframe ?view=family`，默认收起；展开时右下控制台自动让位）→ 实测 392×676 ✅
 - **②** 四块小窗口（大字卡 / 控制台 / 控制条 / 手机屏）**都可以点一下收起、再点展开** ✅
 
+### v1.17 追加（用户口径 · 2026-10-04）
+
+- **家属端手机屏换成队友做的 App**：`iframe` → `/family-app/index.html`（RHINE-LINK 五 Tab），
+  实测 iframe 标题「子女端提示 App · RHINE-LINK」✅；版本角标 **v1.17**
+- **服务器升为双根**：`python3 scripts/serve-nocache.py prototype 8000` —— 先 `prototype/` 再仓库根，
+  主演示 URL 不变，同时 `/family-app/index.html` 可达
+- ⚠️ **红线偏离**：队友那份含「已服药」3 处、「依从率」1 处、「剂量」4 处（本项目红线）——
+  按用户要求原样接入并留痕；要合规需改**他那份**的文案
+
 > ⚠️ **本地演示服务器已换成禁缓存版**：`python3 scripts/serve-nocache.py prototype 8000`
 > （原来是 `python3 -m http.server 8000`，它不发 `Cache-Control`，Chrome 会缓存住 `js/main.js`，
 > 导致"改完了但刷新还是旧版"）。左下角控制条上的 **`v1.16` 角标**就是新版标记；不是它请强刷。

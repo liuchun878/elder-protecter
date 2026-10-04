@@ -24,7 +24,7 @@ import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
 import { createDemoScript } from './demo-script.js';
 
-const BUILD = 'v1.16';
+const BUILD = 'v1.17';
 if (typeof console !== 'undefined') console.info(`[medbot] build ${BUILD}`);
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
@@ -110,8 +110,9 @@ function ensurePhone() {
   phone.innerHTML = [
     '<div class="phone__frame">',
     '<div class="phone__notch"></div>',
-    '<div class="phone__title">家属端副屏（点右上 ⌄ 展开）</div>',
-    '<iframe class="phone__screen" title="家属端副屏（手机屏）" src="./?view=family"></iframe>',
+    '<div class="phone__title">家属端（点右上 ⌄ 展开）</div>',
+    // v1.17：手机屏内容 = **队友做的家属端 App**（仓库根 `family-app/`，由禁缓存服务器双根提供）
+    '<iframe class="phone__screen" title="家属端（队友做的 App）" src="/family-app/index.html"></iframe>',
     '</div>',
   ].join('');
   document.body.appendChild(phone);
@@ -164,8 +165,8 @@ function mountDock({ getMode, setMode, onFamily }) {
   // v1.16：版本角标 —— 演示/答辩时一眼确认浏览器拿到的是**新版**（缓存排查用）
   const version = document.createElement('span');
   version.className = 'dock__version';
-  version.textContent = 'v1.16';
-  version.title = '当前构建：v1.16（2026-10-04）· 若这里不是 v1.16，请 Cmd+Shift+R 强刷';
+  version.textContent = 'v1.17';
+  version.title = '当前构建：v1.17（2026-10-04）· 若这里不是 v1.17，请 Cmd+Shift+R 强刷';
   root.appendChild(version);
   const family = document.createElement('button');
   family.type = 'button';

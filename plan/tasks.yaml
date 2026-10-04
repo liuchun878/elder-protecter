@@ -821,6 +821,19 @@ tasks:
     note: "用户实测「我要修改后的新版,不要旧版」——根因是 http.server 的启发式缓存把 js/main.js 缓存住了。"
     status: done
 
+  - id: S24
+    title: 家属端手机屏换成队友做的 App（family-app）+ 服务器双根
+    line: S
+    block: D2PM
+    milestone: M2
+    priority: P0
+    files: [prototype/js/main.js, scripts/serve-nocache.py]
+    depends_on: [S23]
+    acceptance: "手机屏 iframe 指向 /family-app/index.html（实测 iframe 标题『子女端提示 App · RHINE-LINK｜送药机器人 子女手机端』，展开 392×676 仍正常、收起/展开正常、零控制台异常）；serve-nocache.py 双根后 / 与 /js/* 仍走 prototype、/family-app/index.html 可达；版本角标 v1.17"
+    note: "用户口径「家属端的内容不要你制作的那个,替换成队友做的」。
+           ⚠️ 队友那份界面里有「已服药」「依从率」「剂量」等本项目红线字样，属**用户裁定的显式偏离**，已在契约/CHANGELOG 留痕。"
+    status: done
+
 # ── 首个同步点（并行开发的生命线）─────────────────────────────────────────
 critical_sync:
   at: D1AM
