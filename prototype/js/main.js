@@ -24,6 +24,8 @@ import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
 import { createDemoScript } from './demo-script.js';
 
+const BUILD = 'v1.16';
+if (typeof console !== 'undefined') console.info(`[medbot] build ${BUILD}`);
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
 /** 拍摄模式：`?film=1` —— 由 scripts/record-promo.mjs 逐帧驱动，用于可复现录屏 */
@@ -159,6 +161,12 @@ function mountDock({ getMode, setMode, onFamily }) {
   const hint = document.createElement('span');
   hint.className = 'dock__hint';
   root.appendChild(hint);
+  // v1.16：版本角标 —— 演示/答辩时一眼确认浏览器拿到的是**新版**（缓存排查用）
+  const version = document.createElement('span');
+  version.className = 'dock__version';
+  version.textContent = 'v1.16';
+  version.title = '当前构建：v1.16（2026-10-04）· 若这里不是 v1.16，请 Cmd+Shift+R 强刷';
+  root.appendChild(version);
   const family = document.createElement('button');
   family.type = 'button';
   family.className = 'dock__button dock__button--family';
