@@ -73,7 +73,11 @@ const TIME_OF_DAY = {
 export function createScene3D({ container }) {
   if (!isWebGLAvailable()) return null;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+  // v1.20：录制模式（?record=1）打开 preserveDrawingBuffer —— 页内 canvas.toDataURL() 才抓得到画面，
+// 免走 CDP 截图管线（实测那条路 5 s/帧，页内抓帧约 0.5 s/帧）
+  const RECORDING = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('record') === '1';
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: RECORDING, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = TIME_OF_DAY.day.exposure;
@@ -523,10 +527,11 @@ export function createScene3D({ container }) {
   }
 
   /** 取景到落座点：算机位 → 平滑搬过去（找不到机位就什么都不做） */
-  function focusSeat(seat, { animate = true } = {}) {
+  function focusSeat(seat, { animate = true, duration = 0.85 } = {}) {
     const pose = seat ? seatCameraPose(seat) : null;
     if (!pose) return null;
     view.mode = 'seat'; // 不再对应任何预设按钮（面板上不该有为它高亮的按钮）
+    camFly.dur = duration; // v1.20：推近速度可调（递药特写要"慢一点、跟得上讲解"）
     flyTo(pose, !animate);
     return pose;
   }
@@ -584,10 +589,11 @@ export function createScene3D({ container }) {
   }
 
   /** 把「她 + 机器人」一起取景（递药那一刻用）；找不到机位就返回 null，保持原样 */
-  function focusPair(a, b, { animate = true } = {}) {
+  function focusPair(a, b, { animate = true, duration = 0.85 } = {}) {
     const pose = a && b ? pairCameraPose(a, b) : null;
     if (!pose) return null;
     view.mode = 'pair';
+    camFly.dur = duration;
     flyTo(pose, !animate);
     return pose;
   }
@@ -794,8 +800,8 @@ export function createScene3D({ container }) {
     },
 
     /** 点击落座后把相机搬到"看得见落座点"的机位（契约 v1.9 §3.1）；找不到返回 null */
-    focusSeat(seat, { animate = true } = {}) {
-      return focusSeat(seat, { animate });
+    focusSeat(seat, { animate = true, duration = 0.85 } = {}) {
+      return focusSeat(seat, { animate, duration });
     },
 
     /**
@@ -803,8 +809,8 @@ export function createScene3D({ container }) {
      * @param {{x:number,z:number}} a 她　@param {{x:number,z:number}} b 机器人
      * @returns {object|null} 机位；找不到合适位置返回 null（保持原机位）
      */
-    focusPair(a, b, { animate = true } = {}) {
-      return focusPair(a, b, { animate });
+    focusPair(a, b, { animate = true, duration = 0.85 } = {}) {
+      return focusPair(a, b, { animate, duration });
     },
 
     /** 自测用：最近一次自动取景用的机位 */

@@ -35,15 +35,15 @@ const at = (hhmm) => `${DEMO_DATE}T${hhmm}:00`;
 export const DEMO_BEATS = [
   {
     id: 'morning',
-    label: '第一场 · 清晨 07:30 · 卧室 → 客厅',
-    at: at('07:30'),
+    label: '第一场 · 清晨 08:00 · 卧室 → 客厅',
+    at: at('08:00'),
     place: 'living_room',
     timeOfDay: 'day',
     narration: '清晨的阳光透进卧室。王阿姨缓缓起床，倒了一杯温水，坐在沙发上翻看儿女发来的消息 —— 完全忘了晨起服药这件事。',
-    robot: '奶奶早上好！现在是早上七点半，到了您服用降压药的时间啦，今日晨起药物已为您备好，请按时服药哦。',
+    robot: '奶奶早上好！现在是早上八点，到了您服用降压药的时间啦，今日晨起药物已为您备好，请按时服药哦。',
     elder: '哎呀！我这记性，刚起床就把吃药的事忘得一干二净，多亏有你提醒。',
-    until: 'done',
-    hold: 70,
+    until: 'settled',
+    hold: 90,
   },
   {
     id: 'forenoon',
@@ -54,8 +54,8 @@ export const DEMO_BEATS = [
     narration: '阳光正好，阿姨在窗边浇花晒太阳，回客厅看起了电视，彻底忘了上午的调理药物。',
     robot: '奶奶您好，现在是上午十点，您的调理药物服用时间到啦，请及时服药，不要遗漏哦。',
     elder: '好好好，我马上吃！人老了脑子不好使，没有你盯着，我天天都得忘药。',
-    until: 'done',
-    hold: 70,
+    until: 'settled',
+    hold: 90,
   },
   {
     id: 'noon',
@@ -66,8 +66,8 @@ export const DEMO_BEATS = [
     narration: '午饭吃完、碗筷收拾好，她拿起帽子钥匙正要出门散步买菜 —— 午间的药又忘了。',
     robot: '奶奶稍等哦！午饭后半小时是服药最佳时间，还没吃药呢，吃完药再出门散步更安心。',
     elder: '对对对！差点就出门了，万一漏吃药，身体该不舒服了，谢谢你呀小护。',
-    until: 'done',
-    hold: 70,
+    until: 'settled',
+    hold: 90,
   },
   {
     id: 'afternoon',
@@ -78,8 +78,8 @@ export const DEMO_BEATS = [
     narration: '买菜归来，她坐在沙发上休息、剥水果吃，早已忘了下午的专项药物。',
     robot: '奶奶下午好！现在是下午四点，请按时服用今日下午药物，本次药物需温水送服，服用后可适当休息。',
     elder: '（点点头，接过水杯）',
-    until: 'done',
-    hold: 70,
+    until: 'settled',
+    hold: 90,
   },
   {
     id: 'night',
@@ -90,8 +90,8 @@ export const DEMO_BEATS = [
     narration: '天色渐暗，室内灯光柔和温暖。看完晚间新闻，她起身收拾客厅准备休息 —— 忘了晚间最后一次服药。',
     robot: '奶奶晚上好！今日最后一次服药时间到啦，完成服药就可以安心休息啦。',
     elder: '以前儿女不在家，我总是三天两头忘吃药、吃错药。现在有了你，早中晚按时提醒，一天都不会漏，真是我的专属健康小管家啊。',
-    until: 'done',
-    hold: 70,
+    until: 'settled',
+    hold: 90,
   },
   {
     id: 'ending',
@@ -118,6 +118,15 @@ function waitSatisfied(kind, state, deps) {
     if (acting) deps._seenTake = true;
     return acting;
   }
+  if (kind === 'settled') {
+    // v1.20（用户口径）：把"**送药 → 递药 → 吃药 → 机器人收回托盘 → 回充电桩**"整条演完再进下一场
+    const rp = deps.scene && deps.scene.getActorPosition ? deps.scene.getActorPosition('robot') : null;
+    const dock = deps.scene && deps.scene.getDock ? deps.scene.getDock() : null;
+    const atDock = Boolean(rp && dock && Math.hypot(rp.x - dock.x, rp.z - dock.z) < 0.18);
+    if (acting) { deps._seenTake = true; return false; }
+    if (deps._seenTake && atDock) { deps._seenTake = false; return true; }
+    return false;
+  }
   if (kind === 'done') {
     // 先等她真的开始取药，再等动作链走完回 idle —— 不能只看"当前没在动"，
     // 否则一进这一拍（动作还没开始）就立刻放行，等于没演（v1.19 实测踩到过）
@@ -139,8 +148,19 @@ export function createDemoScript(deps) {
   let paused = false;
   let index = -1;
   let cancelled = false;
+  let dbg = {}; // 只读诊断（status() 带出去）
 
-  const sleep = (ms) => new Promise((resolve) => { window.setTimeout(resolve, ms); });
+  /* 两种驱动方式：
+   *   交互演示 → 定时器（真实时间）
+   *   录视频   → **逐帧**（`deps.nextStep`）：帧率与渲染速度解耦，画面才平滑（实测软渲染只有 2–3 fps） */
+  const stepDriver = deps.nextStep || null;
+  const stepSeconds = (stepDriver && stepDriver.seconds) || (1 / 12);
+  const waitNext = () => {
+    if (stepDriver) return new Promise((resolve) => stepDriver.register(resolve));
+    return new Promise((resolve) => { window.setTimeout(resolve, 120); });
+  };
+  /** 把"最长等 N 秒"换算成"最多等 N 步"（逐帧模式下按仿真秒计） */
+  const holdSteps = (beat) => Math.max(1, Math.round(((beat.hold || 15) / (stepDriver ? stepSeconds : 0.12))));
 
   function notify() {
     if (onBeat) {
@@ -161,12 +181,17 @@ export function createDemoScript(deps) {
     deps._seenTake = false;
     notify();
     applyBeat(beat);
-    const deadline = Date.now() + (beat.hold || 15) * 1000;
+    const budget = holdSteps(beat);
+    let used = 0;
     while (!cancelled) {
-      if (paused) { await sleep(120); continue; }
-      if (waitSatisfied(beat.until, store.getState(), deps)) return true;
-      if (Date.now() > deadline) return false; // 超时也继续，别把演示卡死
-      await sleep(120);
+      if (paused) { dbg = { kind: beat.until, used, budget, paused: true }; await waitNext(); continue; }
+      const ok = waitSatisfied(beat.until, store.getState(), deps);
+      const act = deps.person && deps.person.getAction ? deps.person.getAction() : null;
+      dbg = { kind: beat.until, used, budget, ok, acting: Boolean(act && act.active), seen: deps._seenTake, paused: false };
+      if (ok) return true;
+      if (used >= budget) return false; // 超时也继续，别把演示卡死
+      used += 1;
+      await waitNext();
     }
     return false;
   }
@@ -192,14 +217,14 @@ export function createDemoScript(deps) {
     },
     pause() {
       paused = true;
-      clock.stop(); // 关键：暂停时**连演示时钟一起停**，场景真的定住，方便讲解
+      if (!stepDriver) clock.stop(); // 交互演示：连演示时钟一起停，场景真的定住（录制的逐帧模式没有计时器）
       notify();
       return this.status();
     },
     resume() {
       if (!running) return this.start(index < 0 ? 0 : index);
       paused = false;
-      clock.start();
+      if (!stepDriver) clock.start();
       notify();
       return this.status();
     },
@@ -224,7 +249,7 @@ export function createDemoScript(deps) {
     beats: () => DEMO_BEATS,
     status() {
       return {
-        running, paused, index, total: DEMO_BEATS.length, beat: DEMO_BEATS[index] || null,
+        running, paused, index, total: DEMO_BEATS.length, beat: DEMO_BEATS[index] || null, dbg,
       };
     },
   };

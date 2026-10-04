@@ -1287,3 +1287,21 @@ body.is-paused .player__btn--play {
   margin-right: 2px;
   white-space: nowrap;
 }
+
+/* v1.20：录制模式（?record=1）—— 隐藏所有 UI，只留 3D 画面与字幕 */
+body.is-record .dock,
+body.is-record .console,
+body.is-record .player,
+body.is-record .phone,
+body.is-record .debug,
+body.is-record .banner,
+body.is-record .stage-caption,
+body.is-record .collapse-toggle,
+body.is-record #hud {
+  display: none !important;
+}
+
+body.is-record .caption {
+  bottom: 36px;
+  width: min(1100px, 84vw);
+}

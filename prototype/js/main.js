@@ -24,7 +24,7 @@ import { mountFamilyPanel } from './family.js';
 import { audio } from './audio.js';
 import { createDemoScript } from './demo-script.js';
 
-const BUILD = 'v1.19';
+const BUILD = 'v1.20';
 if (typeof console !== 'undefined') console.info(`[medbot] build ${BUILD}`);
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') === 'family' ? 'family' : 'main';
@@ -44,7 +44,7 @@ function seedDemoData() {
    * `plan.startDate > 事件日期`，`schedule.materializeToday()` 就会一条事件都不物化，
    * 于是**到点永远不触发**（2026-10-04 实测复现：events=0、activeEventId=null）。 */
   const startDate = DEFAULT_DEMO_START.slice(0, 10);
-  plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', startDate, slots: [{ time: '07:30', label: '晨起' }], notes: '饭后服' });
+  plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', startDate, slots: [{ time: '08:00', label: '晨起' }], notes: '饭后服' });
   plan.create({ name: '二甲双胍', doseText: '0.5g', kind: 'regular', startDate, slots: [{ time: '10:00', label: '上午' }], notes: '随餐' });
   plan.create({ name: '碳酸钙D3', doseText: '1片', kind: 'regular', startDate, slots: [{ time: '12:30', label: '午间' }], notes: '饭后半小时' });
   plan.create({ name: '阿司匹林', doseText: '100mg', kind: 'regular', startDate, slots: [{ time: '16:00', label: '下午' }], notes: '温水送服' });
@@ -248,7 +248,7 @@ function mountDock({ getMode, setMode, onFamily }) {
   // v1.16：版本角标 —— 演示/答辩时一眼确认浏览器拿到的是**新版**（缓存排查用）
   const version = document.createElement('span');
   version.className = 'dock__version';
-  version.textContent = 'v1.19';
+  version.textContent = 'v1.20';
   version.title = '当前构建：v1.19（2026-10-04）· 若这里不是 v1.19，请 Cmd+Shift+R 强刷';
   root.appendChild(version);
   const family = document.createElement('button');
@@ -436,6 +436,15 @@ const takenSaid = new Set();
 
 /** v1.14：模式（`?mode=scripted` 开固定演示；默认自主点击） */
 const MODE = params.get('mode') === 'scripted' ? 'scripted' : 'interactive';
+/** v1.20：录制用的倍速（1 = 实时；3 = 三倍速，用于把 ~5 分钟的片子压到 ~1.5 分钟） */
+const SPEED = Math.max(0.25, Math.min(6, Number(params.get('speed') || 1) || 1));
+/** v1.20：录制模式 —— 隐藏所有按钮/面板，只留 3D 画面与字幕（录视频用） */
+const RECORD = params.get('record') === '1';
+
+/** v1.20：按倍速换算这一帧的 dt（并对单帧上限做保护，避免大 dt 穿墙/跳过判据） */
+function scaledDt(seconds) {
+  return Math.min(seconds * SPEED, 0.25);
+}
 
 /* ── 启动 ───────────────────────────────────────────────────────────── */
 
@@ -495,7 +504,13 @@ function startMainView() {
     }
     return next;
   }
-  if (!FILM_MODE) {
+  if (RECORD) {
+    // 录制模式：把所有 UI 面板/按钮藏起来，画面只留 3D + 字幕（用户要的是"能看的视频"）
+    document.body.classList.add('is-record');
+    // 软渲染（无 GPU）下阴影极贵：录视频时关掉，帧率大约能翻好几倍，画面依然完整
+    if (typeof scene.setShadows === 'function') scene.setShadows(false);
+  }
+  if (!FILM_MODE && !RECORD) {
     phone = ensurePhone();
     phoneToggle = addCollapseToggle({ target: phone, className: 'collapse-toggle--phone', label: '家属端副屏' });
     phoneToggle.textContent = '▸';
@@ -588,16 +603,22 @@ function startMainView() {
   }
   let captions = null;
   let player = null;
+  /* v1.20：录视频时的**逐帧驱动总线** —— film.step() 每推进一帧就放行一次剧本的等待，
+   * 于是"视频帧率"与"渲染速度"解耦（软渲染只有 2–3 fps，实时录只能出幻灯片）。 */
+  const stepBus = { cbs: [], seconds: 0, register(cb) { this.cbs.push(cb); }, fire() { const c = this.cbs; this.cbs = []; c.forEach((f) => f()); } };
   const script = createDemoScript({
     clock, presence, store, person, scene, robot,
+    nextStep: FILM_MODE && MODE === 'scripted' ? stepBus : null,
     onBeat: (st) => {
       dock.setHint(st.beat ? st.beat.label : '');
       if (captions) captions.update(st.beat);
       if (player) player.update(st);
     },
   });
-  if (!FILM_MODE) {
-    captions = mountCaptions();
+  if (!FILM_MODE || RECORD) {
+    captions = mountCaptions(); // 录制时要字幕进画面；纯拍摄模式(?film=1)保持干净
+  }
+  if (!FILM_MODE && !RECORD) {
     player = mountPlayer({
       script,
       // 小护的台词：朗读出来（童声），同时字幕已在 captions 里显示
@@ -712,6 +733,7 @@ function startMainView() {
    * 杯子和药从托盘上"被拿走"也只是可见性，由 `robot.setCargo` 处理，不参与业务判断。
    */
   const TAKE_PHASES = ['idle', 'reach', 'cup', 'drink', 'pill', 'done'];
+  let pendingConfirm = null; // 固定演示：动作走完后要自动确认的事件 id
 
   /**
    * 把托盘上的杯子**交到她手里**（v1.14 · 用户口径「端杯子喝水」）。
@@ -751,6 +773,20 @@ function startMainView() {
     cupRig = null;
   }
 
+  /** v1.20：递药特写什么时候结束 —— 机器人回到充电桩（或事件被复位） */
+  function settleShot() {
+    if (!document.body.classList.contains('shot-delivery')) return;
+    if (latest.activeEventId) return; // 还在递药/待确认，继续跟
+    const rp = scene.getActorPosition('robot');
+    const dock = scene.getDock ? scene.getDock() : null;
+    const atDock = rp && dock && Math.hypot(rp.x - dock.x, rp.z - dock.z) < 0.18;
+    if (!atDock) return;
+    document.body.classList.remove('shot-delivery');
+    if (prevCamMode && typeof scene.setCameraMode === 'function') scene.setCameraMode(prevCamMode);
+    prevCamMode = null;
+    if (stepBus) stepBus.shotActive = false;
+  }
+
   function syncTake() {
     if (typeof person.getAction !== 'function' || typeof person.beginTake !== 'function') return;
     let action = person.getAction();
@@ -784,7 +820,12 @@ function startMainView() {
           const her = latest.presence.seat || scene.getWaypoint(latest.presence.location);
           const rp = scene.getActorPosition('robot');
           prevCamMode = typeof scene.getCameraMode === 'function' ? scene.getCameraMode() : 'wide';
-          if (her && rp && scene.focusPair(her, rp)) document.body.classList.add('shot-delivery');
+          if (her && rp && scene.focusPair(her, rp, { duration: 2.4 })) {
+            // v1.20：推近放慢到 2.4 s（用户口径「推近可以慢一点，主要想展示送药/递药/吃药/收托盘/回桩」）
+            document.body.classList.add('shot-delivery');
+            stepBus.shotStartFrame = stepBus.frame || 0;
+            stepBus.shotActive = true;
+          }
         }
       }
     }
@@ -792,12 +833,8 @@ function startMainView() {
     if (!action.active) {
       if (typeof person.setTakeTarget === 'function') person.setTakeTarget(null);
       returnCupToTray();
-      // 取药特写结束：镜头还给原来的机位，控制台恢复
-      if (document.body.classList.contains('shot-delivery')) {
-        document.body.classList.remove('shot-delivery');
-        if (prevCamMode && typeof scene.setCameraMode === 'function') scene.setCameraMode(prevCamMode);
-        prevCamMode = null;
-      }
+      // v1.20：动作结束后**不立刻切走** —— 特写一直保持到机器人**收好托盘、回到充电桩**
+      // （用户口径：要把"收托盘 + 回桩"也演给观众看），由下面的 film/主循环统一收尾。
       // 动作收尾：**本轮事件还没收口**就别把杯子/药放回托盘（她刚拿走的东西不该又冒出来），
       // 等事件结束（activeEventId 清空 → 托盘回舱）再复位，准备下一轮。
       if (!id && typeof robot.setCargo === 'function') robot.setCargo({ cupTaken: false, pillTaken: false });
@@ -814,6 +851,14 @@ function startMainView() {
     if (action.phase === 'done' && !takenSaid.has(`${action.eventId}|p3`)) {
       takenSaid.add(`${action.eventId}|p3`);
       audio.speak('吃药的记录，我已经发到您家人的手机上啦', { force: true, style: 'child', clip: 'p3' });
+      // v1.20：**固定演示模式**下，剧本里"她吃完药 → 机器人记录"这一拍由自动确认落地。
+      // 交互模式下不这么做（那里要演示者自己点「已取走」，那才是闭环的演示点）。
+      if (mode === 'scripted' && action.eventId) pendingConfirm = action.eventId;
+    }
+    // 固定演示：动作走完就替她把「已取走」确认掉（只调契约里已有的命令，不加业务规则）
+    if (pendingConfirm && latest.activeEventId === pendingConfirm) {
+      machine.confirm(pendingConfirm, 'tray_taken');
+      pendingConfirm = null;
     }
     if (typeof robot.setCargo === 'function') {
       robot.setCargo({
@@ -834,15 +879,41 @@ function startMainView() {
     };
     window.requestAnimationFrame(paint);
     window.film = {
-      /** 推进一帧（默认 1/24 秒）并重绘 */
+      /** 推进一帧（默认 1/24 秒）并重绘；`?mode=scripted` 时同时放行剧本的下一步 */
       step(dt = 1 / 24) {
-        robot.update(latest, dt);
-        person.update(latest, dt);
+        const sdt = scaledDt(dt);
+        robot.update(latest, sdt);
+        person.update(latest, sdt);
         urgeAtSide(); // 走到她身边就督促（童声）
         syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
-    watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
+        settleShot(); // v1.20：机器人回桩后才结束特写
         watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
-        scene.render(latest, dt);
+        // v1.20：录制时的自动运镜 —— 没有递药近景时，每秒把机位重算到"看得见她"的位置
+        // （机器人就在旁边时把两个人一起框；复用 focusSeat/focusPair 的可见性判据）
+        if (MODE === 'scripted') {
+          const shot = document.body.classList.contains('shot-delivery');
+          const sinceShot = (stepBus.frame || 0) - (stepBus.shotStartFrame || 0);
+          // 慢推近那 2.4 s（≈29 帧）**不要抢镜**，让 flyTo 自己飞完；之后每 4 帧轻跟一次
+          if (!shot || sinceShot > 29) {
+            const every = shot ? 4 : 12;
+            if ((stepBus.frame || 0) % every === 0) {
+              const her = latest.presence.seat || scene.getWaypoint(latest.presence.location);
+              const rp = scene.getActorPosition('robot');
+              const near = her && rp && Math.hypot(her.x - rp.x, her.z - rp.z) <= 2.6;
+              if (near && typeof scene.focusPair === 'function') {
+                scene.focusPair(her, rp, { animate: false });
+              } else if (shot && rp && typeof scene.focusPair === 'function') {
+                scene.focusPair(rp, rp, { animate: false }); // 机器人往回走 → 镜头跟着它回桩
+              } else if (her && typeof scene.focusSeat === 'function') {
+                scene.focusSeat({ x: her.x, z: her.z, facing: 0, kind: 'floor' }, { animate: false });
+              }
+            }
+          }
+        }
+        scene.render(latest, sdt);
+        stepBus.frame = (stepBus.frame || 0) + 1;
+        stepBus.seconds = sdt;
+        stepBus.fire(); // 放行剧本的下一步（逐帧驱动）
       },
       /** 推进演示时钟（秒）——会触发到点判定，等同演示者拨表 */
       advanceDemo(seconds) {
@@ -892,6 +963,18 @@ function startMainView() {
     audio.attachUnlock();
     // 自动化走查 / 录屏脚本要直接读场景（投影、角色位置），与交互模式同一条口子
     if (window.medbot) window.medbot.scene = scene;
+    // v1.20：`?film=1&mode=scripted` —— 剧本由 film.step() 逐帧驱动
+    if (MODE === 'scripted') {
+      window.film.script = () => script.status();
+      /** v1.20：**一步 + 抓帧**（返回 JPEG dataURL）—— 录制脚本用它，比 CDP 截图快一个数量级 */
+      window.film.grab = (dt = 1 / 12) => {
+        window.film.step(dt);
+        const cv = document.querySelector('#scene canvas');
+        return cv && cv.toDataURL ? cv.toDataURL('image/jpeg', 0.86) : null;
+      };
+      window.film.scriptStart = (i = 0) => script.start(i);
+      script.start(0);
+    }
     return { scene, robot, person, hud, film: true };
   }
 
@@ -909,12 +992,13 @@ function startMainView() {
   if (mode === 'scripted') applyMode('scripted');
   let last = performance.now();
   function frame(now) {
-    const dt = Math.min((now - last) / 1000, 0.1);
+    const dt = scaledDt(Math.min((now - last) / 1000, 0.1));
     last = now;
     robot.update(latest, dt);
     person.update(latest, dt);
     urgeAtSide(); // 走到她身边就督促（童声）
     syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
+    settleShot(); // v1.20：机器人回桩后才结束特写
     watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
     scene.render(latest, dt);
     window.requestAnimationFrame(frame);
