@@ -226,12 +226,16 @@ export function mountHud(root) {
         // v1.14：**到点这一句改播用户录的童声 `p1`**（"该吃药啦……"）。原先它走合成语音，
         //        页面在被点过之前会被浏览器自动播放策略掐掉 → 用户实测"到吃药时间没有声音"。
         //        再次提醒换的是措辞，故不带 clip。
-        audio.speak(
-          isRenotify
-            ? `提醒${event.attempts.length === 2 ? '第二' : '第三'}次，${speechText(event.slotTime, spoken.plan)}，还没有取走`
-            : speechText(event.slotTime, spoken.plan),
-          { force: true, style: 'child', clip: isRenotify ? null : 'p1' },
-        );
+        // v1.21：**固定演示模式**下这一句交给剧本的小护台词去说（同一时刻只说一句，避免叠播）
+        const scripted = typeof document !== 'undefined' && document.body.classList.contains('is-scripted');
+        if (!scripted) {
+          audio.speak(
+            isRenotify
+              ? `提醒${event.attempts.length === 2 ? '第二' : '第三'}次，${speechText(event.slotTime, spoken.plan)}，还没有取走`
+              : speechText(event.slotTime, spoken.plan),
+            { force: true, style: 'child', clip: isRenotify ? null : 'p1' },
+          );
+        }
         audio.chime(attempt.channel);
         lastAttemptCount = event.attempts.length;
       }

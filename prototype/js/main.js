@@ -196,7 +196,9 @@ function mountPlayer({ script, onSpeak }) {
       document.body.classList.toggle('is-paused', Boolean(paused));
       if (beat && index !== lastSpoken) {
         lastSpoken = index;
-        if (onSpeak) onSpeak(beat);
+        // v1.21：换场先"静场"——把上一场还没说完的队列清掉，再念这一场的台词（用户口径：语音不要重叠）
+        audio.hush();
+        if (onSpeak) window.setTimeout(() => onSpeak(beat), 600);
       }
     },
   };
@@ -233,7 +235,7 @@ function mountDock({ getMode, setMode, onFamily }) {
   seg.className = 'dock__seg';
   root.appendChild(seg);
   const buttons = {};
-  for (const [mode, label] of [['interactive', '自主点击'], ['scripted', '固定演示']]) {
+  for (const [mode, label] of [['interactive', '✋ 自主点击'], ['scripted', '▶ 固定演示']]) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'dock__button';
@@ -633,25 +635,52 @@ function startMainView() {
       }
     });
   }
-  function applyMode(next) {
+  let applyMode = function applyMode(next) {
     mode = next === 'scripted' ? 'scripted' : 'interactive';
     document.body.classList.toggle('is-scripted', mode === 'scripted');
     const card = document.querySelector('.hud__card');
     if (card) card.classList.toggle('hud__card--compact', mode === 'scripted');
     const consoleEl = document.getElementById('console');
     if (consoleEl) consoleEl.classList.toggle('console--compact', mode === 'scripted');
+    const playerEl = document.getElementById('player');
+    if (playerEl) playerEl.hidden = mode !== 'scripted'; // 播放器只在固定演示里出现
     if (mode === 'scripted') {
       debugApi.reset(); // 回到演示初始态：清事件、时钟复位、她回客厅，然后按剧本从头走
-      script.start();
+      // v1.21：固定演示按**真实时间**走（1×）。原先沿用 60×，于是"10:00 的事件"会在第一场
+      // 还没演完时就触发 —— 语音重复、家属推送乱弹。剧本本来就会逐场拨表，不需要快进。
+      clock.setAcceleration(1);
+      if (script && typeof script.start === 'function') script.start();
     } else {
-      script.stop();
+      if (script && typeof script.stop === 'function') script.stop();
+      clock.setAcceleration(60); // 回到交互演示的 60×
+      audio.hush();
       dock.setHint('');
     }
     dock.refresh();
     return mode;
-  }
+  };
   window.demoMode = { get: () => mode, set: applyMode, script: () => script.status() };
   dock.refresh();
+
+  /* v1.20：**智能切模式** ——
+   *   ① 切到哪个模式就写进地址栏（`?mode=scripted` / 去掉它），刷新后还是这个模式；
+   *   ② 固定演示播放时，只要观众/演示者在 3D 画面上按一下（想自己看/自己点），
+   *      就**自动切回自主点击**并在控制条上提示一句 —— 不用先去找那个按钮。
+   */
+  function syncUrl() {
+    try {
+      const u = new URL(window.location.href);
+      if (mode === 'scripted') u.searchParams.set('mode', 'scripted');
+      else u.searchParams.delete('mode');
+      window.history.replaceState(null, '', u.toString());
+    } catch (err) { /* 忽略 */ }
+  }
+  const applyModeRaw = applyMode;
+  applyMode = function smartApplyMode(next) {
+    const out = applyModeRaw(next);
+    syncUrl();
+    return out;
+  };
   // 交互控制台：拍摄模式下不挂载（会进画面，也会破坏逐帧可复现）
   if (!FILM_MODE) {
     mountConsole(document.getElementById('console'), {
@@ -666,6 +695,12 @@ function startMainView() {
      * 这是"位置输入"，不是传感器：不采集画面、不做识别（文案里也必须这么写）。
      */
     scene.enablePick((seat) => {
+      // v1.20：固定演示播放中，观众在画面上点一下 → 自动切回自主点击（"我想自己看/自己点"）
+      if (mode === 'scripted') {
+        applyMode('interactive');
+        dock.setHint('已切回自主点击（点画面即可自己看）');
+        window.setTimeout(() => dock.setHint(''), 4000);
+      }
       presence.setSeat(seat);
       scene.showPickMarker(seat);
     });

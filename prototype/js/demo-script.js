@@ -31,10 +31,13 @@ const at = (hhmm) => `${DEMO_DATE}T${hhmm}:00`;
  *   `elder`      老人台词（只做字幕，我们没有人声）
  *   `until`      等待条件：`'take'`=她开始取药 ｜ `'done'`=动作链走完 ｜ `'set'`=位置生效
  *   `hold`       这一拍最长等多少**真实秒**（到点就往下走，避免演示卡死）
+ *   `linger`     这一拍**演完之后再留白**多少秒（用户口径「每个时间的场景演绎预留空余的时间」）——
+ *                给现场讲解留空，也让语音有时间说完、不叠到下一场
  */
 export const DEMO_BEATS = [
   {
     id: 'morning',
+    linger: 3.5,
     label: '第一场 · 清晨 08:00 · 卧室 → 客厅',
     at: at('08:00'),
     place: 'living_room',
@@ -47,6 +50,7 @@ export const DEMO_BEATS = [
   },
   {
     id: 'forenoon',
+    linger: 2.5,
     label: '第二场 · 上午 10:00 · 客厅窗边',
     at: at('10:00'),
     place: 'living_room',
@@ -54,11 +58,12 @@ export const DEMO_BEATS = [
     narration: '阳光正好，阿姨在窗边浇花晒太阳，回客厅看起了电视，彻底忘了上午的调理药物。',
     robot: '奶奶您好，现在是上午十点，您的调理药物服用时间到啦，请及时服药，不要遗漏哦。',
     elder: '好好好，我马上吃！人老了脑子不好使，没有你盯着，我天天都得忘药。',
-    until: 'settled',
-    hold: 90,
+    until: 'done',   // 中间几场只演到「她吃完药」，收托盘/回桩留给首尾两场完整展示
+    hold: 70,
   },
   {
     id: 'noon',
+    linger: 2.5,
     label: '第三场 · 中午 12:30 · 餐区 · 正要出门',
     at: at('12:30'),
     place: 'kitchen',
@@ -66,11 +71,12 @@ export const DEMO_BEATS = [
     narration: '午饭吃完、碗筷收拾好，她拿起帽子钥匙正要出门散步买菜 —— 午间的药又忘了。',
     robot: '奶奶稍等哦！午饭后半小时是服药最佳时间，还没吃药呢，吃完药再出门散步更安心。',
     elder: '对对对！差点就出门了，万一漏吃药，身体该不舒服了，谢谢你呀小护。',
-    until: 'settled',
-    hold: 90,
+    until: 'done',   // 中间几场只演到「她吃完药」，收托盘/回桩留给首尾两场完整展示
+    hold: 70,
   },
   {
     id: 'afternoon',
+    linger: 2.5,
     label: '第四场 · 下午 16:00 · 客厅 · 买菜归来',
     at: at('16:00'),
     place: 'living_room',
@@ -78,11 +84,12 @@ export const DEMO_BEATS = [
     narration: '买菜归来，她坐在沙发上休息、剥水果吃，早已忘了下午的专项药物。',
     robot: '奶奶下午好！现在是下午四点，请按时服用今日下午药物，本次药物需温水送服，服用后可适当休息。',
     elder: '（点点头，接过水杯）',
-    until: 'settled',
-    hold: 90,
+    until: 'done',   // 中间几场只演到「她吃完药」，收托盘/回桩留给首尾两场完整展示
+    hold: 70,
   },
   {
     id: 'night',
+    linger: 3.5,
     label: '第五场 · 晚上 20:00 · 客厅 · 夜晚收尾',
     at: at('20:00'),
     place: 'living_room',
@@ -95,6 +102,7 @@ export const DEMO_BEATS = [
   },
   {
     id: 'ending',
+    linger: 4,
     label: '结尾 · 全景 · 机器人回充电座',
     at: null,
     place: null,
@@ -188,12 +196,19 @@ export function createDemoScript(deps) {
       const ok = waitSatisfied(beat.until, store.getState(), deps);
       const act = deps.person && deps.person.getAction ? deps.person.getAction() : null;
       dbg = { kind: beat.until, used, budget, ok, acting: Boolean(act && act.active), seen: deps._seenTake, paused: false };
-      if (ok) return true;
-      if (used >= budget) return false; // 超时也继续，别把演示卡死
+      if (ok) break;
+      if (used >= budget) break; // 超时也继续，别把演示卡死
       used += 1;
       await waitNext();
     }
-    return false;
+    // 演完之后的**留白**：这一场结束后先静一会儿再进下一场（讲解 + 等语音说完）
+    const linger = Math.max(0, Number(beat.linger) || 0);
+    if (linger > 0) {
+      const nap = Math.max(1, Math.round(linger / (stepDriver ? stepSeconds : 0.12)));
+      dbg = { ...dbg, linger, nap };
+      for (let k = 0; k < nap && !cancelled; k += 1) await waitNext();
+    }
+    return true;
   }
 
   async function run(from) {
@@ -213,6 +228,13 @@ export function createDemoScript(deps) {
       cancelled = false;
       paused = false;
       run(from);
+      return this.status();
+    },
+    /** 停止整条剧本（切回「自主点击」时调它） */
+    stop() {
+      cancelled = true;
+      running = false;
+      paused = false;
       return this.status();
     },
     pause() {

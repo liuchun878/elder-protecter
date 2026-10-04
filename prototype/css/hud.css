@@ -1305,3 +1305,24 @@ body.is-record .caption {
   bottom: 36px;
   width: min(1100px, 84vw);
 }
+
+/* v1.20：固定演示模式下把控制条抬到播放器上方，并把字幕再抬高一点 ——
+ * 修"播放器压住左下控制条"（实测重叠 27px，右上那颗「家属端手机屏」会被点不到） */
+body.is-scripted .dock {
+  bottom: 92px;
+}
+
+body.is-scripted .dock__hint {
+  max-width: 30vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.is-scripted .caption {
+  bottom: 148px;
+}
+
+body.is-scripted .collapse-toggle--dock {
+  bottom: 150px;
+}

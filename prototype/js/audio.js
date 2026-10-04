@@ -60,6 +60,7 @@ export function setEnabled(flag) {
   if (!enabled) {
     voiceQueue.length = 0;
     playing = false;
+    clearTimeout(gapTimer);
     if (clipAudio) { try { clipAudio.pause(); } catch (err) { /* 忽略 */ } clipAudio = null; }
     if (hasTTS()) window.speechSynthesis.cancel();
   }
@@ -130,6 +131,10 @@ let clipAudio = null;
 /** v1.13：语音队列 —— 正在播的话**绝不打断**，新的排到后面（照搬 YuMi-06 `0000000/index.html` 的修复） */
 const voiceQueue = [];
 let playing = false;
+/** v1.21：两句之间**强制留白**（用户口径「语音不要重叠播放」）——
+ * 队列里下一句不会紧接着上一句开口，中间静 0.9 秒，听着才不乱。 */
+const SPEECH_GAP_MS = 900;
+let gapTimer = null;
 /**
  * v1.14：**被浏览器自动播放策略掐掉的那一句**。
  * 页面还没有任何用户手势时，`new Audio().play()` 与 `speechSynthesis.speak()` 都可能被拒，
@@ -189,10 +194,12 @@ function playNow(text, opts) {
   const done = () => {
     if (finished) return;
     finished = true;
-    playing = false;
     clipAudio = null;
     const next = voiceQueue.shift();
-    if (next) playNow(next.text, next.opts);
+    if (!next) { playing = false; return; }
+    // 下一句前先静一会儿：既不叠字，也给现场讲解留空
+    clearTimeout(gapTimer);
+    gapTimer = setTimeout(() => playNow(next.text, next.opts), SPEECH_GAP_MS);
   };
   const remember = () => { if (!unlocked) pendingUnlock = { text, opts }; };
   const fallback = () => tts(text, { pitch, rate, onBlocked: remember }, done);
@@ -250,6 +257,15 @@ export function pendingSpeeches() {
   return voiceQueue.length + (playing ? 1 : 0);
 }
 
+/** v1.21：打断并清空（换场景/停剧本时用，避免上一场的台词拖到下一场） */
+export function hush() {
+  voiceQueue.length = 0;
+  playing = false;
+  clearTimeout(gapTimer);
+  if (clipAudio) { try { clipAudio.pause(); } catch (err) { /* 忽略 */ } clipAudio = null; }
+  if (hasTTS()) window.speechSynthesis.cancel();
+}
+
 /** 提示通道切换：屏幕大字 + 低频音 + 灯效三者同步（不得只靠颜色） */
 export function playChannel(channel) {
   chime(channel);
@@ -257,5 +273,5 @@ export function playChannel(channel) {
 
 export const audio = {
   attachUnlock, setEnabled, isEnabled, hasTTS, speak, chime: playChannel, pickChildVoice, getVoiceName,
-  pendingSpeeches, isUnlocked,
+  pendingSpeeches, isUnlocked, hush,
 };
