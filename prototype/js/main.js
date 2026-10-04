@@ -154,6 +154,7 @@ function mountPlayer({ script, onSpeak }) {
   if (!root) return null;
   root.hidden = false;
   root.innerHTML = [
+    '<span class="player__brand">保卫老人</span>',
     '<button type="button" class="player__btn" data-act="prev" title="上一场">⟨</button>',
     '<button type="button" class="player__btn player__btn--play" data-act="toggle" title="播放 / 暂停（空格）">▶</button>',
     '<button type="button" class="player__btn" data-act="next" title="下一场">⟩</button>',
@@ -711,11 +712,6 @@ function startMainView() {
    * 杯子和药从托盘上"被拿走"也只是可见性，由 `robot.setCargo` 处理，不参与业务判断。
    */
   const TAKE_PHASES = ['idle', 'reach', 'cup', 'drink', 'pill', 'done'];
-<<<<<<< HEAD
-  function syncTake() {
-    if (typeof person.getAction !== 'function' || typeof person.beginTake !== 'function') return;
-    const action = person.getAction();
-=======
 
   /**
    * 把托盘上的杯子**交到她手里**（v1.14 · 用户口径「端杯子喝水」）。
@@ -758,7 +754,6 @@ function startMainView() {
   function syncTake() {
     if (typeof person.getAction !== 'function' || typeof person.beginTake !== 'function') return;
     let action = person.getAction();
->>>>>>> 0000000
     const id = latest.activeEventId;
     const event = id ? latest.events.find((e) => e.id === id) : null;
 
@@ -766,14 +761,6 @@ function startMainView() {
       const me = scene.getActorPosition('robot');
       const stand = scene.getApproachPoint(latest.presence.location, latest.presence.seat || null);
       const atSide = me && stand && Math.hypot(me.x - stand.x, me.z - stand.z) <= 0.25;
-<<<<<<< HEAD
-      if (atSide) person.beginTake(id);
-    }
-
-    if (!action.active) {
-      // 动作收尾（或被复位）：托盘上的东西恢复原样，本轮的两句话也允许在下一轮再说
-      if (typeof robot.setCargo === 'function') robot.setCargo({ cupTaken: false, pillTaken: false });
-=======
       // ⚠️ 时序：机器人**先把水注好**，她再端杯 —— 否则"她拿走杯子"会把注水打断（水面只涨到 0.22）。
       // 这只是表现层的先后次序，不是业务判据。
       const poured = typeof robot.isPoured !== 'function' || robot.isPoured();
@@ -814,16 +801,12 @@ function startMainView() {
       // 动作收尾：**本轮事件还没收口**就别把杯子/药放回托盘（她刚拿走的东西不该又冒出来），
       // 等事件结束（activeEventId 清空 → 托盘回舱）再复位，准备下一轮。
       if (!id && typeof robot.setCargo === 'function') robot.setCargo({ cupTaken: false, pillTaken: false });
->>>>>>> 0000000
       return;
     }
 
     const step = TAKE_PHASES.indexOf(action.phase);
-<<<<<<< HEAD
-=======
     const holdingCup = step >= TAKE_PHASES.indexOf('cup') && action.phase !== 'done';
     if (holdingCup) holdCup(); else returnCupToTray();
->>>>>>> 0000000
     if (step >= TAKE_PHASES.indexOf('cup') && !takenSaid.has(`${action.eventId}|p2`)) {
       takenSaid.add(`${action.eventId}|p2`);
       audio.speak('奶奶真棒，慢慢喝口水，把药吃下去', { force: true, style: 'child', clip: 'p2' });

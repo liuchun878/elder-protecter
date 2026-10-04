@@ -717,11 +717,7 @@ tasks:
            ⚠️ 起因是本地从未 fetch：YuMi-06 10:12–10:15 把修复版推到远端 main（90c73f9），
            新增 0000000/ 目录并修了语音队列（speech never cut off）；本地工作树当时没有这个目录。
            ⚠️ 那版屏幕上的文字（请取药/已服药）依旧不采纳：3D 里不渲染文字、界面不得出现「已服下」。"
-<<<<<<< HEAD
-    status: doing
-=======
     status: done
->>>>>>> 0000000
   - id: H15
     title: 王阿姨「端杯 · 喝水 · 拿药吃」动作链（beginTake / getAction）
     line: H
@@ -733,11 +729,7 @@ tasks:
     acceptance: "beginTake(eventId) 触发后按 idle→reach→cup→drink→pill→done→idle 走完约 4.2 s，右臂有可见的前伸/举杯/回位位移（末梢位移 > 0.2 m，回位误差 < 0.02 m）；getAction() 只读；不新增业务规则（该不该吃药仍由 machine.js 决定）；2D 降级通道不受影响"
     note: "用户口径「当吃药时间到，老人会拿起杯子喝水和拿药吃」。
            动作进度是**表现层**的，不是业务状态机；水杯/药的显隐由装配层调 robot.setCargo 处理。"
-<<<<<<< HEAD
-    status: doing
-=======
     status: done
->>>>>>> 0000000
   - id: R16
     title: 语音队列（不打断）+ 预录童声默认播
     line: R
@@ -749,11 +741,7 @@ tasks:
     acceptance: "audio.speak 在正在播时**排队而不是打断**；保险时长 = 真实时长 + 2.5 s；pendingSpeeches() 可查队列；?voiceclip=0 → 一律走 TTS 合规措辞（默认播 assets/voice/p1..p3.mp3）"
     note: "照搬 YuMi-06 在 0000000/index.html 里的修复（旧实现下『开始吃药』与『吃完药』相隔几秒，第二句会被掐掉）。
            ⚠️ 默认播录音是**用户裁定的显式红线偏离**：p1 含固定粒数『这三粒药』、p2 是『药都吃完啦』（= 已服下）。"
-<<<<<<< HEAD
-    status: doing
-=======
     status: done
->>>>>>> 0000000
   - id: S19
     title: 装配「到点吃药」：动作链触发 + 两段童声 + setCargo 同步
     line: S
@@ -764,11 +752,7 @@ tasks:
     depends_on: [R15, H15, R16]
     acceptance: "有未确认事件且机器人到停靠点时调用 person.beginTake（每次事件一次）；相位 cup → 播 p2、相位 done → 播 p3（每个事件各一次）；相位越过后调 robot.setCargo({cupTaken,pillTaken})；debug.reset() 清空已说集合；不新增业务规则"
     note: "判据与 v1.11 的 urgeAtSide 同一套（state.activeEventId + 到停靠点 ≤0.25 m）。"
-<<<<<<< HEAD
-    status: doing
-=======
     status: done
->>>>>>> 0000000
 
   # ═══ 分支 0000000 / v1.15（可切换模式 + 家属端副屏 + 递药特写 + 面板收窄）═══
   - id: S20
