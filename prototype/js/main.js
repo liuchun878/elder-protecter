@@ -1035,7 +1035,10 @@ function startMainView() {
       const a = person.getAction ? person.getAction() : null;
       actBanner.set(a ? a.phase : 'idle', Boolean(a && a.active));
     }
-        if (actBanner) actBanner.set(action ? action.phase : 'idle', Boolean(action && action.active));
+        if (actBanner) {
+          const act = person.getAction ? person.getAction() : null;
+          actBanner.set(act ? act.phase : 'idle', Boolean(act && act.active));
+        }
         watchFamilyNotifications(); // v1.18：未确认 → 家属手机弹出推送
         // v1.20：录制时的自动运镜 —— 没有递药近景时，每秒把机位重算到"看得见她"的位置
         // （机器人就在旁边时把两个人一起框；复用 focusSeat/focusPair 的可见性判据）
