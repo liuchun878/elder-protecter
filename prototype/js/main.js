@@ -35,10 +35,16 @@ const FILM_MODE = params.get('film') === '1';
  */
 function seedDemoData() {
   if (store.getState().plans.length) return;
-  plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', slots: [{ time: '08:00', label: '早' }], notes: '饭后服' });
-  plan.create({ name: '二甲双胍', doseText: '0.5g', kind: 'regular', slots: [{ time: '12:00', label: '午' }], notes: '随餐' });
-  plan.create({ name: '华法林', doseText: '3mg', kind: 'regular', slots: [{ time: '20:00', label: '晚' }], notes: '' });
-  plan.create({ name: '阿托伐他汀钙', doseText: '20mg', kind: 'regular', slots: [{ time: '20:30', label: '睡前' }], notes: '睡前服' });
+  /* ⚠️ 必须显式给 `startDate`（= 演示时钟那一天）。
+   * 这里跑在 `store.setClock(clock.snapshot())` **之前**，`plan.create` 拿不到演示时钟，
+   * 会退回「本机今天」——而演示时钟永远停在 2026-10-03。只要本机日期往前过了 10-03，
+   * `plan.startDate > 事件日期`，`schedule.materializeToday()` 就会一条事件都不物化，
+   * 于是**到点永远不触发**（2026-10-04 实测复现：events=0、activeEventId=null）。 */
+  const startDate = DEFAULT_DEMO_START.slice(0, 10);
+  plan.create({ name: '氨氯地平', doseText: '5mg', kind: 'regular', startDate, slots: [{ time: '08:00', label: '早' }], notes: '饭后服' });
+  plan.create({ name: '二甲双胍', doseText: '0.5g', kind: 'regular', startDate, slots: [{ time: '12:00', label: '午' }], notes: '随餐' });
+  plan.create({ name: '华法林', doseText: '3mg', kind: 'regular', startDate, slots: [{ time: '20:00', label: '晚' }], notes: '' });
+  plan.create({ name: '阿托伐他汀钙', doseText: '20mg', kind: 'regular', startDate, slots: [{ time: '20:30', label: '睡前' }], notes: '睡前服' });
 }
 
 /* ── 顶栏提示（离线 / 存储不可用 / 3D 降级）────────────────────────── */
@@ -228,6 +234,7 @@ const debugApi = {
     store.reset();
     seedDemoData();
     clock.reset();
+    takenSaid.clear(); // v1.13：复位后"吃药 / 吃完药"两句话可以再说一遍
     // 演示初始态是「王阿姨在客厅、机器人停在充电座」：落座点也要一起清掉，
     // 否则点过场景之后按复位，人会留在那个角落（这一条 v1.6 才成立）
     presence.setLocation('living_room');
@@ -236,6 +243,8 @@ const debugApi = {
 };
 
 let clock;
+/** v1.13：本轮已说过的话（`事件 id|p2` / `|p3`）——复位时清空，保证下一轮还能说 */
+const takenSaid = new Set();
 
 /* ── 启动 ───────────────────────────────────────────────────────────── */
 
@@ -258,6 +267,12 @@ function startMainView() {
   const robot = createRobot(scene);
   const person = createPerson(scene);
   const hud = mountHud(document.getElementById('hud'));
+  // v1.14：自动化走查（无头 Chrome 的 CDP 脚本）要直接读"她取药到哪一步了 / 托盘上的水杯还在不在"。
+  // 与既有的 `window.medbot.scene` 同性质：**只读**，不放宽任何权限。
+  if (window.medbot) {
+    window.medbot.robot = robot;
+    window.medbot.person = person;
+  }
 
   clock = createClock({
     demoStart: DEFAULT_DEMO_START,
@@ -338,6 +353,59 @@ function startMainView() {
   }
 
   /**
+   * 「到点吃药」的动作链（v1.13 · 用户口径：吃药时间到，老人会拿起杯子喝水和拿药吃）
+   *
+   * 判据与 `urgeAtSide` 完全同一套，**不新增任何业务规则**：
+   *   ① 有未确认的提示事件（`state.activeEventId` 且事件不是 confirmed）
+   *   ② 机器人**已经到停靠点**（同一个"到身边"的口径）
+   *   → 这才调用 `person.beginTake(eventId)`：她伸手 → 端杯 → 喝水 → 拿药 → 吃完 → 回位。
+   * 动作相位推进时接两句话（用户口径「吃药和吃完药的时候会说剩下两段话」）：
+   *   phase→cup  播 **p2**（开始吃药）　phase→done 播 **p3**（吃完药 · 记录已同步）
+   * `audio.speak` 自带队列，所以这两句先后触发时**不会互相打断**（YuMi-06 在 `0000000/` 修的就是这个）。
+   * 杯子和药从托盘上"被拿走"也只是可见性，由 `robot.setCargo` 处理，不参与业务判断。
+   */
+  const TAKE_PHASES = ['idle', 'reach', 'cup', 'drink', 'pill', 'done'];
+  function syncTake() {
+    if (typeof person.getAction !== 'function' || typeof person.beginTake !== 'function') return;
+    const action = person.getAction();
+    const id = latest.activeEventId;
+    const event = id ? latest.events.find((e) => e.id === id) : null;
+
+    if (id && event && event.state !== 'confirmed' && !action.active) {
+      const me = scene.getActorPosition('robot');
+      const stand = scene.getApproachPoint(latest.presence.location, latest.presence.seat || null);
+      const atSide = me && stand && Math.hypot(me.x - stand.x, me.z - stand.z) <= 0.25;
+      // ⚠️ 时序：机器人**先把水注好**，她再端杯 —— 否则"她拿走杯子"会把注水打断（水面只涨到 0.22）。
+      // 这只是表现层的先后次序，不是业务判据。
+      const poured = typeof robot.isPoured !== 'function' || robot.isPoured();
+      if (atSide && poured) person.beginTake(id);
+    }
+
+    if (!action.active) {
+      // 动作收尾：**本轮事件还没收口**就别把杯子/药放回托盘（她刚拿走的东西不该又冒出来），
+      // 等事件结束（activeEventId 清空 → 托盘回舱）再复位，准备下一轮。
+      if (!id && typeof robot.setCargo === 'function') robot.setCargo({ cupTaken: false, pillTaken: false });
+      return;
+    }
+
+    const step = TAKE_PHASES.indexOf(action.phase);
+    if (step >= TAKE_PHASES.indexOf('cup') && !takenSaid.has(`${action.eventId}|p2`)) {
+      takenSaid.add(`${action.eventId}|p2`);
+      audio.speak('奶奶真棒，慢慢喝口水，把药吃下去', { force: true, style: 'child', clip: 'p2' });
+    }
+    if (action.phase === 'done' && !takenSaid.has(`${action.eventId}|p3`)) {
+      takenSaid.add(`${action.eventId}|p3`);
+      audio.speak('吃药的记录，我已经发到您家人的手机上啦', { force: true, style: 'child', clip: 'p3' });
+    }
+    if (typeof robot.setCargo === 'function') {
+      robot.setCargo({
+        cupTaken: step >= TAKE_PHASES.indexOf('cup'),
+        pillTaken: step >= TAKE_PHASES.indexOf('pill'),
+      });
+    }
+  }
+
+  /**
    * 拍摄模式（`?film=1`）：不自动走表，动画由外部逐帧驱动，录屏因此完全可复现。
    * 用法见 scripts/record-promo.mjs；正常演示不受任何影响。
    */
@@ -353,6 +421,7 @@ function startMainView() {
         robot.update(latest, dt);
         person.update(latest, dt);
         urgeAtSide(); // 走到她身边就督促（童声）
+        syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
         scene.render(latest, dt);
       },
       /** 推进演示时钟（秒）——会触发到点判定，等同演示者拨表 */
@@ -414,6 +483,7 @@ function startMainView() {
     robot.update(latest, dt);
     person.update(latest, dt);
     urgeAtSide(); // 走到她身边就督促（童声）
+    syncTake(); // 到点吃药：她端杯喝水 + 拿药吃，机器人说剩下两段话
     scene.render(latest, dt);
     window.requestAnimationFrame(frame);
   }

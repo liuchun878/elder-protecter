@@ -46,7 +46,12 @@ export function attachUnlock() {
 
 export function setEnabled(flag) {
   enabled = Boolean(flag);
-  if (!enabled && hasTTS()) window.speechSynthesis.cancel();
+  if (!enabled) {
+    voiceQueue.length = 0;
+    playing = false;
+    if (clipAudio) { try { clipAudio.pause(); } catch (err) { /* 忽略 */ } clipAudio = null; }
+    if (hasTTS()) window.speechSynthesis.cancel();
+  }
 }
 
 export function isEnabled() {
@@ -91,21 +96,29 @@ const VOICE_PRIORITY = [
   /xiaoxiao|xiaoyi|晓晓|晓伊|female|女/i,
   /zh[-_]CN|Chinese|普通话|中文/i,
 ];
-/** 预录童声片段（键 → 用途，供文档与自测核对） */
+/** 预录童声片段（键 → 用途，供文档与自测核对）
+ *  v1.13：三段的用法（用户口径「吃药和吃完药的时候会说剩下两段话」）——
+ *    p1 机器人到位督促（「…请取走」那一句）；p2 她**开始吃药**时；p3 **吃完药**（记录已同步）时。 */
 export const CHILD_CLIPS = {
   p1: '吃药提醒（机器人到身边督促）',
-  p2: '鼓励（已取走之后）',
-  p3: '留言给子女手机（记录已同步）',
+  p2: '开始吃药（她端起杯子取药时）',
+  p3: '吃完药（记录已同步给家属）',
 };
 const CLIP_BASE = './assets/voice/';
-// ⚠️ 默认**不播**预录片段：那三段录音的措辞与本项目口径冲突（见 CHANGELOG 本轮小节）——
-//    p1 里有固定粒数「这三粒药」，p2 是「药都吃完啦」（= 已服下，红线）。
-//    想听录音本身：在网址后面加 `?voiceclip=1`（只影响演示，不改任何业务）。
-const USE_CLIPS = typeof window !== 'undefined'
-  && new URLSearchParams(window.location.search).get('voiceclip') === '1';
+// v1.13（用户口径）：**默认播用户录的那三段童声**（`prototype/assets/voice/p1..p3.mp3`，本地文件、零网络请求）。
+//   ⚠️ 与项目红线的显式冲突（用户裁定，已记入 CHANGELOG）：
+//      p1 里有固定粒数「这三粒药」（本项目不做剂量），p2 是「药都吃完啦」（= 已服下，红线）。
+//      合规兜底：网址后面加 `?voiceclip=0` → 一律走**童声 TTS + 合规措辞**（「请取走 / 已取走 · 已记录」）。
+const CLIP_PARAM = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('voiceclip')
+  : null;
+const USE_CLIPS = CLIP_PARAM !== '0';
 
 let zhVoice = null;
 let clipAudio = null;
+/** v1.13：语音队列 —— 正在播的话**绝不打断**，新的排到后面（照搬 YuMi-06 `0000000/index.html` 的修复） */
+const voiceQueue = [];
+let playing = false;
 
 /** 选一个最像童声的中文音色（TTS 兜底用） */
 export function pickChildVoice() {
@@ -143,7 +156,56 @@ function tts(text, { pitch, rate }, done) {
 }
 
 /**
+ * 真正播一句（队列里的队首）。`done()` 只允许生效一次 ——
+ * 否则 `onended` 与保险定时器会各触发一次，把队列里的下一句吞掉。
+ */
+function playNow(text, opts) {
+  const { style = 'elder', clip = null } = opts;
+  const child = style === 'child';
+  const pitch = child ? 1.70 : 1; // 童声：抬高音调（与用户仓库 HEAD 版一致）
+  const rate = child ? 1.0 : 0.85; // 成人向：放慢语速（适老化）
+
+  let finished = false;
+  const done = () => {
+    if (finished) return;
+    finished = true;
+    playing = false;
+    clipAudio = null;
+    const next = voiceQueue.shift();
+    if (next) playNow(next.text, next.opts);
+  };
+  const fallback = () => tts(text, { pitch, rate }, done);
+
+  if (!clip || !USE_CLIPS || typeof window === 'undefined' || typeof window.Audio !== 'function') {
+    fallback();
+    return;
+  }
+  try {
+    if (clipAudio) { try { clipAudio.pause(); } catch (err) { /* 忽略 */ } clipAudio = null; }
+    const a = new window.Audio(`${CLIP_BASE}${clip}.mp3`);
+    clipAudio = a;
+    let guard = setTimeout(done, 25000); // 兜底：25 秒（最长那条约 9 秒，宽裕得多）
+    // 拿到真实时长后把保险收紧到「时长 + 2.5 秒」——文件卡住也不会把队列占死
+    a.onloadedmetadata = () => {
+      if (Number.isFinite(a.duration) && a.duration > 0) {
+        clearTimeout(guard);
+        guard = setTimeout(done, a.duration * 1000 + 2500);
+      }
+    };
+    a.onended = done;
+    a.onerror = () => { clipAudio = null; fallback(); };
+    a.play().catch(() => { clipAudio = null; fallback(); });
+  } catch (err) {
+    fallback();
+  }
+}
+
+/**
  * 语音播报（与屏幕同步；同一句话 3 秒内不重复念，避免「原样重推」）
+ *
+ * v1.13：**加入队列，不打断**。她"开始吃药"与"吃完药"两句话会在几秒内先后触发，
+ * 早先的实现是"新的一句直接打断前一句"，第二句永远听不全（YuMi-06 在 `0000000/` 修的就是这个）。
+ *
  * @param {string} text 只传医嘱原文拼出的句子
  * @param {{force?: boolean, style?: 'elder'|'child', clip?: string}} opts
  *   style='child' → 童声（督促吃药那几句用它）；clip='p1'..'p3' → 优先播预录童声 mp3
@@ -155,28 +217,15 @@ export function speak(text, { force = false, style = 'elder', clip = null } = {}
   lastSpoken = text;
   lastSpokenAt = now;
 
-  const child = style === 'child';
-  const pitch = child ? 1.70 : 1; // 童声：抬高音调（与用户仓库 HEAD 版一致）
-  const rate = child ? 1.0 : 0.85; // 成人向：放慢语速（适老化）
+  const opts = { force, style, clip };
+  if (playing) { voiceQueue.push({ text, opts }); return; } // 正在播 → 排队，绝不打断
+  playing = true;
+  playNow(text, opts);
+}
 
-  const fallback = () => tts(text, { pitch, rate });
-  if (!clip || !USE_CLIPS || typeof window === 'undefined' || typeof window.Audio !== 'function') {
-    fallback();
-    return;
-  }
-  try {
-    if (clipAudio) { clipAudio.pause(); clipAudio = null; }
-    const a = new window.Audio(`${CLIP_BASE}${clip}.mp3`);
-    clipAudio = a;
-    let guard = null;
-    const done = () => { if (guard) clearTimeout(guard); clipAudio = null; };
-    a.onended = done;
-    a.onerror = () => { done(); fallback(); };
-    guard = setTimeout(done, 15000); // 兜底：文件卡住也别把通道占死
-    a.play().catch(() => { done(); fallback(); });
-  } catch (err) {
-    fallback();
-  }
+/** 队列里还有几句没播（自测与调试用） */
+export function pendingSpeeches() {
+  return voiceQueue.length + (playing ? 1 : 0);
 }
 
 /** 提示通道切换：屏幕大字 + 低频音 + 灯效三者同步（不得只靠颜色） */
@@ -186,4 +235,5 @@ export function playChannel(channel) {
 
 export const audio = {
   attachUnlock, setEnabled, isEnabled, hasTTS, speak, chime: playChannel, pickChildVoice, getVoiceName,
+  pendingSpeeches,
 };
