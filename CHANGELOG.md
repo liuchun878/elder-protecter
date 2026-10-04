@@ -9,6 +9,55 @@
 
 ---
 
+## `v1.20-保卫老人` — 2026-10-04 — 里程碑定名「保卫老人」+ 清掉 `0000000` 合并遗留的冲突标记
+
+用户口径：**「把这个 pull 到 https://github.com/liuchun878/elder-protecter 里，命名为：保卫老人」**
+（指 `http://localhost:8000/` 上正在跑的这版）。
+
+### ① 命名（不是改远端仓库名）
+
+| 位置 | 改成 |
+|---|---|
+| `README.md` 首行标题 | `# 保卫老人`（原 `# elder-protecter`） |
+| `prototype/index.html` 的 `<title>` | `保卫老人 · 居家送药机器人仿真（王阿姨 · 虚构人物）` |
+| 固定演示播放器左侧片名 | 新增 `.player__brand`（`hud.css` + `main.js`）显示「保卫老人」 |
+
+> **GitHub 仓库名 `elder-protecter` 保持不变** —— 改仓库名会变更远端地址，队友的 clone 与 PR 会断。
+> 仓库名只允许 ASCII，中文名也无法作为仓库名；「保卫老人」是**项目标题 / 里程碑名 / tag 名**。
+
+### ② 清掉冲突标记（本轮真正的代码修复）
+
+`prototype/js/audio.js`、`prototype/js/main.js`、`STATUS.md`、`plan/tasks.yaml`、
+`docs/本地环境与推送.md` 里残留着合并分支 `0000000` 时没清理的 `<<<<<<<` / `=======` / `>>>>>>>`
+（**带标记的 `audio.js` / `main.js` 会让页面直接报语法错误跑不起来**）。取**双方并集**语义：
+
+- `audio.js`：保留 YuMi-06 的语音队列 + `pendingUnlock` 补播 + `remember()`；导出仍含 `isUnlocked`
+- `main.js`：保留本线的 `syncTake()`（先注水再端杯、事件没收口就不复位托盘），只留**一个**定义
+- 文档三处按「保留更完整的一侧」收敛
+
+### ③ 验证（照 [AGENTS.md](AGENTS.md) 第 4 节，不是目测）
+
+```bash
+node --check               # main.js / audio.js 语法通过（复制为 .mjs 后检查）
+node .preview/takecheck.mjs # 无头 Chrome 真跑，12/12 全过
+```
+
+| 验收点 | 结果 |
+|---|---|
+| 到点产生活跃事件 → 机器人到停靠点 | ✅ `activeEventId=evt-001` · 距停靠点 **0.23 m** |
+| 注水 → 端杯 · 喝水 · 拿药吃 → 回位 | ✅ 水面峰值 **0.8** · `idle→reach→cup→drink→pill→done` |
+| 两段童声都播且互不打断 | ✅ `p1.mp3 +p2.mp3 +p3.mp3` |
+| **零外部请求**（断网可用） | ✅ 30 个请求全部指向 `127.0.0.1:8000`；控制台异常 0 |
+| 界面无「已服下」 | ✅ 正则扫描通过 |
+| 五个页面均可达 | ✅ `/`、`/?view=family`、`/保卫老人.html`、`/suite.html`、`/js/*` → 200 |
+
+### 变更文件
+
+`README.md`、`CHANGELOG.md`、`STATUS.md`、`plan/tasks.yaml`、`docs/本地环境与推送.md`、
+`prototype/index.html`、`prototype/css/hud.css`、`prototype/js/main.js`、`prototype/js/audio.js`
+
+---
+
 ### 追加：《老人的一天》剧本进固定演示 + 播放器（v1.19 · 2026-10-04）
 
 用户给了剧本 **《老人的一天》——智能服药陪伴机器人纪实**（5 场 + 结尾，2–3 分钟），要求：

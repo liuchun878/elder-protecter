@@ -72,8 +72,24 @@
 > （原来是 `python3 -m http.server 8000`，它不发 `Cache-Control`，Chrome 会缓存住 `js/main.js`，
 > 导致"改完了但刷新还是旧版"）。左下角控制条上的 **`v1.16` 角标**就是新版标记；不是它请强刷。
 
-> ⚠️ **仍未推送**：本地 `main` 与分支 `0000000` 都还没推到 GitHub（缺有效凭据）。
-> 远端 `main` 现在停在 YuMi-06 的 `90c73f9`，**不含**我们这轮的合并与三处改动。
+### v1.20 追加（用户口径 · 2026-10-04）——里程碑定名「保卫老人」+ 清掉合并遗留的冲突标记
+
+用户口径：**「把这个 pull 到 https://github.com/liuchun878/elder-protecter 里，命名为：保卫老人」**
+（指 `http://localhost:8000/` 上正在跑的这版）。
+
+- **命名**：`README.md` 标题、`prototype/index.html` 的 `<title>`、固定演示播放器片名统一为「保卫老人」；
+  **GitHub 仓库名 `elder-protecter` 保持不变**（改仓库名会断队友的 clone 与 PR；且仓库名只允许 ASCII）
+- **真正的修复**：`prototype/js/audio.js` / `prototype/js/main.js` 里残留着合并 `0000000` 时的
+  `<<<<<<< / >>>>>>>` 标记（**带标记的 JS 会让页面直接跑不起来**），连同 `STATUS.md` / `plan/tasks.yaml` /
+  `docs/本地环境与推送.md` 一起按「双方并集」清理干净
+- **实测**：`node --check` 两文件通过；`node .preview/takecheck.mjs` **12/12 全过**
+  （零外部请求 30/30 → `127.0.0.1:8000`，控制台异常 0，界面无「已服下」）；
+  `/`、`/?view=family`、`/保卫老人.html`、`/suite.html`、`/js/*` 全部 200
+- **推送**：本地 `main` 已把上述改动提交；`git fetch` 后与 `origin/main`（`151d260`）为 **0 领先 / 0 落后**，
+  推送后打 annotated tag **`v1.20-保卫老人`** —— 推送状态见本文件末尾。
+
+> ⚠️ **旧提示已失效**：早先「本地未推送 / 远端停在 `90c73f9`」的说法**不再成立** ——
+> 远端 `main` 现在是 `151d260`（含 `0000000` 合并），只差本轮这 9 个文件的改动。
 
 ### 实测（`.preview/takecheck.mjs` · 无头 Chrome 真跑，不是目测）
 
