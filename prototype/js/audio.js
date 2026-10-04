@@ -33,15 +33,26 @@ function ensureContext() {
   return audioContext;
 }
 
-/** 浏览器要求先有用户手势才能出声；在首次点击/按键时解锁一次 */
+/** 浏览器要求先有用户手势才能出声；在首次点击/按键时解锁一次，并**补播被掐掉的那句** */
 export function attachUnlock() {
   const unlock = () => {
+    const wasLocked = !unlocked;
     unlocked = true;
     const ctx = ensureContext();
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (wasLocked && pendingUnlock) {
+      const p = pendingUnlock;
+      pendingUnlock = null;
+      window.setTimeout(() => speak(p.text, { ...p.opts, force: true }), 80);
+    }
   };
   window.addEventListener('pointerdown', unlock, { once: true });
   window.addEventListener('keydown', unlock, { once: true });
+}
+
+/** 是否已经拿到用户手势（装配层用来提示"点一下才出声"） */
+export function isUnlocked() {
+  return unlocked;
 }
 
 export function setEnabled(flag) {
@@ -119,6 +130,16 @@ let clipAudio = null;
 /** v1.13：语音队列 —— 正在播的话**绝不打断**，新的排到后面（照搬 YuMi-06 `0000000/index.html` 的修复） */
 const voiceQueue = [];
 let playing = false;
+<<<<<<< HEAD
+=======
+/**
+ * v1.14：**被浏览器自动播放策略掐掉的那一句**。
+ * 页面还没有任何用户手势时，`new Audio().play()` 与 `speechSynthesis.speak()` 都可能被拒，
+ * 而"到吃药时间"是**自动发生**的（没人点过页面）——于是用户什么也听不到。
+ * 这里把它记下来，首次点击/按键时补播一次。
+ */
+let pendingUnlock = null;
+>>>>>>> 0000000
 
 /** 选一个最像童声的中文音色（TTS 兜底用） */
 export function pickChildVoice() {
@@ -138,7 +159,8 @@ export function getVoiceName() {
   return zhVoice ? zhVoice.name : null;
 }
 
-function tts(text, { pitch, rate }, done) {
+/** `onBlocked`：这句被浏览器自动播放策略掐掉时回调（用于"首次点击后补播"） */
+function tts(text, { pitch, rate, onBlocked = null }, done) {
   if (!hasTTS()) { if (done) done(); return; }
   try {
     window.speechSynthesis.cancel();
@@ -148,9 +170,10 @@ function tts(text, { pitch, rate }, done) {
     utterance.pitch = pitch;
     if (zhVoice) utterance.voice = zhVoice;
     utterance.onend = () => { if (done) done(); };
-    utterance.onerror = () => { if (done) done(); };
+    utterance.onerror = () => { if (onBlocked) onBlocked(); if (done) done(); };
     window.speechSynthesis.speak(utterance);
   } catch (err) {
+    if (onBlocked) onBlocked();
     if (done) done();
   }
 }
@@ -174,7 +197,12 @@ function playNow(text, opts) {
     const next = voiceQueue.shift();
     if (next) playNow(next.text, next.opts);
   };
+<<<<<<< HEAD
   const fallback = () => tts(text, { pitch, rate }, done);
+=======
+  const remember = () => { if (!unlocked) pendingUnlock = { text, opts }; };
+  const fallback = () => tts(text, { pitch, rate, onBlocked: remember }, done);
+>>>>>>> 0000000
 
   if (!clip || !USE_CLIPS || typeof window === 'undefined' || typeof window.Audio !== 'function') {
     fallback();
@@ -193,9 +221,16 @@ function playNow(text, opts) {
       }
     };
     a.onended = done;
+<<<<<<< HEAD
     a.onerror = () => { clipAudio = null; fallback(); };
     a.play().catch(() => { clipAudio = null; fallback(); });
   } catch (err) {
+=======
+    a.onerror = () => { clipAudio = null; remember(); fallback(); };
+    a.play().catch(() => { clipAudio = null; remember(); fallback(); });
+  } catch (err) {
+    remember();
+>>>>>>> 0000000
     fallback();
   }
 }
@@ -235,5 +270,9 @@ export function playChannel(channel) {
 
 export const audio = {
   attachUnlock, setEnabled, isEnabled, hasTTS, speak, chime: playChannel, pickChildVoice, getVoiceName,
+<<<<<<< HEAD
   pendingSpeeches,
+=======
+  pendingSpeeches, isUnlocked,
+>>>>>>> 0000000
 };

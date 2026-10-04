@@ -728,16 +728,16 @@ const TAKE_NEXT = {
 const TAKE_KEYS = [
   { t: 0.00, r: [0.00, 0.00, 0.00], l: [0.00, 0.00, 0.00], headX: 0.00, headY: 0.00, neckX: 0.00, spineX: 0.00 },
   // ① reach：右臂前伸到托盘（这一步的位移最大，肉眼一眼能看见）
-  { t: 0.70, r: [0.05, -0.01, -0.70], l: [0.00, 0.00, 0.00], headX: 0.14, headY: 0.04, neckX: 0.05, spineX: 0.03 },
+  { t: 0.70, r: [0.06, -0.02, -0.95], l: [0.00, 0.00, 0.00], headX: 0.34, headY: 0.04, neckX: 0.10, spineX: 0.30 },
   // ② cup：手在托盘上端住杯子（肘略收，像握住杯身）
-  { t: 1.20, r: [-0.21, -0.05, -0.40], l: [0.00, 0.00, 0.00], headX: 0.10, headY: 0.04, neckX: 0.03, spineX: 0.02 },
+  { t: 1.20, r: [-0.24, -0.06, -0.52], l: [0.00, 0.00, 0.00], headX: 0.30, headY: 0.04, neckX: 0.09, spineX: 0.32 },
   // ③ drink：举到嘴边（低头就杯）→ 喝一口（再低一点）→ 抬回来
   { t: 1.75, r: [-0.29, -1.50, -1.84], l: [0.00, -0.30, -0.90], headX: 0.17, headY: -0.16, neckX: 0.04, spineX: 0.02 },
   { t: 2.08, r: [-0.36, -1.50, -1.96], l: [0.00, -0.34, -0.95], headX: 0.26, headY: -0.18, neckX: 0.06, spineX: 0.03 },
   { t: 2.34, r: [-0.29, -1.50, -1.82], l: [0.00, -0.30, -0.90], headX: 0.14, headY: -0.16, neckX: 0.03, spineX: 0.02 },
   { t: 2.50, r: [-0.30, -1.50, -1.86], l: [0.00, -0.30, -0.90], headX: 0.18, headY: -0.16, neckX: 0.04, spineX: 0.02 },
   // ④ pill：放下杯子、手回托盘拿药 → 送到嘴边 → 仰头咽下
-  { t: 2.95, r: [-0.12, -0.02, -0.50], l: [0.00, 0.00, 0.00], headX: 0.16, headY: 0.02, neckX: 0.05, spineX: 0.04 },
+  { t: 2.95, r: [-0.14, -0.03, -0.72], l: [0.00, 0.00, 0.00], headX: 0.32, headY: 0.02, neckX: 0.10, spineX: 0.30 },
   { t: 3.35, r: [-0.34, -1.50, -1.92], l: [0.00, -0.14, -0.40], headX: 0.12, headY: -0.12, neckX: 0.03, spineX: 0.02 },
   { t: 3.60, r: [-0.36, -1.50, -1.96], l: [0.00, -0.16, -0.44], headX: -0.10, headY: -0.10, neckX: -0.02, spineX: 0.01 },
   // ⑤ done：回自然姿态（偏移归零 → 与动作前逐位相同）
@@ -821,6 +821,13 @@ export function createPerson(sceneApi) {
 
   /** 动作链进度（表现层，不是业务状态；`eventId` 只是原样带过来给外部对账） */
   const action = { active: false, eventId: null, phase: 'idle', t: 0, elapsed: 0 };
+
+  /** v1.14：托盘的世界坐标（装配层给）——她"上前一步够托盘"时朝它走；`null` = 不动 */
+  let takeTarget = null;
+  function setTakeTarget(p) {
+    takeTarget = p && Number.isFinite(p.x) && Number.isFinite(p.z) ? { x: p.x, z: p.z } : null;
+    return takeTarget;
+  }
 
   /** 收尾：偏移归零、相位回 idle */
   function endTake() {
@@ -1047,6 +1054,32 @@ export function createPerson(sceneApi) {
     }
     root.rotation.y = view.facing;
 
+    /* v1.14：**上前一步去够托盘**（纯表现层位移，不改 `presence`）。
+     * 场景给的停靠点是"绕开家具能站"的位置，她坐/站在沙发那侧时实测离机器人 ~1.26 m，
+     * 纯伸手（臂长 ~0.6 m）够不到托盘 —— 用户口径「奶奶需要伸手拿托盘上的药」。
+     * 做法：把 `body`（root 内的姿态组，不参与走位积分）朝托盘方向平移一段，
+     * 目标是「她到托盘 ≈ 0.45 m」；坐姿时只挪 0.25 m（坐着挪太多会像滑行），站姿最多 0.75 m。
+     * 位移随动作链进出平滑（起步从 0 长出来、结束缩回 0），动作一结束就精确回位。 */
+    if (action.active && takeTarget) {
+      const tx = takeTarget.x - root.position.x;
+      const tz = takeTarget.z - root.position.z;
+      const td = Math.hypot(tx, tz) || 1;
+      const cap = conf.pose === 'sit' ? 0.62 : 0.92;
+      const want = Math.min(cap, Math.max(0, td - 0.42));
+      const u = Math.min(1, action.elapsed / 0.75) * Math.min(1, (TAKE_TOTAL - action.elapsed) / 0.7);
+      const stepLen = want * Math.max(0, u);
+      const wx = (tx / td) * stepLen;
+      const wz = (tz / td) * stepLen;
+      const c = Math.cos(view.facing);
+      const s = Math.sin(view.facing);
+      body.position.x = wx * c - wz * s; // 世界位移 → root 局部（绕 y 转 -facing）
+      body.position.z = wx * s + wz * c;
+      view.facing = lerpAngle(view.facing, Math.atan2(tx, tz), 1 - Math.exp(-step * 5));
+    } else if (body.position.x !== 0 || body.position.z !== 0) {
+      body.position.x = 0;
+      body.position.z = 0;
+    }
+
     // 关节角度插值：起坐/躺下都是连续动作，不是瞬间跳变
     const target = targetFor(conf, view);
     const rate = view.moving ? 16 : 9;
@@ -1072,7 +1105,13 @@ export function createPerson(sceneApi) {
     apply();
   }
 
-  const api = { group: root, update, id: 'wang-ayi', beginTake, getAction };
+  /** v1.14：**右手掌心节点**（只读）—— 装配层把机器人托盘上的杯子 `attach` 到这里，
+   * 「端杯子喝水」才真的看得见（否则只是手臂在动、杯子原地消失）。 */
+  function getHandAnchor() {
+    return root.getObjectByName('wang-ayi-hand-r') || null;
+  }
+
+  const api = { group: root, update, id: 'wang-ayi', beginTake, getAction, getHandAnchor, setTakeTarget };
   /**
    * 自动化入口（无头探针 / 录屏脚本用）：`object3D.userData.person` 直接拿到同一组 API。
    * 只是把**已经导出**的接口挂到场景图上的角色对象上，不额外放宽任何权限、不新增业务规则。

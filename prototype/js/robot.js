@@ -7,13 +7,13 @@
  * 它只做四件事：走到人的位置、**开舱把药盘推出来递药**、提示时发光、空闲回充电座。
  * 「到点该不该送」「送完算不算确认」全部由 H 的 machine.js 决定 —— 本文件不判断业务。
  *
- * ── 造型依据（v1.10：本体换成用户给的 PR #2 版本；v1.13：与 YuMi-06 版合并）
+ * ── 造型依据（v1.10：本体换成用户给的 PR #2 版本；v1.14：与 YuMi-06 版合并）
  * 来源：`liuchun878/elder-protecter` **PR #2** 的 `suite-3d/robot/index.html`
  *       （提交 `6cc1321`「门开到 90°」、`af7def5`「先收托盘·再关门」）；
- *       **v1.13 合并来源：YuMi-06 的 `0000000/index.html`**（该文件与 `111111.00/index.html`
+ *       **v1.14 合并来源：YuMi-06 的 `0000000/index.html`**（该文件与 `111111.00/index.html`
  *       逐字节相同，已合入本地；机器人在它的第 100–262 行，时序在 264–458 行）。
  *       我们本地早先那版把它当成"错误的老版本"——用户裁定：**YuMi-06 那台才是对的**，
- *       于是把它的三个能力补回本文件（见下"v1.13 从 YuMi-06 补回"）。
+ *       于是把它的三个能力补回本文件（见下"v1.14 从 YuMi-06 补回"）。
  * 照搬的结构（**只借结构，不借资产**：全部是 Lathe / Box / Cylinder / Extrude 拼的，
  * 仓库里不落任何 CAD 文件、网格或贴图 —— 红线：断网可用、无外部模型资产）：
  *   ① **蛋形回转体机身**：高 0.500 m、最大半径 0.190 m，一条侧轮廓 `LatheGeometry` 一次成型；
@@ -27,7 +27,7 @@
  *   前发光条 / 肩灯（提示通道三件套）、车尾充电触点、位置感应光锥、
  *   「沿可通行折线走到人跟前 / 回桩充电 / 回桩朝向」的行为。
  *
- * ── v1.13 从 YuMi-06 的 `0000000/index.html` 补回来的三样 ─────────────
+ * ── v1.14 从 YuMi-06 的 `0000000/index.html` 补回来的三样 ─────────────
  *   ① **注水机构**（该文件 227–230 行）：一道细水流 `stream` 落在杯口正上方；杯里的水
  *      `water.scale.y` 初始 0.001，注水时涨到 0.8 之后停住。水杯尺寸 `CR=0.026 / CH=0.068`、
  *      杯位 `(0.030, 0.007, 0.052)` 与本文件完全一致，故几何一条没改、只补了水流与水位。
@@ -47,7 +47,7 @@
  *      且「她拿杯/拿药」由装配层 `main.js` 通过 `robot.setCargo()` 通知，故不引入假手。
  *   ③ 保留我们的差速轮底座与充电触点：这是台会走的机器人，`navgrid` 半径与充电桩都按它有底盘算。
  *
- * ── `setCargo({ cupTaken, pillTaken })`（v1.13 新增给装配层的小接口）──
+ * ── `setCargo({ cupTaken, pillTaken })`（v1.14 新增给装配层的小接口）──
  *   老人「拿杯 / 拿药」的动作在 `person.js`、装配在 `main.js`。这两个开关**只改可见性**
  *   （取走 → `visible = false`），不参与任何业务判断，也不回写 state。
  */
@@ -74,8 +74,9 @@ const PROFILE = [
 const DOOR_PROFILE = [[DOOR.y0, 0.1952], [0.235, 0.1950], [DOOR.y1, 0.1912]];
 
 const SPEED = 1.2; // m/s（预置路径动画，不宣称导航能力）
+const DELIVER_RANGE = 0.55; // v1.14：递药时与她保持的距离（米）——托盘前伸 0.2 m 后落进她伸手范围内
 const OPEN_TIME = 0.9; // 从"收好"到"递到位"的全程时间，秒
-// v1.13（YuMi-06 `0000000/index.html` 第 227–230、394–397 行）：注水约 2.5 s，
+// v1.14（YuMi-06 `0000000/index.html` 第 227–230、394–397 行）：注水约 2.5 s，
 // 水面从 0.001 涨到 0.8 就停住（`water.scale.y` 是视觉量，不是业务量）。
 const POUR_TIME = 2.5;
 const WATER_TOP = 0.8;
@@ -418,7 +419,7 @@ function buildRobot() {
   box(0.024, 0.004, 0.024, M.pad, 0.006, 0.010, 0.106, tray);
   cyl(0.014, 0.014, 0.026, M.pad, 0.040, 0.021, 0.100, tray, 18).rotation.z = Math.PI / 2;
 
-  /* ══ ⑥a 注水水流（v1.13 · 照搬 YuMi-06 `0000000/index.html` 第 227–230 行）══
+  /* ══ ⑥a 注水水流（v1.14 · 照搬 YuMi-06 `0000000/index.html` 第 227–230 行）══
    * 一道细水流，落在杯口正上方；注水时 `visible = true`，注满即关。
    * 它挂在机身（不是托盘）上，z=0.272 是杯子推到最外时杯口的位置。
    */
@@ -510,7 +511,7 @@ function buildRobot() {
 
   return {
     group, ring, strip, beacon, beam, doorL, doorR, tray, screen, screenMat, drawScreen, wheels, scrLed,
-    stream, water, cup, cupBottom, pills, pillBox,   // v1.13：注水与「取走后收走」的货
+    stream, water, cup, cupBottom, pills, pillBox,   // v1.14：注水与「取走后收走」的货
     // 托盘上会随托盘一起"搬进搬出"的东西（不含杯子/药：它们由 setCargo 单独管可见性）
     cargo: [cup, cupBottom, water, pills, pillBox, stream],
   };
@@ -551,12 +552,21 @@ export function createRobot(sceneApi) {
   function applyCargo() {
     const out = view.tray > 0.02;
     const showCup = out && !taken.cup;
-    cup.visible = showCup;
-    cupBottom.visible = showCup;
-    water.visible = showCup && water.scale.y > 0.006;
+    // v1.14：杯子被装配层 `attach` 到她手上之后（parent 不再是托盘），本文件**不再管它的可见性** ——
+    // 否则「她端着杯子喝水」会被这里每帧设成 invisible。
+    if (cup.parent === tray) {
+      cup.visible = showCup;
+      cupBottom.visible = showCup;
+      water.visible = showCup && water.scale.y > 0.006;
+    }
     pills.visible = out && !taken.pills;
     pillBox.visible = out && !taken.pills;
     stream.visible = out && !taken.cup && view.pour > 0.001 && !view.filled;
+  }
+
+  /** v1.14：货架上的节点（只读）——装配层把杯子 attach 到她手上时要用 */
+  function getCargoNodes() {
+    return { cup, cupBottom, water, pills, pillBox, tray };
   }
 
   /** 把进度摆到机构上（对开门绕外侧竖边摆开 + 托盘沿导轨前伸 + 水位） */
@@ -642,7 +652,26 @@ export function createRobot(sceneApi) {
     const attending = Boolean(seat);
     const nearby = carrying || attending;
 
-    const target = nearby ? sceneApi.getApproachPoint(location, seat) : dock;
+    // v1.14：**递药时贴身停下** —— 场景给的停靠点是「绕开家具能站」的位置，实测离她 ~0.9 m，
+    // 她伸手够不到托盘（用户口径「奶奶需要伸手拿托盘上的药」）。所以在同一条
+    // 「她 → 停靠点」的方向上再往前走一段，走到 ≈0.55 m；**只在可通行网格允许时才往前**，
+    // 不允许（例如她坐进沙发、再往前是家具）就退回场景给的停靠点。这不是业务判据。
+    const stand = nearby ? sceneApi.getApproachPoint(location, seat) : null;
+    let target = nearby ? stand : dock;
+    if (carrying && stand) {
+      const person = seat || sceneApi.getWaypoint(location);
+      if (person) {
+        const dx = stand.x - person.x;
+        const dz = stand.z - person.z;
+        const d = Math.hypot(dx, dz) || 1;
+        if (d > DELIVER_RANGE) {
+          const k = DELIVER_RANGE / d;
+          const closer = { x: person.x + dx * k, z: person.z + dz * k };
+          const ok = typeof sceneApi.isWalkable !== 'function' || sceneApi.isWalkable(closer.x, closer.z);
+          if (ok) target = closer;
+        }
+      }
+    }
 
     const arrived = stepTowards(target, dt);
 
@@ -669,7 +698,7 @@ export function createRobot(sceneApi) {
       if (view.tray <= 0.02) view.door -= Math.min(step * 1.2, view.door); // 托盘进舱才关门
     }
 
-    /* 注水（v1.13 · YuMi-06 `0000000/index.html` 的时序：**机器人停下来、杯口到位之后先注水，
+    /* 注水（v1.14 · YuMi-06 `0000000/index.html` 的时序：**机器人停下来、杯口到位之后先注水，
      * 再进入递药**；注水约 2.5 s，注完关水流、水面停在 0.8。
      * 触发条件只有三个，全部来自 state 或纯视觉进度，**没有新增任何业务判据**：
      *   ① `carrying` = Boolean(state.activeEventId)  ② `arrived` ③ 她还没把杯子取走（setCargo 的可见性开关）
@@ -730,7 +759,7 @@ export function createRobot(sceneApi) {
     strip.material.emissiveIntensity = (carrying ? 0.9 + 0.4 * Math.sin(view.pulse * 3) : 0.55) * dim;
     strip.material.color.setHex(tone);
     strip.material.emissive.setHex(tone);
-    // 屏幕表情（v1.13 照抄 YuMi-06 的 drawScreen）：**蓝眼睛+横线** →「取走后」**绿眼睛+笑弧**
+    // 屏幕表情（v1.14 照抄 YuMi-06 的 drawScreen）：**蓝眼睛+横线** →「取走后」**绿眼睛+笑弧**
     //   waiting 待命 / 递药中（含注水中）—— 青蓝（夜里递药走 WARM 暖光）
     //   taken   她已取走（`setCargo({cupTaken:true})`）或托盘正在收 —— 绿
     //   off     夜晚待命 —— 熄灭
@@ -757,7 +786,13 @@ export function createRobot(sceneApi) {
     beacon.material.emissiveIntensity = (carrying ? 0.9 : 0.25) * dim;
   }
 
-  return { group, update, setCargo, id: 'robot' };
+  /** v1.14：水注好了没有（**只读**）——装配层用它把关"注完水再让她拿杯子"。
+   * 只是把 `view.filled` 读出去，不参与任何业务判断。 */
+  function isPoured() {
+    return view.filled;
+  }
+
+  return { group, update, setCargo, isPoured, getCargoNodes, id: 'robot' };
 }
 
 export const robot = { createRobot };

@@ -223,11 +223,14 @@ export function mountHud(root) {
         spokenAttemptKey = attemptKey;
         const isRenotify = event.attempts.length > lastAttemptCount && lastAttemptCount > 0;
         // v1.11：到点提醒与再次提醒都用**童声**（用户口径：「机器人走到奶奶身边督促吃药，声音是童声」）
+        // v1.14：**到点这一句改播用户录的童声 `p1`**（"该吃药啦……"）。原先它走合成语音，
+        //        页面在被点过之前会被浏览器自动播放策略掐掉 → 用户实测"到吃药时间没有声音"。
+        //        再次提醒换的是措辞，故不带 clip。
         audio.speak(
           isRenotify
             ? `提醒${event.attempts.length === 2 ? '第二' : '第三'}次，${speechText(event.slotTime, spoken.plan)}，还没有取走`
             : speechText(event.slotTime, spoken.plan),
-          { force: true, style: 'child' },
+          { force: true, style: 'child', clip: isRenotify ? null : 'p1' },
         );
         audio.chime(attempt.channel);
         lastAttemptCount = event.attempts.length;
